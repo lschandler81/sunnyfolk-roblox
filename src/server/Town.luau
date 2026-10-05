@@ -162,7 +162,7 @@ local function footpath(a: Vector3, b: Vector3, width: number, top: number?)
 	a, b = flat(a), flat(b)
 	local length = (b - a).Magnitude
 	local at = CFrame.lookAt((a + b) / 2, b) + Vector3.new(0, (top or 0.07) - 0.05, 0)
-	block(Vector3.new(width * S, 0.1, length), at, C.path, { CanCollide = false })
+	block(Vector3.new(width * S, 0.1, length), at, C.path)
 	table.insert(paths, { a = a, b = b, w = width * S })
 end
 
@@ -223,10 +223,11 @@ local function plaza()
 	block(Vector3.new(1600, 4, 1600), CFrame.new(0, -2, 0), C.grass)
 	local k = Config.PLAZA_R / 10
 	local function ring(radius: number, top: number, color: Color3)
-		cylinder(radius * k * S, 0.1, CFrame.new(0, top - 0.05, 0), color, { CanCollide = false })
+		cylinder(radius * k * S, 0.1, CFrame.new(0, top - 0.05, 0), color)
 	end
 	-- Flat layers are kept at least 0.04 studs apart, or the screen can't tell which is on top:
-	-- plots 0.03, footpaths 0.07, roads 0.11, then the paving rings.
+	-- plots 0.03, footpaths 0.07, roads 0.11, then the paving rings. They're all solid, so
+	-- feet stand on top of them rather than sinking in.
 	ring(10.6, 0.15, C.stoneDark)
 	ring(10, 0.19, C.plaza)
 	ring(7.7, 0.23, C.creamDeep)
@@ -237,7 +238,7 @@ local function plaza()
 	for i = 0, 19 do
 		local inner, outer = 4.8 * k, 7.4 * k
 		local mid = Config.polar(i * 18 + 9, (inner + outer) / 2)
-		block(Vector3.new(0.25 * S, 0.1, (outer - inner) * S), yawAt(mid + Vector3.new(0, 0.24, 0), Config.faceIn(i * 18 + 9)), C.creamDeep, { CanCollide = false })
+		block(Vector3.new(0.25 * S, 0.1, (outer - inner) * S), yawAt(mid + Vector3.new(0, 0.24, 0), Config.faceIn(i * 18 + 9)), C.creamDeep)
 	end
 	keepClear(Vector3.zero, Config.PLAZA_R + 2)
 
@@ -491,7 +492,7 @@ local function homePond(): { CFrame }
 	local step = (360 - H.wayIn) / H.plots
 	for k = 0, H.plots - 1 do
 		local plot = around(H.wayIn / 2 + step * (k + 0.5), H.plotR) * CFrame.Angles(0, math.pi, 0) -- facing the pond
-		block(Vector3.new(9.2, 0.1, 11.5) * S, plot * CFrame.new(0, -0.02, 2 * S), C.grassDark, { CanCollide = false })
+		block(Vector3.new(9.2, 0.1, 11.5) * S, plot * CFrame.new(0, -0.02, 2 * S), C.grassDark)
 		footpath((plot * CFrame.new(0, 0, 2.6 * S)).Position, (plot * CFrame.new(0, 0, (H.plotR - H.ringR - 1) * S)).Position, 1.6)
 		keepClear(plot.Position, 5)
 		keepClear((plot * CFrame.new(0, 0, 5.5 * S)).Position, 3.5)

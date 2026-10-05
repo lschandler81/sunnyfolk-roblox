@@ -54,10 +54,12 @@ each mesh to the body part in its name.
    - set the file's units/dimensions to **studs**, so nothing gets rescaled;
    - keep it as **one model** with its groups (don't merge the meshes).
 3. Check it: the capybara should be about 5.3 studs tall, with its face looking towards -Z.
-4. Put the imported models in a folder such as `ReplicatedStorage.SunnyfolkModels`.
-5. To keep them in this repository, right-click each model → **Save to File**. Save it as `.rbxm`
-   into `assets/models/`. Then point Rojo at that folder so they come back whenever the place is
-   rebuilt.
+4. Put the imported models in `ReplicatedStorage.SunnyfolkModels`. Rojo leaves that folder
+   alone, so the models are kept with the place (Rojo can't recreate imported meshes itself).
+5. To keep a backup in this repository, right-click `SunnyfolkModels` → **Save to File** and
+   save it as `.rbxm` into `assets/models/`.
+
+`docs/roblox-studio.md` has the whole setup, step by step.
 
 Studio uploads the meshes and the palette textures to your Roblox account as it imports. That's
 normal, and they stay private to your games. The hats and clothes files are big (about 4 MB

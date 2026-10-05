@@ -1,0 +1,65 @@
+{
+  "name": "Sunnyfolk",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Sunnyfolk": {
+        "$path": "src/shared",
+        "CharacterData": {
+          "$path": "assets/characters/sunnyfolk.json"
+        },
+        "Remotes": {
+          "$className": "Folder",
+          "Play": { "$className": "RemoteEvent" },
+          "CollectCoin": { "$className": "RemoteEvent" },
+          "WearHat": { "$className": "RemoteEvent" },
+          "BuyHat": { "$className": "RemoteFunction" }
+        }
+      },
+      "SunnyfolkModels": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true
+      }
+    },
+
+    "ServerScriptService": {
+      "Sunnyfolk": {
+        "$path": "src/server"
+      }
+    },
+
+    "StarterPlayer": {
+      "$properties": {
+        "CameraMinZoomDistance": 8,
+        "CameraMaxZoomDistance": 60
+      },
+      "StarterPlayerScripts": {
+        "Sunnyfolk": {
+          "$path": "src/client"
+        }
+      }
+    },
+
+    "Players": {
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
+    },
+
+    "Lighting": {
+      "$properties": {
+        "ClockTime": 14.5,
+        "GeographicLatitude": 25,
+        "Brightness": 2.4,
+        "Ambient": [0.45, 0.45, 0.45],
+        "OutdoorAmbient": [0.62, 0.6, 0.56],
+        "ColorShift_Top": [1, 0.96, 0.88],
+        "EnvironmentDiffuseScale": 0.4,
+        "EnvironmentSpecularScale": 0.15,
+        "ShadowSoftness": 0.6,
+        "ExposureCompensation": 0.1
+      }
+    }
+  }
+}

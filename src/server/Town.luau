@@ -555,7 +555,9 @@ local function edge()
 		for i = 0, walls - 1 do
 			local angle = (i + 0.5) / walls * 360
 			local spot = circle.centre + Config.polar(angle, r + 0.3)
-			if not inside(spot, width / S / 2) then
+			-- leave out pieces that are wholly inside the other circle (where the two join)
+			local along = Config.polar(angle + 90, 1).Unit * width / 2
+			if not (inside(spot - along, 0) and inside(spot + along, 0)) then
 				block(Vector3.new(width, 60, 2), yawAt(spot + Vector3.new(0, 30, 0), Config.faceIn(angle)), C.leaf, {
 					Transparency = 1,
 					CanQuery = false,

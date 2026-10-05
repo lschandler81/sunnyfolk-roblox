@@ -1,0 +1,1844 @@
+{
+  "about": "Sunnyfolk characters for Roblox. Made by tools/roblox/export.js in lschandler81/game. Positions are in studs, standing at the origin, facing -Z.",
+  "studsPerGameUnit": 2.8,
+  "outline": {
+    "color": "#2b2622",
+    "note": "<Part>_detail meshes include the dark outline shell; it needs no special handling."
+  },
+  "animals": {
+    "capybara": {
+      "name": "Capybara",
+      "starter": true,
+      "unlockedByBestFriendsWith": null,
+      "files": [
+        "capybara.glb",
+        "capybara-hats.glb",
+        "capybara-clothes.glb"
+      ],
+      "roles": {
+        "fur": "#c98b52",
+        "furDark": "#a8693e",
+        "snout": "#e8b07a",
+        "belly": "#f3d6aa"
+      },
+      "coats": [
+        {
+          "id": "toffee",
+          "name": "Toffee",
+          "colors": {
+            "fur": "#c98b52",
+            "furDark": "#a8693e",
+            "snout": "#e8b07a",
+            "belly": "#f3d6aa"
+          }
+        },
+        {
+          "id": "honey",
+          "name": "Honey",
+          "colors": {
+            "fur": "#d9a35e",
+            "furDark": "#b9803f",
+            "snout": "#f0c58c",
+            "belly": "#f7e0b8"
+          }
+        },
+        {
+          "id": "cocoa",
+          "name": "Cocoa",
+          "colors": {
+            "fur": "#9a6a48",
+            "furDark": "#7a4f33",
+            "snout": "#c79570",
+            "belly": "#e6c39c"
+          }
+        },
+        {
+          "id": "cream",
+          "name": "Cream",
+          "colors": {
+            "fur": "#e2c08f",
+            "furDark": "#c49d6a",
+            "snout": "#f2dbb2",
+            "belly": "#faecd2"
+          }
+        },
+        {
+          "id": "ash",
+          "name": "Ash",
+          "colors": {
+            "fur": "#a38f7f",
+            "furDark": "#82705f",
+            "snout": "#cdb9a4",
+            "belly": "#e8dccb"
+          }
+        },
+        {
+          "id": "ginger",
+          "name": "Ginger",
+          "colors": {
+            "fur": "#d47f4f",
+            "furDark": "#b0613a",
+            "snout": "#eea47a",
+            "belly": "#f6d0b0"
+          }
+        }
+      ],
+      "pivots": {
+        "Torso": [
+          0,
+          0,
+          0
+        ],
+        "Head": [
+          0,
+          3.752,
+          -0.392
+        ],
+        "RightArm": [
+          1.316,
+          3.136,
+          -0.336
+        ],
+        "LeftArm": [
+          -1.316,
+          3.136,
+          -0.336
+        ],
+        "RightLeg": [
+          0.7,
+          1.176,
+          0
+        ],
+        "LeftLeg": [
+          -0.7,
+          1.176,
+          0
+        ],
+        "RightEye": [
+          0.9403,
+          4.8762,
+          -1.3023
+        ],
+        "LeftEye": [
+          -0.9403,
+          4.8762,
+          -1.3023
+        ]
+      },
+      "joints": {
+        "note": "Torso, head and arms move together as the body (it bobs as you walk); the legs hang from the root. The eyes blink by squashing them flat (scale Y).",
+        "Torso": "Root",
+        "Head": "Torso",
+        "RightArm": "Torso",
+        "LeftArm": "Torso",
+        "RightLeg": "Root",
+        "LeftLeg": "Root",
+        "RightEye": "Head",
+        "LeftEye": "Head"
+      },
+      "sitLift": 0,
+      "paws": [
+        [
+          1.456,
+          1.96,
+          -0.616
+        ],
+        [
+          -1.456,
+          1.96,
+          -0.616
+        ]
+      ]
+    },
+    "bunny": {
+      "name": "Bunny",
+      "starter": true,
+      "unlockedByBestFriendsWith": null,
+      "files": [
+        "bunny.glb",
+        "bunny-hats.glb",
+        "bunny-clothes.glb"
+      ],
+      "roles": {
+        "fur": "#ae846c",
+        "dark": "#8d6552",
+        "ear": "#eaa08c",
+        "mouth": "#d9655a"
+      },
+      "coats": [
+        {
+          "id": "brown",
+          "name": "Brown",
+          "colors": {
+            "fur": "#ae846c",
+            "dark": "#8d6552",
+            "ear": "#eaa08c"
+          }
+        },
+        {
+          "id": "snow",
+          "name": "Snowy",
+          "colors": {
+            "fur": "#f4efe8",
+            "dark": "#d9d0c4",
+            "ear": "#f2a6b0"
+          }
+        },
+        {
+          "id": "grey",
+          "name": "Grey",
+          "colors": {
+            "fur": "#a9a6a6",
+            "dark": "#86817f",
+            "ear": "#eaa08c"
+          }
+        },
+        {
+          "id": "honey",
+          "name": "Honey",
+          "colors": {
+            "fur": "#d9a35e",
+            "dark": "#b9803f",
+            "ear": "#f0b69a"
+          }
+        },
+        {
+          "id": "cream",
+          "name": "Cream",
+          "colors": {
+            "fur": "#ead6b4",
+            "dark": "#cdb48d",
+            "ear": "#f2a6a0"
+          }
+        },
+        {
+          "id": "night",
+          "name": "Night",
+          "colors": {
+            "fur": "#4a4440",
+            "dark": "#332e2b",
+            "ear": "#e08f86"
+          }
+        }
+      ],
+      "pivots": {
+        "Torso": [
+          0,
+          0,
+          0
+        ],
+        "Head": [
+          0,
+          3.458,
+          -0.1064
+        ],
+        "RightArm": [
+          1.2236,
+          2.926,
+          -0.266
+        ],
+        "LeftArm": [
+          -1.2236,
+          2.926,
+          -0.266
+        ],
+        "RightLeg": [
+          0.6384,
+          1.064,
+          0
+        ],
+        "LeftLeg": [
+          -0.6384,
+          1.064,
+          0
+        ],
+        "RightEye": [
+          0.5852,
+          4.7348,
+          -1.1177
+        ],
+        "LeftEye": [
+          -0.5852,
+          4.7348,
+          -1.1177
+        ]
+      },
+      "joints": {
+        "note": "Torso, head and arms move together as the body (it bobs as you walk); the legs hang from the root. The eyes blink by squashing them flat (scale Y).",
+        "Torso": "Root",
+        "Head": "Torso",
+        "RightArm": "Torso",
+        "LeftArm": "Torso",
+        "RightLeg": "Root",
+        "LeftLeg": "Root",
+        "RightEye": "Head",
+        "LeftEye": "Head"
+      },
+      "sitLift": 0.16,
+      "paws": [
+        [
+          1.3566,
+          1.8088,
+          -0.532
+        ],
+        [
+          -1.3566,
+          1.8088,
+          -0.532
+        ]
+      ]
+    },
+    "guineapig": {
+      "name": "Guinea pig",
+      "starter": true,
+      "unlockedByBestFriendsWith": null,
+      "files": [
+        "guineapig.glb",
+        "guineapig-hats.glb",
+        "guineapig-clothes.glb",
+        "guineapig-grumpy.glb (Chef Pepper's face)"
+      ],
+      "roles": {
+        "fur": "#f6e3c0",
+        "patch": "#cf6a3c",
+        "pink": "#f0a08c"
+      },
+      "coats": [
+        {
+          "id": "ginger",
+          "name": "Ginger patch",
+          "colors": {
+            "fur": "#f6e3c0",
+            "patch": "#cf6a3c"
+          }
+        },
+        {
+          "id": "panda",
+          "name": "Black patch",
+          "colors": {
+            "fur": "#f8f4ee",
+            "patch": "#3b3533"
+          }
+        },
+        {
+          "id": "toffee",
+          "name": "Toffee",
+          "colors": {
+            "fur": "#d98a4e",
+            "patch": "#f6e3c0"
+          }
+        },
+        {
+          "id": "choc",
+          "name": "Chocolate",
+          "colors": {
+            "fur": "#9a6a48",
+            "patch": "#f6e3c0"
+          }
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "colors": {
+            "fur": "#c9c5c0",
+            "patch": "#6e6a66"
+          }
+        }
+      ],
+      "pivots": {
+        "Torso": [
+          0,
+          0,
+          0
+        ],
+        "Head": [
+          0,
+          3.5034,
+          -0.2576
+        ],
+        "RightArm": [
+          1.3653,
+          2.7821,
+          -0.4122
+        ],
+        "LeftArm": [
+          -1.3653,
+          2.7821,
+          -0.4122
+        ],
+        "RightLeg": [
+          0.7213,
+          1.0304,
+          -0.103
+        ],
+        "LeftLeg": [
+          -0.7213,
+          1.0304,
+          -0.103
+        ],
+        "RightEye": [
+          0.5152,
+          4.4822,
+          -1.4934
+        ],
+        "LeftEye": [
+          -0.5152,
+          4.4822,
+          -1.4934
+        ]
+      },
+      "joints": {
+        "note": "Torso, head and arms move together as the body (it bobs as you walk); the legs hang from the root. The eyes blink by squashing them flat (scale Y).",
+        "Torso": "Root",
+        "Head": "Torso",
+        "RightArm": "Torso",
+        "LeftArm": "Torso",
+        "RightLeg": "Root",
+        "LeftLeg": "Root",
+        "RightEye": "Head",
+        "LeftEye": "Head"
+      },
+      "sitLift": 0.052,
+      "paws": [
+        [
+          1.4941,
+          1.7002,
+          -0.6698
+        ],
+        [
+          -1.4941,
+          1.7002,
+          -0.6698
+        ]
+      ]
+    },
+    "duck": {
+      "name": "Duck",
+      "starter": false,
+      "unlockedByBestFriendsWith": [
+        "puddles"
+      ],
+      "files": [
+        "duck.glb",
+        "duck-hats.glb",
+        "duck-clothes.glb"
+      ],
+      "roles": {
+        "fur": "#f7c46a",
+        "dark": "#f0a24e",
+        "bill": "#f08c46",
+        "mouth": "#c94a3e"
+      },
+      "coats": [
+        {
+          "id": "sunny",
+          "name": "Sunny",
+          "colors": {
+            "fur": "#f7c46a",
+            "dark": "#f0a24e"
+          }
+        },
+        {
+          "id": "white",
+          "name": "White",
+          "colors": {
+            "fur": "#f8f6f0",
+            "dark": "#e2ddd2"
+          }
+        },
+        {
+          "id": "brown",
+          "name": "Brown",
+          "colors": {
+            "fur": "#b08a62",
+            "dark": "#8d6a48"
+          }
+        },
+        {
+          "id": "grey",
+          "name": "Grey",
+          "colors": {
+            "fur": "#b8bcc0",
+            "dark": "#989ca0"
+          }
+        }
+      ],
+      "pivots": {
+        "Torso": [
+          0,
+          0,
+          0
+        ],
+        "Head": [
+          0,
+          3.3516,
+          -0.1064
+        ],
+        "RightArm": [
+          1.33,
+          2.8196,
+          -0.0532
+        ],
+        "LeftArm": [
+          -1.33,
+          2.8196,
+          -0.0532
+        ],
+        "RightLeg": [
+          0.5852,
+          0.9044,
+          0
+        ],
+        "LeftLeg": [
+          -0.5852,
+          0.9044,
+          0
+        ],
+        "RightEye": [
+          1.0533,
+          4.8319,
+          -0.7123
+        ],
+        "LeftEye": [
+          -1.0533,
+          4.8319,
+          -0.7123
+        ]
+      },
+      "joints": {
+        "note": "Torso, head and arms move together as the body (it bobs as you walk); the legs hang from the root. The eyes blink by squashing them flat (scale Y).",
+        "Torso": "Root",
+        "Head": "Torso",
+        "RightArm": "Torso",
+        "LeftArm": "Torso",
+        "RightLeg": "Root",
+        "LeftLeg": "Root",
+        "RightEye": "Head",
+        "LeftEye": "Head"
+      },
+      "sitLift": 0.08,
+      "paws": [
+        [
+          1.5162,
+          1.5428,
+          -0.2128
+        ],
+        [
+          -1.5162,
+          1.5428,
+          -0.2128
+        ]
+      ]
+    },
+    "penguin": {
+      "name": "Penguin",
+      "starter": false,
+      "unlockedByBestFriendsWith": [
+        "pebble",
+        "sprinkles"
+      ],
+      "files": [
+        "penguin.glb",
+        "penguin-hats.glb",
+        "penguin-clothes.glb"
+      ],
+      "roles": {
+        "fur": "#333c46",
+        "face": "#ffffff",
+        "beak": "#f2b244"
+      },
+      "coats": [
+        {
+          "id": "classic",
+          "name": "Classic",
+          "colors": {
+            "fur": "#333c46"
+          }
+        },
+        {
+          "id": "blue",
+          "name": "Blue",
+          "colors": {
+            "fur": "#3f5f8a"
+          }
+        },
+        {
+          "id": "fluffy",
+          "name": "Fluffy grey",
+          "colors": {
+            "fur": "#8f949a"
+          }
+        },
+        {
+          "id": "brown",
+          "name": "Brown",
+          "colors": {
+            "fur": "#5a4436"
+          }
+        },
+        {
+          "id": "purple",
+          "name": "Purple",
+          "colors": {
+            "fur": "#5d4a7a"
+          }
+        }
+      ],
+      "pivots": {
+        "Torso": [
+          0,
+          0,
+          0
+        ],
+        "Head": [
+          0,
+          3.7772,
+          -0.0532
+        ],
+        "RightArm": [
+          1.4896,
+          3.0856,
+          -0.0532
+        ],
+        "LeftArm": [
+          -1.4896,
+          3.0856,
+          -0.0532
+        ],
+        "RightLeg": [
+          0.6384,
+          0.7448,
+          -0.0532
+        ],
+        "LeftLeg": [
+          -0.6384,
+          0.7448,
+          -0.0532
+        ],
+        "RightEye": [
+          0.5586,
+          4.8412,
+          -1.3671
+        ],
+        "LeftEye": [
+          -0.5586,
+          4.8412,
+          -1.3671
+        ]
+      },
+      "joints": {
+        "note": "Torso, head and arms move together as the body (it bobs as you walk); the legs hang from the root. The eyes blink by squashing them flat (scale Y).",
+        "Torso": "Root",
+        "Head": "Torso",
+        "RightArm": "Torso",
+        "LeftArm": "Torso",
+        "RightLeg": "Root",
+        "LeftLeg": "Root",
+        "RightEye": "Head",
+        "LeftEye": "Head"
+      },
+      "sitLift": 0.213,
+      "paws": [
+        [
+          1.7024,
+          1.7024,
+          -0.2128
+        ],
+        [
+          -1.7024,
+          1.7024,
+          -0.2128
+        ]
+      ]
+    },
+    "frog": {
+      "name": "Frog",
+      "starter": false,
+      "unlockedByBestFriendsWith": [
+        "lily",
+        "lotus"
+      ],
+      "files": [
+        "frog.glb",
+        "frog-hats.glb",
+        "frog-clothes.glb"
+      ],
+      "roles": {
+        "fur": "#6a9a50",
+        "dark": "#507d3e",
+        "belly": "#86b266"
+      },
+      "coats": [
+        {
+          "id": "green",
+          "name": "Green",
+          "colors": {
+            "fur": "#6a9a50",
+            "dark": "#507d3e",
+            "belly": "#86b266"
+          }
+        },
+        {
+          "id": "lime",
+          "name": "Lime",
+          "colors": {
+            "fur": "#8cc63f",
+            "dark": "#6fa22f",
+            "belly": "#c4e08a"
+          }
+        },
+        {
+          "id": "blue",
+          "name": "Blue",
+          "colors": {
+            "fur": "#5aa9d8",
+            "dark": "#3f8fc0",
+            "belly": "#a9d6ef"
+          }
+        },
+        {
+          "id": "pink",
+          "name": "Pink",
+          "colors": {
+            "fur": "#e58fb0",
+            "dark": "#c96f92",
+            "belly": "#f6c6d8"
+          }
+        },
+        {
+          "id": "orange",
+          "name": "Orange",
+          "colors": {
+            "fur": "#e8943b",
+            "dark": "#c9762a",
+            "belly": "#f6c88a"
+          }
+        }
+      ],
+      "pivots": {
+        "Torso": [
+          0,
+          0,
+          0
+        ],
+        "Head": [
+          0,
+          3.192,
+          -0.1064
+        ],
+        "RightArm": [
+          1.3832,
+          2.7132,
+          -0.266
+        ],
+        "LeftArm": [
+          -1.3832,
+          2.7132,
+          -0.266
+        ],
+        "RightLeg": [
+          0.7448,
+          1.0108,
+          0
+        ],
+        "LeftLeg": [
+          -0.7448,
+          1.0108,
+          0
+        ],
+        "RightEye": [
+          0.8512,
+          5.1072,
+          -0.7894
+        ],
+        "LeftEye": [
+          -0.8512,
+          5.1072,
+          -0.7894
+        ]
+      },
+      "joints": {
+        "note": "Torso, head and arms move together as the body (it bobs as you walk); the legs hang from the root. The eyes blink by squashing them flat (scale Y).",
+        "Torso": "Root",
+        "Head": "Torso",
+        "RightArm": "Torso",
+        "LeftArm": "Torso",
+        "RightLeg": "Root",
+        "LeftLeg": "Root",
+        "RightEye": "Head",
+        "LeftEye": "Head"
+      },
+      "sitLift": 0.08,
+      "paws": [
+        [
+          1.5162,
+          1.596,
+          -0.532
+        ],
+        [
+          -1.5162,
+          1.596,
+          -0.532
+        ]
+      ]
+    }
+  },
+  "hats": [
+    {
+      "id": "acorn",
+      "name": "Acorn Cap",
+      "price": 0,
+      "kind": "starter"
+    },
+    {
+      "id": "daisy",
+      "name": "Daisy Clip",
+      "price": 0,
+      "kind": "starter"
+    },
+    {
+      "id": "mushroom",
+      "name": "Mushroom Cap",
+      "price": 0,
+      "kind": "starter"
+    },
+    {
+      "id": "cherries",
+      "name": "Cherry Clip",
+      "price": 0,
+      "kind": "starter"
+    },
+    {
+      "id": "leafhat",
+      "name": "Leaf Hat",
+      "price": 0,
+      "kind": "starter"
+    },
+    {
+      "id": "sprout",
+      "name": "Little Sprout",
+      "price": 5,
+      "kind": "shop"
+    },
+    {
+      "id": "yuzu",
+      "name": "Yuzu Topper",
+      "price": 10,
+      "kind": "shop"
+    },
+    {
+      "id": "bow",
+      "name": "Coral Bow",
+      "price": 12,
+      "kind": "shop"
+    },
+    {
+      "id": "beret",
+      "name": "Artist Beret",
+      "price": 15,
+      "kind": "shop"
+    },
+    {
+      "id": "beret-coral",
+      "name": "Coral Beret",
+      "price": 15,
+      "kind": "shop"
+    },
+    {
+      "id": "beanie",
+      "name": "Bobble Hat",
+      "price": 18,
+      "kind": "shop"
+    },
+    {
+      "id": "flowers",
+      "name": "Flower Crown",
+      "price": 20,
+      "kind": "shop"
+    },
+    {
+      "id": "party",
+      "name": "Party Hat",
+      "price": 20,
+      "kind": "shop"
+    },
+    {
+      "id": "sunhat",
+      "name": "Sun Hat",
+      "price": 25,
+      "kind": "shop"
+    },
+    {
+      "id": "helmet-coral",
+      "name": "Coral Helmet",
+      "price": 30,
+      "kind": "shop"
+    },
+    {
+      "id": "helmet-teal",
+      "name": "Teal Helmet",
+      "price": 30,
+      "kind": "shop"
+    },
+    {
+      "id": "helmet-yellow",
+      "name": "Sunny Helmet",
+      "price": 30,
+      "kind": "shop"
+    },
+    {
+      "id": "chef",
+      "name": "Chef Hat",
+      "price": 35,
+      "kind": "shop"
+    },
+    {
+      "id": "crown",
+      "name": "Yuzu Crown",
+      "price": 60,
+      "kind": "shop"
+    },
+    {
+      "id": "bubble",
+      "name": "Space Bubble",
+      "price": 80,
+      "kind": "shop"
+    },
+    {
+      "id": "headband",
+      "name": "Yoga Headband",
+      "price": 10,
+      "kind": "shop"
+    },
+    {
+      "id": "cap",
+      "name": "Delivery Cap",
+      "price": 15,
+      "kind": "shop"
+    },
+    {
+      "id": "scout",
+      "name": "Scout Hat",
+      "price": 20,
+      "kind": "shop"
+    },
+    {
+      "id": "cowboy",
+      "name": "Cowboy Hat",
+      "price": 25,
+      "kind": "shop"
+    },
+    {
+      "id": "k-biscuit",
+      "name": "Cocoa Bobble Hat",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-pepper",
+      "name": "Pepper's Red Toque",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-fern",
+      "name": "Sunflower Crown",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-dabble",
+      "name": "Lilac Beret",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-cosmo",
+      "name": "Star Antennae",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-zip",
+      "name": "Racing Goggles",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-dash",
+      "name": "Sky Helmet",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-pip",
+      "name": "Lilac Helmet",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-puddles",
+      "name": "Rain Hat",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-pebble",
+      "name": "Snowy Bobble Hat",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-lily",
+      "name": "Lily Pad",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-clover",
+      "name": "Lucky Clover",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-trio",
+      "name": "Tiny Party Hat",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-dusty",
+      "name": "Rodeo Hat",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-lotus",
+      "name": "Lotus Headband",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-scoot",
+      "name": "Speedy Cap",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-bramble",
+      "name": "Explorer Hat",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "k-sprinkles",
+      "name": "Strawberry Bow",
+      "price": 0,
+      "kind": "keepsake"
+    },
+    {
+      "id": "lotus-hat",
+      "name": "Lotus's hat",
+      "kind": "resident"
+    },
+    {
+      "id": "sprinkles-hat",
+      "name": "Sprinkles's hat",
+      "kind": "resident"
+    }
+  ],
+  "clothes": [
+    {
+      "id": "scarf",
+      "name": "Scarf",
+      "slot": "neck",
+      "price": 0,
+      "recolor": "scarf"
+    },
+    {
+      "id": "bandana-coral",
+      "name": "Coral Bandana",
+      "slot": "neck",
+      "price": 8,
+      "covers": false
+    },
+    {
+      "id": "bandana-teal",
+      "name": "Teal Bandana",
+      "slot": "neck",
+      "price": 8,
+      "covers": false
+    },
+    {
+      "id": "bandana-yellow",
+      "name": "Sunny Bandana",
+      "slot": "neck",
+      "price": 8,
+      "covers": false
+    },
+    {
+      "id": "bandana-lilac",
+      "name": "Lilac Bandana",
+      "slot": "neck",
+      "price": 8,
+      "covers": false
+    },
+    {
+      "id": "apron-pink",
+      "name": "Pink Apron",
+      "slot": "body",
+      "price": 14,
+      "covers": false
+    },
+    {
+      "id": "apron-teal",
+      "name": "Chef Apron",
+      "slot": "body",
+      "price": 14,
+      "covers": false
+    },
+    {
+      "id": "smock",
+      "name": "Painter's Smock",
+      "slot": "body",
+      "price": 20,
+      "covers": true
+    },
+    {
+      "id": "raincoat",
+      "name": "Yellow Raincoat",
+      "slot": "body",
+      "price": 25,
+      "covers": true
+    },
+    {
+      "id": "raincoat-blue",
+      "name": "Blue Raincoat",
+      "slot": "body",
+      "price": 25,
+      "covers": true
+    },
+    {
+      "id": "spacesuit",
+      "name": "Space Suit",
+      "slot": "body",
+      "price": 60,
+      "covers": true
+    },
+    {
+      "id": "backpack",
+      "name": "Explorer Backpack",
+      "slot": "back",
+      "price": 18,
+      "covers": false
+    },
+    {
+      "id": "backpack-coral",
+      "name": "Coral Backpack",
+      "slot": "back",
+      "price": 18,
+      "covers": false
+    },
+    {
+      "id": "backpack-space",
+      "name": "Space Pack",
+      "slot": "back",
+      "price": 35,
+      "covers": false
+    },
+    {
+      "id": "pepper-apron",
+      "name": "Chef Pepper's apron",
+      "slot": "resident",
+      "price": 0,
+      "covers": false
+    },
+    {
+      "id": "clover-apron",
+      "name": "Clover's apron",
+      "slot": "resident",
+      "price": 0,
+      "covers": false
+    },
+    {
+      "id": "scoot-apron",
+      "name": "Scoot's apron",
+      "slot": "resident",
+      "price": 0,
+      "covers": false
+    },
+    {
+      "id": "sprinkles-apron",
+      "name": "Sprinkles's apron",
+      "slot": "resident",
+      "price": 0,
+      "covers": false
+    }
+  ],
+  "held": [
+    {
+      "id": "mug-right",
+      "arm": "RightArm",
+      "item": "mug",
+      "armPose": {
+        "x": 0.95,
+        "z": -0.12
+      }
+    },
+    {
+      "id": "potlid-right",
+      "arm": "RightArm",
+      "item": "potLid",
+      "armPose": {
+        "x": 0.6,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "spoon-left",
+      "arm": "LeftArm",
+      "item": "spoon",
+      "armPose": {
+        "x": 0.95,
+        "z": 0.12
+      }
+    },
+    {
+      "id": "wateringcan-left",
+      "arm": "LeftArm",
+      "item": "wateringCan",
+      "armPose": {
+        "x": 0.12,
+        "z": -0.08
+      }
+    },
+    {
+      "id": "branch-right",
+      "arm": "RightArm",
+      "item": "branch",
+      "armPose": {
+        "x": 0.95,
+        "z": -0.12
+      }
+    },
+    {
+      "id": "paintbrush-left",
+      "arm": "LeftArm",
+      "item": "paintbrush",
+      "armPose": {
+        "x": 1.65,
+        "z": 0.4
+      }
+    },
+    {
+      "id": "palette-right",
+      "arm": "RightArm",
+      "item": "palette",
+      "armPose": {
+        "x": 0.95,
+        "z": -0.12
+      }
+    },
+    {
+      "id": "donut-right",
+      "arm": "RightArm",
+      "item": "donut",
+      "armPose": {
+        "x": 1.65,
+        "z": -0.4
+      }
+    },
+    {
+      "id": "paperbag-left",
+      "arm": "LeftArm",
+      "item": "paperBag",
+      "armPose": {
+        "x": 0.95,
+        "z": 0.12
+      }
+    },
+    {
+      "id": "fishsnack-right",
+      "arm": "RightArm",
+      "item": "fishSnack",
+      "armPose": {
+        "x": 1.65,
+        "z": -0.4
+      }
+    },
+    {
+      "id": "paperbag-right",
+      "arm": "RightArm",
+      "item": "paperBag",
+      "armPose": {
+        "x": 0.95,
+        "z": -0.12
+      }
+    },
+    {
+      "id": "lasso-left",
+      "arm": "LeftArm",
+      "item": "lasso",
+      "armPose": {
+        "x": 0.95,
+        "z": 0.12
+      }
+    },
+    {
+      "id": "pizzabox-right",
+      "arm": "RightArm",
+      "item": "pizzaBox",
+      "armPose": {
+        "x": 0.95,
+        "z": -0.12
+      }
+    },
+    {
+      "id": "branch-left",
+      "arm": "LeftArm",
+      "item": "branch",
+      "armPose": {
+        "x": 0.95,
+        "z": 0.12
+      }
+    }
+  ],
+  "residents": [
+    {
+      "id": "biscuit",
+      "name": "Biscuit",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": null,
+      "hat": null,
+      "clothes": [
+        "apron-teal"
+      ],
+      "scarfColor": null,
+      "held": [
+        "mug-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Welcome to the cafe!",
+        "Warm drink, warm heart. I always say that!",
+        "Have you met Chef Pepper? Pepper frowns a lot, but is very kind.",
+        "Fresh strawberries make me so happy. I could eat a whole bowl!"
+      ],
+      "home": {
+        "place": "cafe",
+        "at": [
+          0,
+          -9.8
+        ],
+        "r": 1.2
+      },
+      "district": "cafe"
+    },
+    {
+      "id": "pepper",
+      "name": "Chef Pepper",
+      "species": "guineapig",
+      "body": "guineapig-grumpy.glb",
+      "colors": null,
+      "hat": "chef",
+      "clothes": [
+        "pepper-apron"
+      ],
+      "scarfColor": null,
+      "held": [
+        "potlid-right",
+        "spoon-left"
+      ],
+      "scale": 1,
+      "lines": [
+        "Hmph. The soup is not ready until it is perfect.",
+        "You want to help me cook? Wash your paws first. Then maybe.",
+        "This spoon has stirred a thousand pots. A THOUSAND.",
+        "A giant pumpkin? Now THAT would make a good soup."
+      ],
+      "home": {
+        "place": "cafe",
+        "at": [
+          6.2,
+          -10.4
+        ],
+        "r": 0.8
+      },
+      "district": "cafe"
+    },
+    {
+      "id": "fern",
+      "name": "Fern",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": null,
+      "hat": null,
+      "clothes": [
+        "bandana-teal"
+      ],
+      "scarfColor": null,
+      "held": [
+        "wateringcan-left",
+        "branch-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Plant seeds in my garden beds! Water them and they grow, even when you're away.",
+        "Pumpkins take the longest to grow. But they are worth it!",
+        "The yuzu trees are almost ripe! Can you smell them?",
+        "Every tiny seed can grow into something big!",
+        "Water, sunshine, and lots of waiting. That's gardening!",
+        "Sunflowers always turn to face you. Isn't that friendly?"
+      ],
+      "home": {
+        "place": "garden",
+        "at": [
+          -3,
+          -8.5
+        ],
+        "r": 3
+      },
+      "district": "garden"
+    },
+    {
+      "id": "dabble",
+      "name": "Dabble",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": null,
+      "hat": "beret",
+      "clothes": [
+        "smock"
+      ],
+      "scarfColor": null,
+      "held": [
+        "paintbrush-left",
+        "palette-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Use my easel! Paint a picture and hang it in the gallery.",
+        "Hold still! I want to paint your lovely face.",
+        "Today I am painting... a cloud that looks like a cloud.",
+        "Mixing blue and yellow makes green. Art is magic!",
+        "I love it most when a friend paints me a picture!"
+      ],
+      "home": {
+        "place": "studio",
+        "at": [
+          2.5,
+          -8.5
+        ],
+        "r": 2.5
+      },
+      "district": "studio"
+    },
+    {
+      "id": "cosmo",
+      "name": "Cosmo",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": null,
+      "hat": "bubble",
+      "clothes": [
+        "spacesuit",
+        "backpack-space"
+      ],
+      "scarfColor": null,
+      "held": [],
+      "scale": 1,
+      "lines": [
+        "Beep boop! Ha, only joking, I'm a capybara.",
+        "One day I'll find a planet made of yuzu.",
+        "Did you know the moon has no puddles? So sad!",
+        "Come back at night! The stars are the best bit.",
+        "A mug of cocoa under the stars. Perfect."
+      ],
+      "home": {
+        "at": [
+          -3,
+          -7
+        ],
+        "r": 3
+      },
+      "district": null
+    },
+    {
+      "id": "zip",
+      "name": "Zip",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": null,
+      "hat": "helmet-coral",
+      "clothes": [
+        "scarf"
+      ],
+      "scarfColor": "#f7e8c8",
+      "held": [],
+      "scale": 1,
+      "lines": [
+        "Vroom vroom! Want to race me?",
+        "Pancakes before a race! That's my secret."
+      ],
+      "home": {
+        "place": "kart",
+        "at": [
+          4.7,
+          47.9
+        ],
+        "r": 1.5
+      },
+      "district": "kart"
+    },
+    {
+      "id": "dash",
+      "name": "Dash",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": {
+        "fur": "#c48550"
+      },
+      "hat": "helmet-teal",
+      "clothes": [
+        "scarf"
+      ],
+      "scarfColor": "#f6c64a",
+      "held": [],
+      "scale": 1,
+      "lines": [
+        "Zip says they are the fastest. I think I am!",
+        "I've practised going round corners all week.",
+        "Yuzu cake is the fastest cake. Probably."
+      ],
+      "home": {
+        "place": "kart",
+        "at": [
+          -1.3,
+          46.5
+        ],
+        "r": 3
+      },
+      "district": "kart"
+    },
+    {
+      "id": "pip",
+      "name": "Pip",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": {
+        "fur": "#cf9560"
+      },
+      "hat": "helmet-yellow",
+      "clothes": [
+        "scarf"
+      ],
+      "scarfColor": "#2f8a7c",
+      "held": [],
+      "scale": 1,
+      "lines": [
+        "I like going slow and waving at everyone.",
+        "My helmet has a leaf on it. It's for luck!",
+        "I dream about pancakes. Stacks and stacks of them."
+      ],
+      "home": {
+        "place": "kart",
+        "at": [
+          14.3,
+          43.5
+        ],
+        "r": 3
+      },
+      "district": "kart"
+    },
+    {
+      "id": "puddles",
+      "name": "Puddles",
+      "species": "duck",
+      "body": "duck.glb",
+      "colors": null,
+      "hat": null,
+      "clothes": [
+        "raincoat"
+      ],
+      "scarfColor": null,
+      "held": [
+        "donut-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Quack! Is it going to rain? I hope so!",
+        "I always carry a snack. Always.",
+        "Splashing in puddles is my favourite thing to do.",
+        "Sunflower seeds are my favourite snack. Crunch crunch!"
+      ],
+      "home": {
+        "at": [
+          -5,
+          5.5
+        ],
+        "r": 3
+      },
+      "district": null
+    },
+    {
+      "id": "pebble",
+      "name": "Pebble",
+      "species": "penguin",
+      "body": "penguin.glb",
+      "colors": null,
+      "hat": null,
+      "clothes": [
+        "scarf"
+      ],
+      "scarfColor": "#f07055",
+      "held": [
+        "paperbag-left",
+        "fishsnack-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "I'm getting some snacks from the Post Office!",
+        "Biscuits shaped like fish are the best biscuits!",
+        "Is it cold, or is it just me? Oh wait, I'm a penguin!",
+        "I would love a warm bowl of soup right now."
+      ],
+      "home": {
+        "at": [
+          -11,
+          -9
+        ],
+        "r": 3
+      },
+      "district": null
+    },
+    {
+      "id": "lily",
+      "name": "Lily",
+      "species": "frog",
+      "body": "frog.glb",
+      "colors": null,
+      "hat": null,
+      "clothes": [
+        "backpack"
+      ],
+      "scarfColor": null,
+      "held": [
+        "donut-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Ribbit! I'm going on an adventure. Want to come?",
+        "My backpack has three snacks and one map.",
+        "Have you been past the country lane? There is so much to see!",
+        "Have you smelled a fresh yuzu? It's the best smell ever!"
+      ],
+      "home": {
+        "at": [
+          -12,
+          4
+        ],
+        "r": 3.5
+      },
+      "district": null
+    },
+    {
+      "id": "clover",
+      "name": "Clover",
+      "species": "bunny",
+      "body": "bunny.glb",
+      "colors": null,
+      "hat": null,
+      "clothes": [
+        "clover-apron",
+        "bandana-teal"
+      ],
+      "scarfColor": null,
+      "held": [
+        "paperbag-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Welcome to the Hat Shop!",
+        "A good hat makes any day better.",
+        "Carrots are crunchy, orange and perfect. Shh, don't tell anyone!"
+      ],
+      "home": {
+        "at": [
+          8.4,
+          -11.6
+        ],
+        "r": 1.5
+      },
+      "district": null
+    },
+    {
+      "id": "dusty",
+      "name": "Dusty",
+      "species": "guineapig",
+      "body": "guineapig-grumpy.glb",
+      "colors": {
+        "fur": "#d9a46c"
+      },
+      "hat": "cowboy",
+      "clothes": [
+        "bandana-coral"
+      ],
+      "scarfColor": null,
+      "held": [
+        "lasso-left"
+      ],
+      "scale": 1,
+      "lines": [
+        "Howdy, partner! Welcome to Sunny Ranch.",
+        "Butterscotch is the kindest horse ever. Hop on and ride anywhere you like!",
+        "Yee-haw! Oops, sorry. I got a bit too excited!",
+        "Butterscotch loves carrots so much. So do I!"
+      ],
+      "home": {
+        "place": "ranch",
+        "at": [
+          -2,
+          -3
+        ],
+        "r": 3
+      },
+      "district": null
+    },
+    {
+      "id": "lotus",
+      "name": "Lotus",
+      "species": "frog",
+      "body": "frog.glb",
+      "colors": null,
+      "hat": "lotus-hat",
+      "clothes": [],
+      "scarfColor": null,
+      "held": [],
+      "scale": 1,
+      "lines": [
+        "Breathe in slowly, then out with a big sigh. Lovely.",
+        "Every day is a good day for a stretch.",
+        "Come and join my class on the middle mat, any time!",
+        "A fresh strawberry after class? Mmm, perfect."
+      ],
+      "home": {
+        "place": "yoga",
+        "at": [
+          0,
+          -4.6
+        ],
+        "r": 1.5
+      },
+      "district": null
+    },
+    {
+      "id": "scoot",
+      "name": "Scoot",
+      "species": "bunny",
+      "body": "bunny.glb",
+      "colors": {
+        "fur": "#f3e2c8"
+      },
+      "hat": "cap",
+      "clothes": [
+        "scoot-apron"
+      ],
+      "scarfColor": null,
+      "held": [
+        "pizzabox-right"
+      ],
+      "scale": 1,
+      "lines": [
+        "Hi, this is Pizza Pals! Do you want to make some pizzas?",
+        "Hot and fresh, fast as a bunny!",
+        "Watch out for my scooter. It's super fast!",
+        "After a busy day, a slice of yuzu cake is the best treat."
+      ],
+      "home": {
+        "place": "pizza",
+        "at": [
+          0,
+          -2.6
+        ],
+        "r": 1.2
+      },
+      "district": null
+    },
+    {
+      "id": "bramble",
+      "name": "Bramble",
+      "species": "capybara",
+      "body": "capybara.glb",
+      "colors": {
+        "fur": "#b57b4a"
+      },
+      "hat": "scout",
+      "clothes": [
+        "bandana-yellow",
+        "backpack"
+      ],
+      "scarfColor": null,
+      "held": [
+        "branch-left"
+      ],
+      "scale": 1,
+      "lines": [
+        "Welcome to Camp Bramble! Sit on a log and toast a marshmallow.",
+        "A good scout is always ready. Mostly ready for snacks!",
+        "Can you hear the owls? Hoo-hoo!",
+        "Hot cocoa by the campfire is the best!"
+      ],
+      "home": {
+        "place": "camp",
+        "at": [
+          2,
+          1
+        ],
+        "r": 3
+      },
+      "district": null
+    },
+    {
+      "id": "sprinkles",
+      "name": "Sprinkles",
+      "species": "penguin",
+      "body": "penguin.glb",
+      "colors": null,
+      "hat": "sprinkles-hat",
+      "clothes": [
+        "sprinkles-apron"
+      ],
+      "scarfColor": null,
+      "held": [
+        "spoon-left"
+      ],
+      "scale": 1,
+      "lines": [
+        "Ice cream! The coldest, happiest food in the world.",
+        "Three scoops or four? I won't tell anyone!",
+        "Penguins know all about cold treats.",
+        "Strawberry is my favourite. Fresh strawberries are even better!"
+      ],
+      "home": {
+        "place": "icecream",
+        "at": [
+          0,
+          -3.4
+        ],
+        "r": 1
+      },
+      "district": null
+    }
+  ],
+  "scarves": [
+    "#2f8a7c",
+    "#f07055",
+    "#f6c64a",
+    "#d9b3dc",
+    "#9cc3d8",
+    "#6fa057",
+    "#f7e8c8",
+    "#3b4a6b"
+  ]
+}

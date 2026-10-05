@@ -96,7 +96,6 @@ end
 
 -- The animals you can be from the start (more join as you make friends, later on).
 Config.START_ANIMALS = { "capybara", "bunny", "guineapig" }
-Config.ANIMAL_ICONS = { capybara = "🦫", bunny = "🐰", guineapig = "🐹", duck = "🦆", penguin = "🐧", frog = "🐸" }
 
 -- Who lives in the square in this version. Their looks and lines come from
 -- assets/characters/sunnyfolk.json (residents).

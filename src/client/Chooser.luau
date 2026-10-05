@@ -83,7 +83,8 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 	end
 	local turning = RunService.RenderStepped:Connect(function()
 		if shown then
-			shown:PivotTo(CFrame.Angles(0, math.sin(os.clock() * 0.8) * 0.6, 0))
+			-- the model's pivot is its root, which sits ROOT_HEIGHT above the feet
+			shown:PivotTo(CFrame.new(0, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, math.sin(os.clock() * 0.8) * 0.6, 0))
 		end
 	end)
 
@@ -114,7 +115,7 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 	local animalRow = row(2, 64)
 	local animalButtons = {}
 	for _, species in Config.START_ANIMALS do
-		local button = Ui.button(`{Config.ANIMAL_ICONS[species]} {NAMES[species]}`, Ui.colors.cream, function()
+		local button = Ui.button(NAMES[species], Ui.colors.cream, function()
 			if choice.species ~= species then
 				choice.species = species
 				choice.coat = Looks.coats(species)[1].id

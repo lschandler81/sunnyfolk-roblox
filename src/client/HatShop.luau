@@ -137,7 +137,7 @@ function HatShop.open()
 	local you: Model? = nil
 	table.insert(connections, RunService.RenderStepped:Connect(function()
 		if you then
-			you:PivotTo(CFrame.Angles(0, math.sin(os.clock() * 0.8) * 0.5, 0))
+			you:PivotTo(CFrame.new(0, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, math.sin(os.clock() * 0.8) * 0.5, 0))
 		end
 	end))
 

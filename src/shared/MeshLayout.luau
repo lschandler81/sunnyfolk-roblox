@@ -8,8 +8,8 @@ return {
 	["bunny-clothes"] = {
 		root = "BunnyClothes",
 		meshes = {
-			["scarf_Torso_scarf"] = { -0.0138, 3.0815, -0.0066, 2.461, 1.0989, 2.3985 },
-			["scarf_Torso_detail"] = { -0.0129, 3.0837, -0.007, 2.5763, 1.2115, 2.5147 },
+			["scarf_Torso_scarf"] = { -0.0335, 3.1525, 0.0161, 2.4216, 1.2409, 2.3532 },
+			["scarf_Torso_detail"] = { -0.0326, 3.1506, 0.0159, 2.5369, 1.3454, 2.469 },
 			["bandana-coral_Torso_detail"] = { -0.0418, 2.9253, -0.2092, 2.4808, 1.4485, 2.5892 },
 			["bandana-teal_Torso_detail"] = { -0.0418, 2.9253, -0.2092, 2.4808, 1.4485, 2.5892 },
 			["bandana-yellow_Torso_detail"] = { -0.0418, 2.9253, -0.2092, 2.4808, 1.4485, 2.5892 },
@@ -130,8 +130,8 @@ return {
 	["capybara-clothes"] = {
 		root = "CapybaraClothes",
 		meshes = {
-			["scarf_Torso_scarf"] = { 0, 3.2997, -0.0579, 2.781, 1.1567, 2.7567 },
-			["scarf_Torso_detail"] = { 0, 3.3019, -0.0584, 2.9042, 1.2753, 2.879 },
+			["scarf_Torso_scarf"] = { 0, 3.3744, -0.0357, 2.707, 1.3063, 2.7122 },
+			["scarf_Torso_detail"] = { 0, 3.3724, -0.0359, 2.8302, 1.4161, 2.8341 },
 			["bandana-coral_Torso_detail"] = { -0.0457, 3.1344, -0.1834, 2.8321, 1.5265, 2.7588 },
 			["bandana-teal_Torso_detail"] = { -0.0457, 3.1344, -0.1834, 2.8321, 1.5265, 2.7588 },
 			["bandana-yellow_Torso_detail"] = { -0.0457, 3.1344, -0.1834, 2.8321, 1.5265, 2.7588 },
@@ -256,8 +256,8 @@ return {
 	["duck-clothes"] = {
 		root = "DuckClothes",
 		meshes = {
-			["scarf_Torso_scarf"] = { -0.0138, 2.9751, 0.0466, 2.461, 1.0989, 2.3985 },
-			["scarf_Torso_detail"] = { -0.0129, 2.9773, 0.0462, 2.5763, 1.2115, 2.5147 },
+			["scarf_Torso_scarf"] = { -0.0335, 3.0461, 0.0693, 2.4216, 1.2409, 2.3532 },
+			["scarf_Torso_detail"] = { -0.0326, 3.0442, 0.0691, 2.5369, 1.3454, 2.469 },
 			["bandana-coral_Torso_detail"] = { -0.0418, 2.8194, -0.182, 2.4808, 1.4474, 2.6413 },
 			["bandana-teal_Torso_detail"] = { -0.0418, 2.8194, -0.182, 2.4808, 1.4474, 2.6413 },
 			["bandana-yellow_Torso_detail"] = { -0.0418, 2.8194, -0.182, 2.4808, 1.4474, 2.6413 },
@@ -378,8 +378,8 @@ return {
 	["frog-clothes"] = {
 		root = "FrogClothes",
 		meshes = {
-			["scarf_Torso_scarf"] = { 0, 2.8687, 0.0031, 2.7462, 1.0989, 2.6091 },
-			["scarf_Torso_detail"] = { 0, 2.8709, 0.0027, 2.8632, 1.2115, 2.7253 },
+			["scarf_Torso_scarf"] = { 0, 2.9397, 0.0224, 2.6802, 1.2409, 2.5703 },
+			["scarf_Torso_detail"] = { 0, 2.9377, 0.0222, 2.7973, 1.3453, 2.6861 },
 			["bandana-coral_Torso_detail"] = { -0.0442, 2.7115, -0.1624, 2.7953, 1.4504, 2.6898 },
 			["bandana-teal_Torso_detail"] = { -0.0442, 2.7115, -0.1624, 2.7953, 1.4504, 2.6898 },
 			["bandana-yellow_Torso_detail"] = { -0.0442, 2.7115, -0.1624, 2.7953, 1.4504, 2.6898 },
@@ -498,8 +498,8 @@ return {
 	["guineapig-clothes"] = {
 		root = "GuineapigClothes",
 		meshes = {
-			["scarf_Torso_scarf"] = { 0, 3.1387, 0.0051, 2.7604, 1.0642, 2.6337 },
-			["scarf_Torso_detail"] = { 0, 3.1408, 0.0047, 2.8738, 1.1733, 2.7462 },
+			["scarf_Torso_scarf"] = { 0, 3.2075, 0.0232, 2.7007, 1.2018, 2.5975 },
+			["scarf_Torso_detail"] = { 0, 3.2056, 0.023, 2.814, 1.3028, 2.7097 },
 			["bandana-coral_Torso_detail"] = { -0.0436, 2.9859, -0.179, 2.8085, 1.4059, 2.7495 },
 			["bandana-teal_Torso_detail"] = { -0.0436, 2.9859, -0.179, 2.8085, 1.4059, 2.7495 },
 			["bandana-yellow_Torso_detail"] = { -0.0436, 2.9859, -0.179, 2.8085, 1.4059, 2.7495 },
@@ -650,8 +650,8 @@ return {
 	["penguin-clothes"] = {
 		root = "PenguinClothes",
 		meshes = {
-			["scarf_Torso_scarf"] = { 0, 3.3475, 0.0053, 2.8505, 1.0989, 2.7195 },
-			["scarf_Torso_detail"] = { 0, 3.3497, 0.0049, 2.9675, 1.2115, 2.8358 },
+			["scarf_Torso_scarf"] = { 0, 3.4185, 0.0239, 2.7887, 1.2409, 2.6822 },
+			["scarf_Torso_detail"] = { 0, 3.4165, 0.0237, 2.9058, 1.3453, 2.798 },
 			["bandana-coral_Torso_detail"] = { -0.045, 3.1924, -0.148, 2.9001, 1.4463, 2.7654 },
 			["bandana-teal_Torso_detail"] = { -0.045, 3.1924, -0.148, 2.9001, 1.4463, 2.7654 },
 			["bandana-yellow_Torso_detail"] = { -0.045, 3.1924, -0.148, 2.9001, 1.4463, 2.7654 },

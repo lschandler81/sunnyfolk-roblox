@@ -16,7 +16,7 @@ local Models = require(script.Parent.Models)
 local Builder = {}
 
 Builder.TAG = "SunnyfolkAnimal" -- every walking animal has this tag, so Animator can find it
-Builder.COLLISION_GROUP = "Animals" -- animals walk through each other instead of bumping
+Builder.COLLISION_GROUP = "Animals" -- every animal's collision group (see server/Main)
 
 Builder.PARTS = { "Torso", "Head", "RightArm", "LeftArm", "RightLeg", "LeftLeg", "RightEye", "LeftEye" }
 local JOINED_TO = {

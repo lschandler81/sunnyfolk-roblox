@@ -70,6 +70,8 @@ local function addResident(id: string, folder: Folder)
 	end
 
 	local root = model.PrimaryPart :: BasePart
+	-- heavy, so players bump into residents rather than pushing them about
+	root.CustomPhysicalProperties = PhysicalProperties.new(100, 0.5, 0)
 	-- What the buttons ("Talk", "Hat Shop") measure how close you are from.
 	local feet = Instance.new("Attachment")
 	feet.Name = "Prompts"

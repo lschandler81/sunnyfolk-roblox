@@ -15,12 +15,12 @@ local Residents = require(script.Parent.Residents)
 local Town = require(script.Parent.Town)
 local Wardrobe = require(script.Parent.Wardrobe)
 
--- Animals walk through each other rather than pushing each other about.
+-- Animals bump into each other (set this to false to let them walk through each other).
 local group = Builder.COLLISION_GROUP
 if not PhysicsService:IsCollisionGroupRegistered(group) then
 	PhysicsService:RegisterCollisionGroup(group)
 end
-PhysicsService:CollisionGroupSetCollidable(group, group, false)
+PhysicsService:CollisionGroupSetCollidable(group, group, true)
 
 local town = Town.build()
 PlayerData.start()

@@ -93,6 +93,33 @@ local function measure(fileKey: string, meshes: { [string]: MeshPart }): (CFrame
 	return turn:Inverse(), wasA.Magnitude / nowA.Magnitude
 end
 
+local function countOf(t: { [string]: any }): number
+	local n = 0
+	for _ in t do
+		n += 1
+	end
+	return n
+end
+
+-- How far an imported copy's mesh sizes are from the current file's (0 is a perfect match).
+-- Sizes are compared smallest-to-largest, so a turned import still matches.
+local function misfit(fileKey: string, meshes: { [string]: MeshPart }, scale: number): number
+	local layout = MeshLayout[fileKey].meshes
+	local total, n = 0, 0
+	for name, mesh in meshes do
+		local m = layout[name]
+		local want = { m[4], m[5], m[6] }
+		local have = { mesh.Size.X * scale, mesh.Size.Y * scale, mesh.Size.Z * scale }
+		table.sort(want)
+		table.sort(have)
+		for i = 1, 3 do
+			total += math.abs(have[i] - want[i]) / math.max(want[i], 0.05)
+		end
+		n += 1
+	end
+	return if n > 0 then total / n else math.huge
+end
+
 -- One model file's meshes, or nil if it hasn't been imported yet.
 function Models.get(fileKey: string): File?
 	local cached = cache[fileKey]
@@ -107,8 +134,10 @@ function Models.get(fileKey: string): File?
 		return nil
 	end
 
+	-- Every imported copy of this model. If there's more than one (say, an old import left
+	-- next to a new one), use the copy whose shapes best match the current file.
 	local wanted = { [simple(fileKey)] = true, [simple(layout.root)] = true }
-	local found: File? = nil
+	local candidates = {}
 	for _, container in folder:GetDescendants() do
 		if (container:IsA("Model") or container:IsA("Folder")) and wanted[simple(container.Name)] then
 			local meshes = {}
@@ -119,12 +148,34 @@ function Models.get(fileKey: string): File?
 					count += 1
 				end
 			end
-			if count > 0 then
+			-- skip a container that's just inside another copy we've already got
+			local inside = false
+			for _, other in candidates do
+				if container:IsDescendantOf(other.container) then
+					inside = true
+				end
+			end
+			if count > 0 and not inside then
 				local unturn, scale = measure(fileKey, meshes)
-				found = { meshes = meshes, unturn = unturn, scale = scale }
-				break
+				table.insert(candidates, {
+					container = container,
+					file = { meshes = meshes, unturn = unturn, scale = scale },
+					misfit = misfit(fileKey, meshes, scale) + (if count < countOf(layout.meshes) then 1 else 0),
+				})
 			end
 		end
+	end
+	table.sort(candidates, function(a, b)
+		return a.misfit < b.misfit
+	end)
+	local found: File? = if candidates[1] then candidates[1].file else nil
+	if #candidates > 1 then
+		local ignored = {}
+		for i = 2, #candidates do
+			table.insert(ignored, candidates[i].container:GetFullName())
+		end
+		warn(`Sunnyfolk: there's more than one "{fileKey}" model. Using {candidates[1].container:GetFullName()}, which matches`
+			.. ` assets/characters/{fileKey}.glb best. You can delete: {table.concat(ignored, ", ")}`)
 	end
 
 	if not found and not warned[fileKey] then

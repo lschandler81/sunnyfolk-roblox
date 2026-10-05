@@ -161,7 +161,7 @@ end
 local function footpath(a: Vector3, b: Vector3, width: number, top: number?)
 	a, b = flat(a), flat(b)
 	local length = (b - a).Magnitude
-	local at = CFrame.lookAt((a + b) / 2, b) + Vector3.new(0, (top or 0.08) - 0.05, 0)
+	local at = CFrame.lookAt((a + b) / 2, b) + Vector3.new(0, (top or 0.07) - 0.05, 0)
 	block(Vector3.new(width * S, 0.1, length), at, C.path, { CanCollide = false })
 	table.insert(paths, { a = a, b = b, w = width * S })
 end
@@ -193,7 +193,7 @@ end
 
 -- A little pond with stones round the edge and lily pads.
 local function pond(at: CFrame, radius: number)
-	cylinder(radius * S, 0.1, at * CFrame.new(0, 0.07, 0), C.water, { CanCollide = false, Reflectance = 0.05 })
+	cylinder(radius * S, 0.3, at * CFrame.new(0, 0.1, 0), C.water, { CanCollide = false, Reflectance = 0.05 })
 	local stones = math.round(radius * 4.3)
 	for i = 0, stones - 1 do
 		local s = random:NextNumber(0.7, 1.1)
@@ -202,7 +202,7 @@ local function pond(at: CFrame, radius: number)
 	for i = 1, math.round(radius * 1.5) do
 		local a = random:NextNumber(0, math.pi * 2)
 		local r = random:NextNumber(0.8, radius - 1) * S
-		local pad = at * CFrame.new(math.cos(a) * r, 0.14, math.sin(a) * r)
+		local pad = at * CFrame.new(math.cos(a) * r, 0.27, math.sin(a) * r)
 		cylinder(0.45 * S, 0.04, pad, C.leaf, DECOR)
 		if i % 3 == 0 then
 			ball(0.3 * S, pad * CFrame.new(0, 0.1 * S, 0), Color3.fromHex("#f6b8d0"), DECOR)
@@ -225,17 +225,19 @@ local function plaza()
 	local function ring(radius: number, top: number, color: Color3)
 		cylinder(radius * k * S, 0.1, CFrame.new(0, top - 0.05, 0), color, { CanCollide = false })
 	end
-	ring(10.6, 0.1, C.stoneDark)
-	ring(10, 0.14, C.plaza)
-	ring(7.7, 0.17, C.creamDeep)
-	ring(7.4, 0.2, C.plazaLight)
-	ring(4.8, 0.23, C.creamDeep)
-	ring(4.2, 0.26, C.plaza)
+	-- Flat layers are kept at least 0.04 studs apart, or the screen can't tell which is on top:
+	-- plots 0.03, footpaths 0.07, roads 0.11, then the paving rings.
+	ring(10.6, 0.15, C.stoneDark)
+	ring(10, 0.19, C.plaza)
+	ring(7.7, 0.23, C.creamDeep)
+	ring(7.4, 0.27, C.plazaLight)
+	ring(4.8, 0.31, C.creamDeep)
+	ring(4.2, 0.35, C.plaza)
 	-- spokes in the paving
 	for i = 0, 19 do
 		local inner, outer = 4.8 * k, 7.4 * k
 		local mid = Config.polar(i * 18 + 9, (inner + outer) / 2)
-		block(Vector3.new(0.25 * S, 0.1, (outer - inner) * S), yawAt(mid + Vector3.new(0, 0.17, 0), Config.faceIn(i * 18 + 9)), C.creamDeep, { CanCollide = false })
+		block(Vector3.new(0.25 * S, 0.1, (outer - inner) * S), yawAt(mid + Vector3.new(0, 0.24, 0), Config.faceIn(i * 18 + 9)), C.creamDeep, { CanCollide = false })
 	end
 	keepClear(Vector3.zero, Config.PLAZA_R + 2)
 
@@ -270,9 +272,9 @@ local function roads()
 		if road.open then
 			-- this one carries on to Home Pond, where an arch welcomes you in (see homePond)
 			local H = Config.HOME
-			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, H.dist - H.ringR), Config.ROAD_W, 0.1)
+			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, H.dist - H.ringR), Config.ROAD_W, 0.11)
 		else
-			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, Config.EDGE_R + 1), Config.ROAD_W, 0.1)
+			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, Config.EDGE_R + 1), Config.ROAD_W, 0.11)
 			gate(yawAt(Config.polar(road.angle, Config.EDGE_R - 0.5), Config.faceIn(road.angle)), road.name, Color3.fromHex(road.color))
 		end
 	end
@@ -483,23 +485,20 @@ local function homePond(): { CFrame }
 		local b = around((i + 1) / segments * 360, H.ringR).Position
 		footpath(a, b + (b - a).Unit * 0.6 * S, 2.6)
 	end
-	-- benches looking at the pond, and lamps round the path
-	for i = 0, 3 do
-		Build.bench(around(45 + i * 90, H.pondR + 1.6) * CFrame.Angles(0, math.pi, 0))
-	end
 
 	-- the plots, in a ring with a gap for the way in
 	local plots = {}
 	local step = (360 - H.wayIn) / H.plots
 	for k = 0, H.plots - 1 do
 		local plot = around(H.wayIn / 2 + step * (k + 0.5), H.plotR) * CFrame.Angles(0, math.pi, 0) -- facing the pond
-		block(Vector3.new(9.2, 0.1, 11.5) * S, plot * CFrame.new(0, 0.02, 2 * S), C.grassDark, { CanCollide = false })
+		block(Vector3.new(9.2, 0.1, 11.5) * S, plot * CFrame.new(0, -0.02, 2 * S), C.grassDark, { CanCollide = false })
 		footpath((plot * CFrame.new(0, 0, 2.6 * S)).Position, (plot * CFrame.new(0, 0, (H.plotR - H.ringR - 1) * S)).Position, 1.6)
 		keepClear(plot.Position, 5)
 		keepClear((plot * CFrame.new(0, 0, 5.5 * S)).Position, 3.5)
 		table.insert(plots, plot)
 	end
-	-- trees and lamps between the plots
+	-- trees between the plots; and by the pond, between the plots' paths, lamps and benches
+	-- looking at the water (on the pond side, so they don't stand in front of the plots' signs)
 	for k = 0, H.plots do
 		local between = H.wayIn / 2 + step * k
 		local treeSpot = around(between, H.plotR + 1).Position
@@ -507,7 +506,9 @@ local function homePond(): { CFrame }
 			tree(CFrame.new(treeSpot), random:NextNumber(1.0, 1.3), random:NextNumber() < 0.3)
 		end
 		if k % 2 == 0 then
-			lamp(around(between, H.ringR + 2.2))
+			lamp(around(between, H.pondR + 1.6))
+		else
+			Build.bench(around(between, H.pondR + 1.6) * CFrame.Angles(0, math.pi, 0))
 		end
 	end
 	-- trees behind the houses

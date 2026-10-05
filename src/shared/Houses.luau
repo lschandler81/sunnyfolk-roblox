@@ -154,7 +154,7 @@ local function garden(kind: string, at: CFrame)
 		elseif kind == "pond" then
 			if side < 0 then
 				-- a little round pond with a rubber duck
-				cylinder(1.3 * S, 0.1, bed * CFrame.new(0, 0.08, 0), C.water, { CanCollide = false })
+				cylinder(1.3 * S, 0.4, bed * CFrame.new(0, 0.15, 0), C.water, { CanCollide = false })
 				for i = 0, 9 do
 					blob(Vector3.new(0.5, 0.3, 0.4) * S, bed * CFrame.Angles(0, i / 10 * math.pi * 2, 0) * CFrame.new(0, 0.08 * S, 1.35 * S), C.stone, DECOR)
 				end
@@ -162,7 +162,7 @@ local function garden(kind: string, at: CFrame)
 				ball(0.4 * S, duck, C.yellow, DECOR)
 				ball(0.26 * S, duck * CFrame.new(0, 0.22 * S, -0.14 * S), C.yellow, DECOR)
 				block(Vector3.new(0.12, 0.05, 0.12) * S, duck * CFrame.new(0, 0.2 * S, -0.3 * S), C.coral, DECOR)
-				cylinder(0.35 * S, 0.04, bed * CFrame.new(-0.5 * S, 0.13, 0.5 * S), C.leaf, DECOR)
+				cylinder(0.35 * S, 0.04, bed * CFrame.new(-0.5 * S, 0.37, 0.5 * S), C.leaf, DECOR)
 			else
 				Build.planter(bed * CFrame.Angles(0, math.pi / 2, 0), 3.0, 1.5)
 			end

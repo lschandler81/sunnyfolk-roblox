@@ -29,7 +29,7 @@ local function freeSign(plot: Plot): Model
 	local sign = Instance.new("Model")
 	sign.Name = "FreeSign"
 	Build.into(sign)
-	local at = plot.cframe * CFrame.new(3.3 * S, 0, 8.0 * S)
+	local at = plot.cframe * CFrame.new(0, 0, 1.5 * S) -- in the middle of the empty plot
 	Build.cylinder(0.1 * S, 1.8 * S, at * CFrame.new(0, 0.9 * S, 0), C.woodDark)
 	local board = Build.block(Vector3.new(2.6, 0.8, 0.12) * S, at * CFrame.new(0, 1.75 * S, 0.1 * S) * CFrame.Angles(0, math.pi, 0), C.yellow)
 	Build.label(board, "Free plot!", C.ink, C.yellow)

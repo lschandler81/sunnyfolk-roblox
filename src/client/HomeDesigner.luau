@@ -43,6 +43,7 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 	end
 	local design = savedDesign()
 	local moving = plotIndex ~= nil
+	local movingHouse = moving and player:GetAttribute("HomePlot") ~= nil -- they've a home already
 	local busy = false
 
 	Controls.set(false)
@@ -68,7 +69,7 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 	end
 
 	Ui.text({
-		Text = if moving then "Your new home!" else "Change your home",
+		Text = if movingHouse then "Move house?" elseif moving then "Your new home!" else "Change your home",
 		TextSize = 36,
 		TextColor3 = Ui.colors.coral,
 		Position = UDim2.fromOffset(0, 18),
@@ -234,7 +235,7 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 	})
 
 	local note = Ui.text({
-		Text = "More styles coming soon!",
+		Text = if movingHouse then "Your home will move to this plot." else "More styles coming soon!",
 		TextSize = 17,
 		TextColor3 = Ui.colors.teal,
 		Position = UDim2.fromOffset(30, 432),
@@ -249,7 +250,7 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 		TextSize = 24,
 		Parent = card,
 	})
-	Ui.button(if moving then "Build it!" else "Save", Ui.colors.yellow, function()
+	Ui.button(if movingHouse then "Move here!" elseif moving then "Build it!" else "Save", Ui.colors.yellow, function()
 		if busy then
 			return
 		end

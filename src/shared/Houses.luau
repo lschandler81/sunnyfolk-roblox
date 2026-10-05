@@ -99,8 +99,10 @@ end
 
 ---------------------------------------------------------------- shapes
 
+local SIGN = Color3.fromHex("#2f8a7c") -- the name sign over the door
+
 -- A round hut with a pointy roof, its door facing +Z of `at`.
-local function roundHut(at: CFrame, wall: Color3, roof: Color3, door: Color3)
+local function roundHut(at: CFrame, wall: Color3, roof: Color3, door: Color3, name: string?)
 	local r = 2.6
 	local base = 0.35 * S
 	cylinder((r + 0.15) * S, base, at * CFrame.new(0, base / 2, 0), C.stone)
@@ -113,6 +115,10 @@ local function roundHut(at: CFrame, wall: Color3, roof: Color3, door: Color3)
 	block(Vector3.new(1.2, 1.7, 0.2) * S, at * CFrame.new(0, base + 0.85 * S, (r - 0.02) * S), door)
 	disc(0.6 * S, 0.2 * S, at * CFrame.new(0, base + 1.7 * S, (r - 0.02) * S), door)
 	ball(0.14 * S, at * CFrame.new(0.4 * S, 1.25 * S, (r + 0.1) * S), C.yellow, DECOR)
+	if name then
+		local sign = block(Vector3.new(2.6, 0.55, 0.1) * S, at * CFrame.new(0, 2.92 * S, (r + 0.35) * S) * CFrame.Angles(0, math.pi, 0), SIGN, DECOR)
+		Build.label(sign, name, C.cream)
+	end
 	block(Vector3.new(1.6, 0.14, 0.7) * S, at * CFrame.new(0, 0.07 * S, (r + 0.45) * S), C.stone, DECOR)
 	-- round windows either side
 	for _, side in { -1, 1 } do
@@ -173,28 +179,23 @@ end
 ---------------------------------------------------------------- building
 
 -- Builds a house and its front garden on a plot whose middle is `at`, front facing +Z.
--- `ownerName` goes on the name sign (if the design has one). Parts go wherever
+-- `ownerName` goes on the name sign over the door (if the design has one). Parts go wherever
 -- Build.into() last pointed.
 function Houses.build(design: Design, at: CFrame, ownerName: string?)
+	-- the name sign goes over the front door
+	local name = if design.sign and ownerName then `{ownerName}'s House` else nil
 	local wall = colorOf(Houses.WALLS, design.wall)
 	local roof = colorOf(Houses.ROOFS, design.roof)
 	local door = colorOf(Houses.DOORS, design.door)
 	if design.shape == "round" then
-		roundHut(at, wall, roof, door)
+		roundHut(at, wall, roof, door, name)
 	elseif design.shape == "tall" then
-		Build.house(at, { w = 4.6, d = 4.4, h = 5.2, wall = wall, roof = roof, door = door, windows = { 0.32, 0.74 } })
+		Build.house(at, { w = 4.6, d = 4.4, h = 5.2, wall = wall, roof = roof, door = door, windows = { 0.32, 0.74 }, label = name, sign = SIGN })
 	else
-		Build.house(at, { w = 5.2, d = 4.4, h = 3.0, wall = wall, roof = roof, door = door })
+		Build.house(at, { w = 5.2, d = 4.4, h = 3.0, wall = wall, roof = roof, door = door, label = name, sign = SIGN })
 	end
 	garden(design.garden, at)
 
-	if design.sign and ownerName then
-		local signAt = at * CFrame.new(-3.3 * S, 0, 8.0 * S)
-		cylinder(0.1 * S, 1.8 * S, signAt * CFrame.new(0, 0.9 * S, 0), C.woodDark)
-		local board = block(Vector3.new(2.8, 0.7, 0.12) * S, signAt * CFrame.new(0, 1.75 * S, 0.1 * S) * CFrame.Angles(0, math.pi, 0), C.cream, DECOR)
-		Build.label(board, `{ownerName}'s House`, C.ink, C.cream)
-		Build.label(board, `{ownerName}'s House`, C.ink, C.cream, Enum.NormalId.Back)
-	end
 end
 
 return Houses

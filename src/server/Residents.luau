@@ -52,8 +52,9 @@ local function addResident(id: string, folder: Folder)
 		warn(`Sunnyfolk: there's no resident called "{id}" in sunnyfolk.json`)
 		return
 	end
-	local home = Config.fromWeb(info.home.at[1], info.home.at[2])
-	local radius = info.home.r * S
+	local custom = Config.RESIDENT_HOMES[id]
+	local home = if custom then custom.at else Config.fromWeb(info.home.at[1], info.home.at[2])
+	local radius = (if custom then custom.r else info.home.r) * S
 	local at = CFrame.lookAt(home, Vector3.zero) -- facing the fountain
 
 	local model = Builder.build(Looks.residentLook(info), { cframe = at, name = info.name })

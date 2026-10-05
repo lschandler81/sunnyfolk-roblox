@@ -5,9 +5,11 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 
 ## What's in the game so far
 
-- **The town square**: the fountain with its giant stone yuzu, Clover's Hat Shop and three
-  more shops (opening soon), lamps with bunting, benches, flower planters, trees, a picnic, a
-  signpost, and gates on the roads to the places that come next.
+- **The town square**, about twice the size of the web game's: the fountain with its giant
+  stone yuzu, Clover's Hat Shop and three more shops (opening soon), a ring of lamps with
+  bunting, benches and flower beds, the library on the south lawn, a gazebo, cottages along
+  the roads (with a duck pond by Puddles' house), meadows full of trees and flowers, and gates
+  on the roads to the places that come next.
 - **Choose your animal**: a capybara, bunny or guinea pig, its colours and a scarf. Change
   any time with the **Change animal** button.
 - **Walk around**: the animals waddle, breathe, look around and blink, just like in the web game.

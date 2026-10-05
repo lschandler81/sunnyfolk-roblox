@@ -56,7 +56,7 @@ local function driftRoundSquare()
 	camera.CameraType = Enum.CameraType.Scriptable
 	drifting = RunService.RenderStepped:Connect(function()
 		local a = os.clock() * 0.05
-		camera.CFrame = CFrame.lookAt(Vector3.new(math.sin(a) * 85, 32, math.cos(a) * 85), Vector3.new(0, 6, 0))
+		camera.CFrame = CFrame.lookAt(Vector3.new(math.sin(a) * 120, 45, math.cos(a) * 120), Vector3.new(0, 6, 0))
 	end)
 end
 

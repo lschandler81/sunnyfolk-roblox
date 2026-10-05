@@ -331,6 +331,8 @@ function Builder.build(look: Look, options: Options?): Model
 		humanoid.JumpHeight = Config.PLAYER_JUMP_HEIGHT
 		humanoid.WalkSpeed = Config.PLAYER_WALK_SPEED
 		humanoid.Parent = model
+		-- players' computers get the whole animal at once, never half of it
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		CollectionService:AddTag(model, Builder.TAG)
 	end
 

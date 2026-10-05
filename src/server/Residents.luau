@@ -30,6 +30,7 @@ local function prompt(parent: Instance, name: string, action: string, object: st
 	p.HoldDuration = 0
 	p.MaxActivationDistance = 12
 	p.RequiresLineOfSight = false
+	p.UIOffset = Vector2.new(0, 40) -- a little lower again, just below the feet
 	p.Parent = parent
 	return p
 end
@@ -69,13 +70,15 @@ local function addResident(id: string, folder: Folder)
 	end
 
 	local root = model.PrimaryPart :: BasePart
-	local chest = Instance.new("Attachment")
-	chest.Name = "Prompts"
-	chest.Position = Vector3.new(0, 0.6, 0)
-	chest.Parent = root
-	local talk = prompt(chest, "Talk", "Talk", info.name, Enum.KeyCode.E, Enum.KeyCode.ButtonX)
+	-- The buttons ("Talk", "Hat Shop") sit by their feet, so they don't hide the resident's
+	-- face, or the speech bubble and name tag above their head.
+	local feet = Instance.new("Attachment")
+	feet.Name = "Prompts"
+	feet.Position = Vector3.new(0, -Builder.ROOT_HEIGHT, 0)
+	feet.Parent = root
+	local talk = prompt(feet, "Talk", "Talk", info.name, Enum.KeyCode.E, Enum.KeyCode.ButtonX)
 	if id == "clover" then
-		prompt(chest, "HatShop", "Hat Shop", "Clover's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		prompt(feet, "HatShop", "Hat Shop", "Clover's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
 	end
 
 	model.Parent = folder

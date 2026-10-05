@@ -17,6 +17,9 @@ local Remotes = Shared:WaitForChild("Remotes")
 
 local Avatars = {}
 
+-- Where players appear. The wardrobe check moves this to its fitting room.
+Avatars.spawnPoint = Config.SPAWN
+
 -- Checks what a player picked on the welcome screen. nil if it doesn't make sense.
 local function checkChoice(choice: any): PlayerData.Choice?
 	if typeof(choice) ~= "table" or not table.find(Config.START_ANIMALS, choice.species) then
@@ -51,7 +54,7 @@ function Avatars.spawn(player: Player, atStart: boolean?)
 		return
 	end
 	local old = player.Character
-	local at = (not atStart and standingAt(old)) or Config.SPAWN
+	local at = (not atStart and standingAt(old)) or Avatars.spawnPoint
 
 	local character = Builder.build(Looks.playerLook(data.look, data.hat), { cframe = at, name = player.Name })
 	character:SetAttribute("DisplayName", player.DisplayName)

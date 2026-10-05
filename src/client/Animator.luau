@@ -42,6 +42,7 @@ type Rig = {
 	eyesShut: boolean,
 	talk: number,
 	wave: number,
+	offset: number, -- so showcase animals don't all move in step
 }
 
 local Animator = {}
@@ -90,6 +91,7 @@ local function makeRig(model: Model): Rig?
 		eyesShut = false,
 		talk = 0,
 		wave = 0,
+		offset = random:NextNumber(0, 12),
 	}
 end
 
@@ -120,6 +122,16 @@ local function step(rig: Rig, dt: number, time: number)
 	local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude / WALK_SPEED
 	local reach = Builder.ROOT_SIZE.Y / 2 + Builder.HIP_HEIGHT + 0.6
 	local grounded = Workspace:Raycast(rig.root.Position, Vector3.new(0, -reach, 0), rig.rayParams) ~= nil
+
+	-- the wardrobe check's animals walk on the spot, stand still and wave, in turn
+	if rig.model:GetAttribute("Showcase") then
+		local beat = (time + rig.offset) % 12
+		speed = if beat < 5 then 1 else 0
+		grounded = true
+		if beat >= 9 and beat < 9 + dt then
+			a.wave = 1.6
+		end
+	end
 
 	-- ease the walk in and out
 	a.walk += (math.min(speed, 1.4) - a.walk) * math.min(1, dt * 10)

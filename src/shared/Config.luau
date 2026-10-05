@@ -167,6 +167,13 @@ Config.RESIDENT_WALK_SPEED = 7
 -- Used when a resident says hello for the first time each visit.
 Config.GREETINGS = { "Hi", "Hello", "Oh, hi", "Hey there", "Good to see you" }
 
+---------------------------------------------------------------- testing
+
+-- Turn this on (true) to check how hats and clothes look: pressing Play in Studio builds a
+-- fitting room with every animal wearing everything (see server/Wardrobe.luau). It does
+-- nothing outside Studio. Turn it off again to play normally.
+Config.WARDROBE_CHECK = false
+
 ---------------------------------------------------------------- players
 
 -- Players can chat using Roblox's own chat, which Roblox filters and keeps to each player's

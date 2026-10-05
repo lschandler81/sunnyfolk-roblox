@@ -100,6 +100,24 @@ imported at the wrong size, the game fixes it and the Output tells you.
 Changes to scripts made inside Studio aren't copied back to this folder, so make changes
 here.
 
+## Checking hats and clothes (the wardrobe check)
+
+Hats and clothes are fitted to each animal by the web game's exporter, so they should sit
+exactly as they do in the web game. To check them all at once in Roblox:
+
+1. In `src/shared/Config.luau`, change `Config.WARDROBE_CHECK = false` to `true` and save.
+2. Press **Play** in Studio and pick any animal. You start in a fitting room: for each
+   imported animal there's a row of every hat, a row of every outfit and scarf colour, and a
+   row of every held thing, each labelled. They take turns walking, standing and waving.
+3. Walk along the rows (and round the back) looking for anything that pokes through,
+   floats or doesn't follow the animal. The **Output** lists anything that's missing, which
+   usually means that animal's `-hats` or `-clothes` file isn't imported yet.
+4. Set it back to `false` when you're done. It only ever works in Studio.
+
+If something looks wrong in Roblox but right in the web game, tell Claude which animal and
+which item (the label says). If it looks wrong in both, the fix belongs in the web game's
+`src/chars/wear.js`, and then the models are exported again.
+
 ## Keeping it kind and safe for children
 
 - There's no fighting, nothing to lose, and the only way to get coins is to find them.

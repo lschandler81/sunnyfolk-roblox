@@ -13,6 +13,7 @@ local Homes = require(script.Parent.Homes)
 local PlayerData = require(script.Parent.PlayerData)
 local Residents = require(script.Parent.Residents)
 local Town = require(script.Parent.Town)
+local Wardrobe = require(script.Parent.Wardrobe)
 
 -- Animals walk through each other rather than pushing each other about.
 local group = Builder.COLLISION_GROUP
@@ -28,3 +29,9 @@ Coins.start()
 HatShop.start()
 Residents.start(town.doors)
 Homes.start(town.plots)
+
+-- In Studio, with Config.WARDROBE_CHECK on, everyone starts in the fitting room instead.
+local fittingRoom = Wardrobe.build()
+if fittingRoom then
+	Avatars.spawnPoint = fittingRoom
+end

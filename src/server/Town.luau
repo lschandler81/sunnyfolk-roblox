@@ -147,24 +147,29 @@ local function flower(at: CFrame, color: Color3, height: number)
 	blob(Vector3.new(0.2, 0.14, 0.2) * S, at * CFrame.new(0, height, 0), color, DECOR)
 end
 
+-- Lamps are taller than the web game's, so the bunting between them hangs well above
+-- everyone's heads (and hats).
+local LAMP_H = 4.2 -- web units up to the middle of the lamp
+
 local function lamp(at: CFrame)
+	local post = LAMP_H - 0.6
 	cylinder(0.34 * S, 0.25 * S, at * CFrame.new(0, 0.125 * S, 0), C.tealDeep)
-	cylinder(0.09 * S, 2.3 * S, at * CFrame.new(0, 1.25 * S, 0), C.tealDeep)
-	cylinder(0.18 * S, 0.12 * S, at * CFrame.new(0, 2.4 * S, 0), C.tealDeep)
-	local glow = blob(Vector3.new(0.5, 0.56, 0.5) * S, at * CFrame.new(0, 2.75 * S, 0), C.cream)
+	cylinder(0.1 * S, post * S, at * CFrame.new(0, (0.2 + post / 2) * S, 0), C.tealDeep)
+	cylinder(0.18 * S, 0.12 * S, at * CFrame.new(0, (LAMP_H - 0.35) * S, 0), C.tealDeep)
+	local glow = blob(Vector3.new(0.5, 0.56, 0.5) * S, at * CFrame.new(0, LAMP_H * S, 0), C.cream)
 	local light = Instance.new("PointLight")
 	light.Color = Color3.fromHex("#ffe9b8")
 	light.Range = 16
 	light.Brightness = 0.7
 	light.Parent = glow
-	blob(Vector3.new(0.8, 0.3, 0.8) * S, at * CFrame.new(0, 3.12 * S, 0), C.tealDeep)
-	ball(0.14 * S, at * CFrame.new(0, 3.3 * S, 0), C.tealDeep, DECOR)
+	blob(Vector3.new(0.8, 0.3, 0.8) * S, at * CFrame.new(0, (LAMP_H + 0.37) * S, 0), C.tealDeep)
+	ball(0.14 * S, at * CFrame.new(0, (LAMP_H + 0.55) * S, 0), C.tealDeep, DECOR)
 end
 
 -- A string of little flags sagging between two points.
 local function bunting(a: Vector3, b: Vector3)
 	local n = 8
-	local sag = 0.6 * S
+	local sag = 0.5 * S
 	local points = {}
 	for i = 0, n do
 		local t = i / n
@@ -546,7 +551,7 @@ local function plaza()
 	for i = 0, 19 do
 		local spot = Config.polar(i * 18 + 9, Config.PLAZA_R + 0.4)
 		lamp(CFrame.new(spot))
-		table.insert(lamps, spot + Vector3.new(0, 2.55 * S, 0))
+		table.insert(lamps, spot + Vector3.new(0, (LAMP_H - 0.2) * S, 0))
 	end
 	for i = 1, #lamps do
 		bunting(lamps[i], lamps[(i % #lamps) + 1])

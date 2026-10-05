@@ -41,6 +41,7 @@ local function freeSign(plot: Plot): Model
 	prompt.HoldDuration = 0.3
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
+	prompt.Style = Enum.ProximityPromptStyle.Custom -- shown at the bottom of the screen
 	prompt:SetAttribute("PlotIndex", plot.index)
 	prompt.Parent = board
 	return sign

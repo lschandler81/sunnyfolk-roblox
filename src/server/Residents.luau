@@ -30,7 +30,7 @@ local function prompt(parent: Instance, name: string, action: string, object: st
 	p.HoldDuration = 0
 	p.MaxActivationDistance = 12
 	p.RequiresLineOfSight = false
-	p.UIOffset = Vector2.new(0, 40) -- a little lower again, just below the feet
+	p.Style = Enum.ProximityPromptStyle.Custom -- shown at the bottom of the screen (client/Prompts)
 	p.Parent = parent
 	return p
 end
@@ -70,8 +70,7 @@ local function addResident(id: string, folder: Folder)
 	end
 
 	local root = model.PrimaryPart :: BasePart
-	-- The buttons ("Talk", "Hat Shop") sit by their feet, so they don't hide the resident's
-	-- face, or the speech bubble and name tag above their head.
+	-- What the buttons ("Talk", "Hat Shop") measure how close you are from.
 	local feet = Instance.new("Attachment")
 	feet.Name = "Prompts"
 	feet.Position = Vector3.new(0, -Builder.ROOT_HEIGHT, 0)

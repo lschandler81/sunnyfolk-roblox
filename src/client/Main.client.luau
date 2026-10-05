@@ -21,6 +21,7 @@ local HatShop = require(script.Parent.HatShop)
 local HomeDesigner = require(script.Parent.HomeDesigner)
 local Homes = require(script.Parent.Homes)
 local Hud = require(script.Parent.Hud)
+local Prompts = require(script.Parent.Prompts)
 local Talk = require(script.Parent.Talk)
 
 local player = Players.LocalPlayer
@@ -48,6 +49,7 @@ if not Config.PLAYER_CHAT then
 end
 
 Animator.start()
+Prompts.start()
 Coins.start()
 Talk.start(HatShop.open)
 Homes.start(Hud.toast)

@@ -55,6 +55,7 @@ function Homes.start(say: (string) -> ())
 		prompt.ObjectText = "Your home"
 		prompt.MaxActivationDistance = 12
 		prompt.RequiresLineOfSight = false
+		prompt.Style = Enum.ProximityPromptStyle.Custom
 		prompt.Parent = spot
 		spot.Parent = Workspace
 		doorButton = spot

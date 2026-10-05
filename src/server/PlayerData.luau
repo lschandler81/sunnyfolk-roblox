@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
+local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
@@ -24,6 +25,7 @@ export type Data = {
 	look: Choice?, -- nil until they've picked an animal
 	hat: string?, -- the hat they're wearing
 	hats: { string }, -- every hat they own
+	home: { design: Houses.Design, plot: number }?, -- their house at Home Pond, and which plot
 }
 type Profile = { data: Data, canSave: boolean, dirty: boolean }
 
@@ -34,7 +36,7 @@ local profiles: { [Player]: Profile } = {}
 local loadedCallbacks: { (Player) -> () } = {}
 
 local function blank(): Data
-	return { coins = 0, look = nil, hat = nil, hats = {} }
+	return { coins = 0, look = nil, hat = nil, hats = {}, home = nil }
 end
 
 -- Only keep what makes sense, in case the saved data is old or odd.
@@ -64,6 +66,12 @@ local function tidy(saved: any): Data
 			scarf = if typeof(look.scarf) == "number" then math.clamp(math.floor(look.scarf), 1, #Looks.scarves()) else 1,
 		}
 	end
+	local home = saved.home
+	local design = typeof(home) == "table" and Houses.check(home.design)
+	if design then
+		local plot = if typeof(home.plot) == "number" then math.clamp(math.floor(home.plot), 1, Config.HOME.plots) else 1
+		data.home = { design = design, plot = plot }
+	end
 	return data
 end
 
@@ -77,6 +85,7 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Hat", data.hat)
 	player:SetAttribute("OwnedHats", table.concat(data.hats, ","))
 	player:SetAttribute("Look", if data.look then HttpService:JSONEncode(data.look) else nil)
+	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
 end
 
 local function load(player: Player): (Data, boolean)

@@ -1,5 +1,5 @@
 -- Starts the game on the server: builds the town, then looks after players, coins, the Hat
--- Shop and the residents.
+-- Shop, the residents and players' homes.
 
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,6 +9,7 @@ local Builder = require(ReplicatedStorage:WaitForChild("Sunnyfolk").CharacterBui
 local Avatars = require(script.Parent.Avatars)
 local Coins = require(script.Parent.Coins)
 local HatShop = require(script.Parent.HatShop)
+local Homes = require(script.Parent.Homes)
 local PlayerData = require(script.Parent.PlayerData)
 local Residents = require(script.Parent.Residents)
 local Town = require(script.Parent.Town)
@@ -26,3 +27,4 @@ Avatars.start()
 Coins.start()
 HatShop.start()
 Residents.start(town.doors)
+Homes.start(town.plots)

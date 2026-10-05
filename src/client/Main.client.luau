@@ -1,5 +1,5 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
--- coins, talking, the Hat Shop and the animals' animation.
+-- coins, talking, the Hat Shop, homes and the animals' animation.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -18,6 +18,8 @@ local Chooser = require(script.Parent.Chooser)
 local Coins = require(script.Parent.Coins)
 local Controls = require(script.Parent.Controls)
 local HatShop = require(script.Parent.HatShop)
+local HomeDesigner = require(script.Parent.HomeDesigner)
+local Homes = require(script.Parent.Homes)
 local Hud = require(script.Parent.Hud)
 local Talk = require(script.Parent.Talk)
 
@@ -48,6 +50,7 @@ end
 Animator.start()
 Coins.start()
 Talk.start(HatShop.open)
+Homes.start(Hud.toast)
 
 -- While the welcome screen is up (before you've joined in), the camera drifts slowly
 -- round the square.
@@ -89,7 +92,7 @@ local function lastChoice()
 end
 
 local function chooseAnimal()
-	if HatShop.isOpen() then
+	if HatShop.isOpen() or HomeDesigner.isOpen() then
 		return
 	end
 	Hud.show(false)

@@ -14,7 +14,8 @@
           "Play": { "$className": "RemoteEvent" },
           "CollectCoin": { "$className": "RemoteEvent" },
           "WearHat": { "$className": "RemoteEvent" },
-          "BuyHat": { "$className": "RemoteFunction" }
+          "BuyHat": { "$className": "RemoteFunction" },
+          "SetHome": { "$className": "RemoteFunction" }
         }
       },
       "SunnyfolkModels": {

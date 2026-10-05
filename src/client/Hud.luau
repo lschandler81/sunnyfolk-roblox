@@ -1,5 +1,5 @@
--- What's always on screen while you play: your coins (top right) and a button to change
--- your animal.
+-- What's always on screen while you play: your coins (top right), a button to change your
+-- animal, a nudge to find a home until you've got one, and friendly pop-up messages.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,6 +12,9 @@ local player = Players.LocalPlayer
 local Hud = {}
 
 local screen: ScreenGui? = nil
+local toastLabel: TextLabel? = nil
+local toastScale: UIScale? = nil
+local toastUntil = 0
 
 function Hud.create(onChangeAnimal: () -> ())
 	local gui = Ui.screen("Hud", 5)
@@ -80,6 +83,50 @@ function Hud.create(onChangeAnimal: () -> ())
 		Parent = corner,
 	})
 
+	-- a nudge to find a home, until you've got one
+	local hint = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 12),
+		Size = UDim2.fromOffset(0, 40),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = Ui.colors.paper,
+		Parent = gui,
+	}, {
+		Ui.round(),
+		Ui.stroke(2.5),
+		Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 16) }),
+		Ui.text({
+			Text = "Pick a free plot at Home Pond to make your home!",
+			TextSize = 19,
+			Size = UDim2.fromScale(0, 1),
+			AutomaticSize = Enum.AutomaticSize.X,
+			TextWrapped = false,
+		}),
+	})
+	local function updateHint()
+		hint.Visible = player:GetAttribute("HomePlot") == nil
+	end
+	player:GetAttributeChangedSignal("HomePlot"):Connect(updateHint)
+	updateHint()
+
+	-- big friendly messages ("Welcome home!")
+	toastScale = Ui.new("UIScale")
+	toastLabel = Ui.text({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.3),
+		Size = UDim2.fromOffset(0, 70),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Ui.colors.yellow,
+		TextSize = 36,
+		TextWrapped = false,
+		Visible = false,
+		Parent = gui,
+	})
+	for _, child in { Ui.round(), Ui.stroke(3.5), toastScale, Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 28), PaddingRight = UDim.new(0, 28) }) } do
+		child.Parent = toastLabel
+	end
+
 	-- a reminder for whoever's making the game, when coins won't be kept
 	if RunService:IsStudio() and player:GetAttribute("Saving") == false then
 		Ui.text({
@@ -92,6 +139,24 @@ function Hud.create(onChangeAnimal: () -> ())
 			Parent = corner,
 		})
 	end
+end
+
+-- Shows a big friendly message for a few seconds.
+function Hud.toast(text: string)
+	local label, scale = toastLabel, toastScale
+	if not (label and scale) then
+		return
+	end
+	label.Text = text
+	label.Visible = true
+	scale.Scale = 0.6
+	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	toastUntil = os.clock() + 3
+	task.delay(3, function()
+		if os.clock() >= toastUntil then
+			label.Visible = false
+		end
+	end)
 end
 
 function Hud.show(visible: boolean)

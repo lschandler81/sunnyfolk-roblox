@@ -53,8 +53,21 @@ Config.ROADS = {
 	{ angle = 0, name = "Kart Track", color = "#f07055" },
 	{ angle = 72, name = "Cafe", color = "#2f8a7c" },
 	{ angle = 144, name = "Garden", color = "#6fa057" },
-	{ angle = 216, name = "Home Pond", color = "#5a8fae" },
+	{ angle = 216, name = "Home Pond", color = "#5a8fae", open = true },
 	{ angle = 288, name = "Art Studio", color = "#b583b9" },
+}
+
+-- Home Pond: the neighbourhood at the end of the Home Pond road, where each player picks a
+-- plot for their own house. Its plots sit in a ring round a pond, all facing it.
+Config.HOME = {
+	angle = 216, -- which way from the fountain
+	dist = 96, -- from the fountain to the middle of the pond
+	radius = 26, -- the hedge round the neighbourhood
+	pondR = 6,
+	ringR = 9.5, -- the path round the pond
+	plotR = 19.5, -- from the pond's middle to each house
+	plots = 10, -- one for each player on a server (set the server size to match)
+	wayIn = 40, -- degrees left open for the road in
 }
 
 -- The library on the south lawn, and a gazebo on the east lawn.

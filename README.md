@@ -19,6 +19,11 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 - **Coins** float round the square. Walk into one to pick it up; it comes back a few
   minutes later. Coins are saved between visits.
 - **Clover's Hat Shop**: try hats on, buy them with coins and wear them. Everyone sees your hat.
+- **Your own home at Home Pond**: follow the Home Pond road to a neighbourhood of ten plots
+  round a pond. Pick a free plot and design your house: its shape (cottage, tall house or
+  round hut), wall, roof and door colours, a garden (flowers, vegetables or a little pond) and
+  a sign with your name. Change it any time at your front door. It's saved, and next visit
+  you move straight back in.
 
 No fighting, nothing to lose, and chat stays within Roblox's filtered chat (see
 [Keeping it kind and safe](docs/roblox-studio.md#keeping-it-kind-and-safe-for-children)).
@@ -40,7 +45,9 @@ docs/roblox-studio.md   step-by-step setup in Roblox Studio
 tools/make_mesh_layout.py   writes src/shared/MeshLayout.luau from the .glb files
 
 src/shared/             → ReplicatedStorage.Sunnyfolk (used by the server and every player)
-  Config.luau             where things are in the square, the coins, the residents, speeds
+  Config.luau             where things are in the square and Home Pond, the coins, the residents
+  Build.luau              parts in the Sunnyfolk colours, and props: lamps, benches, trees, houses
+  Houses.luau             the choices for players' houses, and building one from them
   Looks.luau              easy reading of sunnyfolk.json (coats, scarves, hats, residents)
   Models.luau             finds the imported models in ReplicatedStorage.SunnyfolkModels
   MeshLayout.luau         where every mesh sits (made by the tool above)
@@ -54,6 +61,7 @@ src/server/             → ServerScriptService.Sunnyfolk
   Residents.luau          Clover, Puddles and Pebble: strolling, and facing you when you talk
   Coins.luau              checks each coin picked up
   HatShop.luau            checks each hat bought or worn
+  Homes.luau              the plots at Home Pond: moving in, building houses, moving back in
 
 src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Main.client.luau        starts everything on each player's computer
@@ -62,6 +70,8 @@ src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Coins.luau              the coins you see, spinning, and picking them up
   Talk.luau               speech bubbles and name tags
   HatShop.luau            the Hat Shop screen
+  Homes.luau              the "Make this my home" and "Change my home" buttons
+  HomeDesigner.luau       the screen for designing your house
   Animator.luau           walking, breathing, blinking, nodding and waving
   Controls.luau           pauses walking while a screen is open
   Ui.luau                 the look shared by all the screens
@@ -73,5 +83,7 @@ src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   `Config.RESIDENTS` in `src/shared/Config.luau`, and import their animal's body and clothes
   files into Studio. They stroll round the home spot given in `sunnyfolk.json`.
 - **More coins**: add spots to the list in `Config.COINS`.
+- **More house choices** (shapes, colours, gardens): add them to the lists in
+  `src/shared/Houses.luau`. The designer and the server's checks pick them up from there.
 - **The models changed** (re-exported from the web game): import the new files into Studio,
   then run `python3 tools/make_mesh_layout.py` so the game knows where everything sits.

@@ -82,7 +82,12 @@ imported at the wrong size, the game fixes it and the Output tells you.
 2. **Home** → **Game Settings** → **Security**: turn on **Enable Studio Access to API
    Services**, then **Save**. Now coins, your animal and your hats are remembered between
    tests in Studio, as they will be for players.
-3. Optional backup of the models: right-click `SunnyfolkModels` → **Save to File…** and save
+3. Set the **server size to 10 players**, to match the ten plots at Home Pond. In the
+   [Creator Dashboard](https://create.roblox.com/dashboard/creations), open Sunnyfolk →
+   **Places** → the Sunnyfolk place → **Configure** (or **Access**), and set **Max Players**
+   (server size) to 10. If more players join than there are plots, the extra ones can still
+   play, but won't get a house on that server.
+4. Optional backup of the models: right-click `SunnyfolkModels` → **Save to File…** and save
    it into `assets/models` as `SunnyfolkModels.rbxm` (see `assets/models/README.md`).
 
 ## 5. Every time you work on the game

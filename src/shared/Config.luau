@@ -167,6 +167,19 @@ Config.RESIDENT_WALK_SPEED = 7
 -- Used when a resident says hello for the first time each visit.
 Config.GREETINGS = { "Hi", "Hello", "Oh, hi", "Hey there", "Good to see you" }
 
+---------------------------------------------------------------- saving
+
+-- How players' saves are kept safe (see server/PlayerData.luau).
+Config.SAVE = {
+	AUTOSAVE_SECONDS = 120, -- save everyone this often (it also keeps their save locked to this server)
+	LOCK_SECONDS = 300, -- a lock not refreshed for this long belongs to a server that's gone
+	RETRY_SECONDS = 3, -- when a save is locked or a load fails, wait this long before trying again
+	LOAD_TRIES = 6, -- give up (and kindly ask the player to come back) after this many tries
+	LEAVE_TRIES = 3, -- tries at the last save when a player leaves
+	CHECK_SECONDS = 0.1, -- how often to look again while waiting for another save to finish
+	CLOSE_SECONDS = 25, -- how long a closing server waits for everyone's last save
+}
+
 ---------------------------------------------------------------- testing
 
 -- Turn this on (true) to check how hats and clothes look: pressing Play in Studio builds a

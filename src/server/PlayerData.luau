@@ -1,7 +1,19 @@
--- Remembers each player between visits: their coins, the animal they picked, and their hats.
+-- Remembers each player between visits: their coins, the animal they picked, their hats and
+-- their home.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
--- their Player object (Coins, Hat, OwnedHats, Look), which the game's screens read.
+-- their Player object (Coins, Hat, OwnedHats, Look, HomeDesign), which the game's screens read.
+--
+-- Keeping saves safe:
+--   * Only one server at a time can have a player's save open. Opening it writes a lock (this
+--     server's id and the time) into the save; every autosave refreshes the lock, and leaving
+--     lets go of it. Another server waits for the lock, and takes it over only once it's old
+--     (Config.SAVE.LOCK_SECONDS), which means the server that held it has gone.
+--   * Saving reads what's stored first, and never writes over newer data or a save another
+--     server has taken over. It only writes the game's own fields and keeps anything else.
+--   * Saves have a version number, and migrate() brings older saves up to date.
+--   * If a save can't be opened, the player is kindly asked to come back, rather than playing
+--     on and losing what they do.
 --
 -- In Studio, saving only works once the place is published and "Enable Studio Access to API
 -- Services" is on (Game Settings > Security). Until then you can still play; nothing is saved.
@@ -10,6 +22,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
@@ -17,7 +30,18 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local AUTOSAVE_SECONDS = 120
+local VERSION = 1 -- the save version this code writes (see migrate)
+local FIELDS = { "coins", "look", "hat", "hats", "home" } -- the game's own fields in a save
+local SAVE = Config.SAVE
+local IN_STUDIO = RunService:IsStudio()
+
+-- This server's name in save locks. A Studio test run has no JobId, so it makes up its own.
+local JOB = if game.JobId ~= "" then game.JobId else "studio-" .. HttpService:GenerateGUID(false)
+
+local COME_BACK = "Sorry, we couldn't open your Sunnyfolk save just now. Your coins and things are safe."
+	.. " Please try again in a few minutes!"
+local SOMEWHERE_ELSE = "You've opened Sunnyfolk somewhere else, so this game has closed. Your coins and"
+	.. " things are safe!"
 
 export type Choice = { species: string, coat: string, scarf: number }
 export type Data = {
@@ -27,16 +51,42 @@ export type Data = {
 	hats: { string }, -- every hat they own
 	home: { design: Houses.Design, plot: number }?, -- their house at Home Pond, and which plot
 }
-type Profile = { data: Data, canSave: boolean, dirty: boolean }
+type Profile = {
+	data: Data,
+	canSave: boolean, -- false when saving is off (Studio) or another server has the save now
+	stamp: number, -- counts saves; the stored one is never newer than ours when we write
+	saving: boolean, -- a save is being written right now
+	closing: boolean, -- the last save (they're leaving) has started: no other saves after it
+	closed: boolean, -- the last save has finished (or given up)
+}
 
 local PlayerData = {}
 
 local store: DataStore? = nil
 local profiles: { [Player]: Profile } = {}
 local loadedCallbacks: { (Player) -> () } = {}
+-- Players (by UserId) whose save this server is opening or closing right now. A quick rejoin
+-- on the same server waits for that to finish, so the two visits never mix up their saves.
+local busy: { [number]: boolean } = {}
 
 local function blank(): Data
 	return { coins = 0, look = nil, hat = nil, hats = {}, home = nil }
+end
+
+-- Brings an old save up to date, one version at a time, before tidy() checks it. Saves from
+-- before there were versions count as version 0.
+local function migrate(saved: any): any
+	if typeof(saved) ~= "table" then
+		return saved
+	end
+	local version = if typeof(saved.version) == "number" then saved.version else 0
+	if version < 1 then
+		-- Version 1 added the version number, the lock and the stamp. The game's fields are the
+		-- same as before, so there's nothing to change.
+		version = 1
+	end
+	saved.version = version
+	return saved
 end
 
 -- Only keep what makes sense, in case the saved data is old or odd.
@@ -88,44 +138,178 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
 end
 
-local function load(player: Player): (Data, boolean)
-	if not store then
-		return blank(), false
+-- Is this save open on another server that's still running?
+local function openElsewhere(stored: any): boolean
+	local lock = if typeof(stored) == "table" then stored.lock else nil
+	if typeof(lock) ~= "table" or lock.job == JOB then
+		return false
 	end
-	for attempt = 1, 3 do
-		local ok, result = pcall(function()
-			return (store :: DataStore):GetAsync(keyFor(player))
-		end)
-		if ok then
-			return tidy(result), true
-		end
-		local message = tostring(result)
-		if string.find(message, "Studio") or string.find(message, "publish") then
-			warn("Sunnyfolk: saving is off while testing in Studio. To turn it on, publish the place and turn on"
-				.. " Game Settings > Security > Enable Studio Access to API Services.")
-			break
-		end
-		warn(`Sunnyfolk: couldn't load {player.Name}'s save (try {attempt} of 3): {message}`)
-		task.wait(attempt * 2)
+	-- In Studio, a lock left by an earlier test run (stopped before it could let go) is ours to take
+	if IN_STUDIO and typeof(lock.job) == "string" and string.sub(lock.job, 1, 7) == "studio-" then
+		return false
 	end
-	-- Play on, but don't save: that could overwrite a good save we just couldn't read.
-	return blank(), false
+	local age = os.time() - (tonumber(lock.time) or 0)
+	return age < SAVE.LOCK_SECONDS
 end
 
-local function save(player: Player, profile: Profile)
-	if not (store and profile.canSave and profile.dirty) then
-		return
-	end
-	profile.dirty = false
+-- Opens a player's save on this server, locking it. Returns "open" and what was stored (nil for
+-- a new player), "locked" if another server has it open, or "failed" and the error.
+local function open(player: Player): (string, any)
+	local stored, locked = nil, false
 	local ok, err = pcall(function()
-		(store :: DataStore):UpdateAsync(keyFor(player), function()
-			return profile.data
+		(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+			stored, locked = old, false
+			if openElsewhere(old) then
+				locked = true
+				return nil -- leave it exactly as it is
+			end
+			local record = if typeof(old) == "table" then table.clone(old) else {}
+			record.lock = { job = JOB, time = os.time() }
+			return record
 		end)
 	end)
 	if not ok then
-		profile.dirty = true
-		warn(`Sunnyfolk: couldn't save {player.Name}'s game: {err}`)
+		return "failed", tostring(err)
 	end
+	return if locked then "locked" else "open", stored
+end
+
+-- Lets go of this server's lock on a save, without changing anything else in it.
+local function letGo(player: Player)
+	pcall(function()
+		(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+			if typeof(old) ~= "table" or typeof(old.lock) ~= "table" or old.lock.job ~= JOB then
+				return nil
+			end
+			local record = table.clone(old)
+			record.lock = nil
+			return record
+		end)
+	end)
+end
+
+-- Loads a player's save. Returns the data (nil if it couldn't be opened, so they should be asked
+-- to come back), whether it'll be saved, and the stamp of what was stored.
+local function load(player: Player): (Data?, boolean, number)
+	if not store then
+		if IN_STUDIO then
+			return blank(), false, 0 -- testing without saving
+		end
+		return nil, false, 0
+	end
+	for attempt = 1, SAVE.LOAD_TRIES do
+		local status, result = open(player)
+		if status == "open" then
+			if typeof(result) == "table" and typeof(result.version) == "number" and result.version > VERSION then
+				-- Saved by a newer version of the game (while servers are updating). Don't open it
+				-- here, or this older code could write over things it doesn't understand.
+				warn(`Sunnyfolk: {player.Name}'s save is from a newer version of the game`)
+				return nil, false, 0
+			end
+			local saved = migrate(result)
+			local stamp = if typeof(saved) == "table" and typeof(saved.stamp) == "number" then saved.stamp else 0
+			return tidy(saved), true, stamp
+		elseif status == "failed" then
+			if IN_STUDIO and (string.find(result, "Studio") or string.find(result, "publish")) then
+				warn("Sunnyfolk: saving is off while testing in Studio. To turn it on, publish the place and turn on"
+					.. " Game Settings > Security > Enable Studio Access to API Services.")
+				return blank(), false, 0 -- play on, nothing saved
+			end
+			warn(`Sunnyfolk: couldn't open {player.Name}'s save (try {attempt} of {SAVE.LOAD_TRIES}): {result}`)
+		else
+			warn(`Sunnyfolk: {player.Name}'s save is still open on another server (try {attempt} of {SAVE.LOAD_TRIES})`)
+		end
+		if not player.Parent then
+			return nil, false, 0
+		end
+		task.wait(SAVE.RETRY_SECONDS)
+	end
+	return nil, false, 0
+end
+
+-- Writes a player's data. `release` lets go of the lock too (when they leave). Returns whether
+-- it was saved. It never writes over newer data, or a save another server has taken over.
+local function save(player: Player, profile: Profile, release: boolean?): boolean
+	-- Once the last save has started, nothing else may save (it would lock the save again).
+	if not (store and profile.canSave) or (profile.closing and not release) then
+		return false
+	end
+	while profile.saving do
+		task.wait(SAVE.CHECK_SECONDS)
+	end
+	if not profile.canSave or (profile.closing and not release) then
+		return false
+	end
+	profile.saving = true
+	local outcome, newStamp = "saved", profile.stamp
+	local ok, err = pcall(function()
+		(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+			outcome = "saved"
+			local stored = if typeof(old) == "table" then old else {}
+			local ours = typeof(stored.lock) == "table" and stored.lock.job == JOB
+			if typeof(stored.lock) == "table" and not ours then
+				outcome = "taken" -- another server has opened this save since
+				return nil
+			end
+			-- A newer stamp under our own lock is our own earlier save (one that worked but
+			-- reported an error), so it's fine to carry on. Under no lock, it's someone else's.
+			local storedStamp = tonumber(stored.stamp) or 0
+			if storedStamp > profile.stamp and not ours then
+				outcome = "newer" -- what's stored is newer than what we have
+				return nil
+			end
+			local record = table.clone(stored) -- keeps anything we don't know about
+			for _, field in FIELDS do
+				record[field] = (profile.data :: any)[field]
+			end
+			newStamp = math.max(storedStamp, profile.stamp) + 1
+			record.version = VERSION
+			record.stamp = newStamp
+			record.lock = if release then nil else { job = JOB, time = os.time() }
+			return record
+		end)
+	end)
+	profile.saving = false
+	if not ok then
+		warn(`Sunnyfolk: couldn't save {player.Name}'s game (it'll try again): {err}`)
+		return false
+	end
+	if outcome == "saved" then
+		profile.stamp = newStamp
+		return true
+	end
+	-- The player must have opened the game on another server. Stop saving here, so we never
+	-- write over what that server saves.
+	profile.canSave = false
+	warn(`Sunnyfolk: {player.Name}'s save is open somewhere else now ({outcome}), so this server has stopped saving it`)
+	if player.Parent and not release then
+		player:Kick(SOMEWHERE_ELSE)
+	end
+	return false
+end
+
+-- The last save when a player leaves (or the server closes): lets go of the lock, and tries a
+-- few times if it fails, so they don't lose their last few minutes.
+local function saveOnLeaving(player: Player, profile: Profile)
+	if profile.closing then
+		-- Already started (leaving and the server closing both ask for it): wait for it to finish.
+		while not profile.closed do
+			task.wait(SAVE.CHECK_SECONDS)
+		end
+		return
+	end
+	profile.closing = true
+	for _ = 1, SAVE.LEAVE_TRIES do
+		if save(player, profile, true) then
+			profile.canSave = false -- saved and let go: this server never writes it again
+			break
+		end
+		if not profile.canSave then
+			break
+		end
+		task.wait(SAVE.RETRY_SECONDS)
+	end
+	profile.closed = true
 end
 
 -- The player's data, or nil if it hasn't loaded yet.
@@ -137,12 +321,18 @@ end
 -- Changes a player's data. `change` gets the data to edit; it's saved later.
 function PlayerData.update(player: Player, change: (Data) -> ())
 	local profile = profiles[player]
-	if not profile then
-		return
+	if not profile or profile.closing then
+		return -- not loaded yet, or they're leaving and their last save has started
 	end
 	change(profile.data)
-	profile.dirty = true
 	publish(player, profile.data)
+end
+
+-- Saves a player's data straight away (say, right after they buy something), instead of
+-- waiting for the next autosave. Returns whether it was saved.
+function PlayerData.saveNow(player: Player): boolean
+	local profile = profiles[player]
+	return profile ~= nil and save(player, profile)
 end
 
 -- Runs `callback(player)` once each player's data has loaded.
@@ -164,11 +354,35 @@ function PlayerData.start()
 	end
 
 	local function added(player: Player)
-		local data, canSave = load(player)
-		if not player.Parent then
-			return -- they left while it was loading
+		-- After a quick leave and rejoin on this same server, wait for the last visit to finish.
+		local id = player.UserId
+		while busy[id] do
+			task.wait(SAVE.CHECK_SECONDS)
 		end
-		profiles[player] = { data = data, canSave = canSave, dirty = false }
+		if profiles[player] then
+			return -- already loaded (a player who joins as the server starts can be seen twice)
+		end
+		busy[id] = true
+		-- If loading hits an error, treat it like a save that couldn't be opened.
+		local ok, data, canSave, stamp = pcall(load, player)
+		if not ok then
+			warn(`Sunnyfolk: something went wrong opening {player.Name}'s save: {data}`)
+			data, canSave, stamp = nil, false, 0
+		end
+		if not (data and player.Parent) then
+			-- They left while it was loading, or it couldn't be opened: let go of any lock this
+			-- server took (letGo only ever clears this server's own lock).
+			if store then
+				letGo(player)
+			end
+			busy[id] = nil
+			if player.Parent then
+				player:Kick(COME_BACK)
+			end
+			return
+		end
+		profiles[player] = { data = data, canSave = canSave, stamp = stamp, saving = false, closing = false, closed = false }
+		busy[id] = nil
 		publish(player, data)
 		player:SetAttribute("Saving", canSave)
 		player:SetAttribute("Loaded", true)
@@ -184,8 +398,10 @@ function PlayerData.start()
 	Players.PlayerRemoving:Connect(function(player)
 		local profile = profiles[player]
 		if profile then
-			save(player, profile)
+			busy[player.UserId] = true
+			saveOnLeaving(player, profile)
 			profiles[player] = nil
+			busy[player.UserId] = nil
 		end
 	end)
 
@@ -194,19 +410,21 @@ function PlayerData.start()
 		for player, profile in profiles do
 			waiting += 1
 			task.spawn(function()
-				save(player, profile)
+				saveOnLeaving(player, profile)
 				waiting -= 1
 			end)
 		end
-		local deadline = os.clock() + 25
-		while waiting > 0 and os.clock() < deadline do
-			task.wait(0.1)
+		-- wait for everyone's last save, and for any save still being opened to be let go
+		local deadline = os.clock() + SAVE.CLOSE_SECONDS
+		while (waiting > 0 or next(busy) ~= nil) and os.clock() < deadline do
+			task.wait(SAVE.CHECK_SECONDS)
 		end
 	end)
 
+	-- Autosave, which also keeps each save's lock fresh.
 	task.spawn(function()
 		while true do
-			task.wait(AUTOSAVE_SECONDS)
+			task.wait(SAVE.AUTOSAVE_SECONDS)
 			for player, profile in profiles do
 				task.spawn(save, player, profile)
 			end

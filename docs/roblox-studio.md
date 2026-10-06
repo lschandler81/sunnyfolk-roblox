@@ -77,23 +77,31 @@ imported at the wrong size, the game fixes it and the Output tells you.
 
 ## 4. Save the place, and turn on saving coins
 
-1. **File** → **Publish to Roblox**. Make a new experience called **Sunnyfolk**. This also
-   saves the imported models with the place.
-2. **Home** → **Game Settings** → **Security**: turn on **Enable Studio Access to API
-   Services**, then **Save**. Now coins, your animal and your hats are remembered between
-   tests in Studio, as they will be for players.
-3. Set the **server size to 10 players**, to match the ten plots at Home Pond. In the
+1. Make sure Studio is signed in to the Roblox account that should own the game: one whose
+   email and phone you know, with 2-Step Verification on. Whoever owns that account owns
+   the game and the imported models.
+2. **File** → **Publish to Roblox**. Make a new experience called **Sunnyfolk**. This also
+   saves the imported models with the place. In the publish window:
+   - **Devices**: Computer, Phone and Tablet. Leave **Console** and **VR** off until the
+     game has been through the controller and console pass (Step 7b in `docs/BUILD_STEPS.md`).
+   - **Team Create**: off. Its live script editing (Collaborative Editing) stops Rojo from
+     updating scripts.
+3. **File** → **Experience Settings** (called Game Settings in older Studio) → **Security**:
+   turn on **Enable Studio Access to API Services**, then **Save**. Now coins, your animal
+   and your hats are remembered between tests in Studio, as they will be for players.
+4. Set the **server size to 10 players**, to match the ten plots at Home Pond. In the
    [Creator Dashboard](https://create.roblox.com/dashboard/creations), open Sunnyfolk →
    **Places** → the Sunnyfolk place → **Configure** (or **Access**), and set **Max Players**
    (server size) to 10. If more players join than there are plots, the extra ones can still
    play, but won't get a house on that server.
-4. Optional backup of the models: right-click `SunnyfolkModels` → **Save to File…** and save
+5. Optional backup of the models: right-click `SunnyfolkModels` → **Save to File…** and save
    it into `assets/models` as `SunnyfolkModels.rbxm` (see `assets/models/README.md`).
 
 ## 5. Every time you work on the game
 
 1. In Terminal, in this folder: `rojo serve`
-2. In Studio: Plugins → Rojo → **Connect**.
+2. In Studio, while editing (not while playing): Plugins → Rojo → **Connect**. Do this each
+   time you open Studio.
 3. Edit the code here (or ask Claude to). Rojo copies each change into Studio straight away.
 4. Press Play to try it. **File** → **Publish to Roblox** when you want players to get it.
 
@@ -140,5 +148,19 @@ which item (the label says). If it looks wrong in both, the fix belongs in the w
 - **An animal is a round stand-in**: its model isn't in `SunnyfolkModels` yet. The yellow
   note in the Output names the file to import.
 - **"saving is off" in the Output, or "Saving is off in this test" on screen**: do part 4.
+- **Rojo says "Http requests can only be executed by game server"**: you pressed Connect
+  while playing. Press Stop, then Connect.
+- **A change to the code doesn't show up in Studio** (Rojo is connected, but Studio still
+  runs the old code):
+  1. Check **Collaborative Editing** is off (File → Experience Settings, usually under
+     Other). With it on, Rojo can't update scripts.
+  2. If it still doesn't update: press Stop, Disconnect Rojo, delete the three **Sunnyfolk**
+     folders (in ReplicatedStorage, ServerScriptService and StarterPlayer →
+     StarterPlayerScripts), then Connect and Accept. Rojo puts them back fresh. Never delete
+     **SunnyfolkModels**: that's your imported animals and hats.
+  3. To check, open a script in Studio and search for something new in it.
+- **"Script Editor's read-only due to an unstable connection"**: that's Team Create losing
+  its connection for a moment. It doesn't affect Rojo. If it keeps happening, turn Team
+  Create off.
 - **The capybara's face or arms are in the wrong place**: tell Claude what you see (a
   screenshot helps), and which import settings you used.

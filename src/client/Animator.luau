@@ -16,7 +16,7 @@ local Config = require(Shared.Config)
 
 local S = Config.STUDS
 local WALK_SPEED = 14 -- studs a second that counts as a normal walk
-local ANIMATE_DISTANCE = 150 -- animals further from the camera than this stand still
+local ANIMATE = Config.ANIMATE -- how far away animals are animated, and how often
 
 -- The web game's left arm (side -1) is Roblox's right arm: the models were turned round to
 -- face -Z when they were exported.
@@ -43,6 +43,7 @@ type Rig = {
 	talk: number,
 	wave: number,
 	offset: number, -- so showcase animals don't all move in step
+	waited: number, -- time since a far-away animal was last updated
 }
 
 local Animator = {}
@@ -92,6 +93,8 @@ local function makeRig(model: Model): Rig?
 		talk = 0,
 		wave = 0,
 		offset = random:NextNumber(0, 12),
+		waited = random:NextNumber(0, Config.ANIMATE.FAR_STEP), -- spread far-away updates out
+
 	}
 end
 
@@ -242,10 +245,23 @@ function Animator.start()
 			if not model:IsDescendantOf(Workspace) then
 				continue
 			end
-			if camera and (rig.root.Position - camera.CFrame.Position).Magnitude > ANIMATE_DISTANCE then
+			local distance = if camera then (rig.root.Position - camera.CFrame.Position).Magnitude else 0
+			if distance > ANIMATE.FAR then
+				rig.waited = 0
 				continue
 			end
-			step(rig, dt, time)
+			if distance > ANIMATE.NEAR then
+				-- far enough away that updating a little less often looks the same, and costs less
+				rig.waited += dt
+				if rig.waited < ANIMATE.FAR_STEP then
+					continue
+				end
+				step(rig, rig.waited, time)
+				rig.waited = 0
+			else
+				rig.waited = 0
+				step(rig, dt, time)
+			end
 		end
 	end)
 end

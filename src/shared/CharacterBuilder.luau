@@ -7,6 +7,7 @@
 -- name, with that part's other meshes welded to it.
 
 local CollectionService = game:GetService("CollectionService")
+local RunService = game:GetService("RunService")
 
 local Config = require(script.Parent.Config)
 local Looks = require(script.Parent.Looks)
@@ -72,6 +73,7 @@ local function settle(part: BasePart, anchored: boolean)
 end
 
 local scaleWarned: { [string]: boolean } = {}
+local counted: { [string]: boolean } = {} -- animals already counted in Studio's Output
 
 -- A copy of one imported mesh, the right size, at its rest place relative to `at`.
 local function copyMesh(fileKey: string, file: Models.File, name: string, at: CFrame, anchored: boolean): MeshPart
@@ -219,6 +221,12 @@ local function addWear(model: Model, look: Look, colors: { [string]: Color3 }, a
 			if id and partName and kind and wanted[id] then
 				local mesh = copyMesh(fileKey, file, name, CFrame.identity, anchored)
 				paint(mesh, kind, colors)
+				-- Scarves and bandanas sit inside the body's own shadow, so theirs adds nothing.
+				-- Bigger things (coats, backpacks, things held out in front) keep theirs.
+				local item = Looks.clothes(id)
+				if item and item.slot == "neck" then
+					mesh.CastShadow = false
+				end
 				if attach(model, partName, mesh) then
 					mesh.Parent = folder
 				end
@@ -278,6 +286,9 @@ function Builder.build(look: Look, options: Options?): Model
 			if body.meshes[mainName] then
 				local main = copyMesh(bodyKey, body, mainName, at, viewport)
 				main.Name = partName
+				-- Only the coloured "fur" meshes cast the animal's shadow. The detail meshes (eyes,
+				-- cheeks and the outline) are the same shape, a touch bigger, so theirs adds nothing.
+				main.CastShadow = false
 				main:SetAttribute("Rest", at:Inverse() * main.CFrame)
 				main.Parent = model
 			end
@@ -334,6 +345,21 @@ function Builder.build(look: Look, options: Options?): Model
 		-- players' computers get the whole animal at once, never half of it
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		CollectionService:AddTag(model, Builder.TAG)
+
+		-- In Studio, say how big each kind of animal is, once (to keep an eye on how heavy they are)
+		-- (the wardrobe check's animals are named "species: item", so they count once per body)
+		local key = bodyKey .. "/" .. (if string.find(model.Name, ":") then "wardrobe" else model.Name)
+		if RunService:IsStudio() and not counted[key] then
+			counted[key] = true
+			local things, meshes = 0, 0
+			for _, thing in model:GetDescendants() do
+				things += 1
+				if thing:IsA("MeshPart") then
+					meshes += 1
+				end
+			end
+			print(`Animal count: {model.Name} ({bodyKey}) has {things} instances, {meshes} of them MeshParts`)
+		end
 	end
 
 	return model

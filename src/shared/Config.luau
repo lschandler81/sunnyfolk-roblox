@@ -168,6 +168,15 @@ Config.RESIDENT_WALK_SPEED = 7
 -- Used when a resident says hello for the first time each visit.
 Config.GREETINGS = { "Hi", "Hello", "Oh, hi", "Hey there", "Good to see you" }
 
+---------------------------------------------------------------- animation
+
+-- How far from the camera each animal is animated (see client/Animator.luau), in studs.
+Config.ANIMATE = {
+	NEAR = 60, -- closer than this: every frame
+	FAR = 150, -- further than this: standing still
+	FAR_STEP = 1 / 20, -- in between: at most this often (seconds), hard to spot at that distance
+}
+
 ---------------------------------------------------------------- saving
 
 -- How players' saves are kept safe (see server/PlayerData.luau).

@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Build = require(Shared.Build)
 local Config = require(Shared.Config)
 local Houses = require(Shared.Houses)
+local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -162,9 +163,14 @@ function Homes.start(plotFrames: { CFrame })
 		end
 		lastBuilt[player] = os.clock()
 		moveIn(player, index, checked)
+		local changed, firstTime = false, false
 		PlayerData.update(player, function(data)
+			changed, firstTime = true, data.home == nil
 			data.home = { design = checked, plot = index }
 		end)
+		if changed then
+			Analytics.step(player, Analytics.FIRST_HOME, firstTime)
+		end
 		return true
 	end
 

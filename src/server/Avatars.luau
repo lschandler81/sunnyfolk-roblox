@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
 local Looks = require(Shared.Looks)
+local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -95,11 +96,22 @@ function Avatars.start()
 		lastPlay[player] = os.clock()
 		local checked = checkChoice(choice)
 		if checked then
+			local changed, firstTime = false, false
 			PlayerData.update(player, function(data)
+				changed, firstTime = true, data.look == nil
 				data.look = checked
 			end)
+			if changed then
+				Analytics.step(player, Analytics.CHOSE_ANIMAL, firstTime)
+			end
 			Avatars.spawn(player, player.Character == nil)
 		end
+	end)
+
+	-- Analytics: a player joining who has never picked an animal is a new player.
+	PlayerData.onLoaded(function(player)
+		local data = PlayerData.get(player)
+		Analytics.step(player, Analytics.JOINED, data ~= nil and data.look == nil)
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)

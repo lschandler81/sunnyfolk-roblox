@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Looks = require(Shared.Looks)
+local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -39,10 +40,17 @@ function HatShop.start()
 		if data.coins < hat.price then
 			return false, `You need {hat.price - data.coins} more coins.`
 		end
+		local balance, firstTime = nil, false
 		PlayerData.update(player, function(d)
+			firstTime = #d.hats == 0
 			d.coins -= hat.price
 			table.insert(d.hats, hat.id)
+			balance = d.coins
 		end)
+		if balance then
+			Analytics.coinsSpent(player, hat.price, balance, `hat:{hat.id}`)
+			Analytics.step(player, Analytics.FIRST_HAT, firstTime)
+		end
 		wear(player, hat.id)
 		return true
 	end

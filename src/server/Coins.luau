@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
+local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -45,9 +46,17 @@ function Coins.start()
 			return
 		end
 		mine[coinId] = now
+		local balance, firstTime = nil, false
 		PlayerData.update(player, function(data)
+			-- only hats cost coins, so no coins and no hats means they've never had a coin
+			firstTime = data.coins == 0 and #data.hats == 0
 			data.coins += 1
+			balance = data.coins
 		end)
+		if balance then
+			Analytics.coinsEarned(player, 1, balance, "pickup")
+			Analytics.step(player, Analytics.FIRST_COIN, firstTime)
+		end
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)

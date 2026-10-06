@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Looks = require(Shared.Looks)
 local PlayerData = require(script.Parent.PlayerData)
+local RemoteGuard = require(script.Parent.RemoteGuard)
 
 local Remotes = Shared:WaitForChild("Remotes")
 
@@ -24,6 +25,9 @@ end
 function HatShop.start()
 	-- Returns (true) when it's bought, or (false, "a kind message") when it can't be.
 	Remotes.BuyHat.OnServerInvoke = function(player, hatId)
+		if not RemoteGuard.allow(player, "BuyHat") then
+			return false, "Just a moment!"
+		end
 		local hat = typeof(hatId) == "string" and Looks.hat(hatId)
 		local data = PlayerData.get(player)
 		if not (hat and hat.kind == "shop" and data) then
@@ -45,6 +49,9 @@ function HatShop.start()
 
 	-- Put on a hat you own, or take your hat off (nil).
 	Remotes.WearHat.OnServerEvent:Connect(function(player, hatId)
+		if not RemoteGuard.allow(player, "WearHat") then
+			return
+		end
 		local data = PlayerData.get(player)
 		if not data then
 			return

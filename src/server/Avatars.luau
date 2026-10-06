@@ -12,6 +12,7 @@ local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
 local Looks = require(Shared.Looks)
 local PlayerData = require(script.Parent.PlayerData)
+local RemoteGuard = require(script.Parent.RemoteGuard)
 
 local Remotes = Shared:WaitForChild("Remotes")
 
@@ -25,7 +26,8 @@ local function checkChoice(choice: any): PlayerData.Choice?
 	if typeof(choice) ~= "table" or not table.find(Config.START_ANIMALS, choice.species) then
 		return nil
 	end
-	local scarf = if typeof(choice.scarf) == "number" then math.floor(choice.scarf) else 1
+	-- (scarf == scarf is false for "not a number", which would get past math.clamp)
+	local scarf = if typeof(choice.scarf) == "number" and choice.scarf == choice.scarf then math.floor(choice.scarf) else 1
 	return {
 		species = choice.species,
 		coat = Looks.coat(choice.species, if typeof(choice.coat) == "string" then choice.coat else nil).id,
@@ -84,6 +86,9 @@ function Avatars.start()
 
 	-- The welcome screen's Play button (and "Change animal").
 	Remotes.Play.OnServerEvent:Connect(function(player, choice)
+		if not RemoteGuard.allow(player, "Play") then
+			return
+		end
 		if os.clock() - (lastPlay[player] or 0) < 1 then
 			return
 		end

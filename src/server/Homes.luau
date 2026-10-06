@@ -12,6 +12,7 @@ local Build = require(Shared.Build)
 local Config = require(Shared.Config)
 local Houses = require(Shared.Houses)
 local PlayerData = require(script.Parent.PlayerData)
+local RemoteGuard = require(script.Parent.RemoteGuard)
 
 local Remotes = Shared:WaitForChild("Remotes")
 
@@ -135,6 +136,9 @@ function Homes.start(plotFrames: { CFrame })
 	-- Moving in, and changing your house.
 	local lastBuilt: { [Player]: number } = {}
 	Remotes.SetHome.OnServerInvoke = function(player, plotIndex, design)
+		if not RemoteGuard.allow(player, "SetHome") then
+			return false, "Just a moment!"
+		end
 		if os.clock() - (lastBuilt[player] or 0) < 2 then
 			return false, "Just a moment!"
 		end

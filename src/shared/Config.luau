@@ -99,6 +99,7 @@ end
 Config.COIN_RETURN_SECONDS = 180 -- a coin you pick up comes back after this long
 Config.COIN_HEIGHT = 0.85 * S -- how high coins float above the ground
 Config.COIN_PICK_RADIUS = 1.25 * S -- how close you need to walk
+Config.COIN_MAX_PER_MINUTE = 40 -- more pickups than this in a minute are ignored
 
 -- Every coin has a name so the server can check it. Built once, here, so the server and the
 -- players always agree (the "random" ones use the same seed everywhere).
@@ -178,6 +179,19 @@ Config.SAVE = {
 	LEAVE_TRIES = 3, -- tries at the last save when a player leaves
 	CHECK_SECONDS = 0.1, -- how often to look again while waiting for another save to finish
 	CLOSE_SECONDS = 25, -- how long a closing server waits for everyone's last save
+}
+
+---------------------------------------------------------------- guarding the remotes
+
+-- How often each player may ask the server for each thing (see server/RemoteGuard.luau): at
+-- most `calls` in any `seconds`. Anything more is quietly ignored. These are well above what
+-- normal play needs, so only a script hammering the server notices them.
+Config.REMOTE_LIMITS = {
+	BuyHat = { calls = 4, seconds = 2 },
+	WearHat = { calls = 6, seconds = 2 },
+	CollectCoin = { calls = 12, seconds = 2 },
+	Play = { calls = 3, seconds = 5 },
+	SetHome = { calls = 3, seconds = 10 },
 }
 
 ---------------------------------------------------------------- testing

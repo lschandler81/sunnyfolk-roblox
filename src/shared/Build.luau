@@ -62,6 +62,10 @@ Build.random = random
 
 type Props = { [string]: any }
 
+-- Parts smaller than this (in studs, on their longest side) cast no shadow: flowers, flags,
+-- trims and so on, whose shadows nobody would notice. Keeps phones running smoothly.
+local SHADOW_SIZE = 2
+
 local function part(className: string, size: Vector3, cframe: CFrame, color: Color3, props: Props?): BasePart
 	local p = Instance.new(className) :: BasePart
 	p.Anchored = true
@@ -71,8 +75,17 @@ local function part(className: string, size: Vector3, cframe: CFrame, color: Col
 	p.Material = Enum.Material.SmoothPlastic
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.CanTouch = false -- nothing in the town uses touch events, so don't make physics watch for them
+	if math.max(size.X, size.Y, size.Z) < SHADOW_SIZE then
+		p.CastShadow = false
+	end
 	for key, value in pairs(props or {}) do
 		(p :: any)[key] = value
+	end
+	-- Things you walk through aren't checked by raycasts either, unless something asks for it.
+	-- (It saves physics work; nothing in the game needs to hit them.)
+	if not p.CanCollide and not (props and props.CanQuery ~= nil) then
+		p.CanQuery = false
 	end
 	p.Parent = folder
 	return p
@@ -162,12 +175,9 @@ local function lamp(at: CFrame)
 	cylinder(0.34 * S, 0.25 * S, at * CFrame.new(0, 0.125 * S, 0), C.tealDeep)
 	cylinder(0.1 * S, post * S, at * CFrame.new(0, (0.2 + post / 2) * S, 0), C.tealDeep)
 	cylinder(0.18 * S, 0.12 * S, at * CFrame.new(0, (LAMP_H - 0.35) * S, 0), C.tealDeep)
-	local glow = blob(Vector3.new(0.5, 0.56, 0.5) * S, at * CFrame.new(0, LAMP_H * S, 0), C.cream)
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromHex("#ffe9b8")
-	light.Range = 16
-	light.Brightness = 0.7
-	light.Parent = glow
+	-- The lamp head has no light in it: the town is always in daylight, where a light barely
+	-- shows but still costs phones work every frame.
+	blob(Vector3.new(0.5, 0.56, 0.5) * S, at * CFrame.new(0, LAMP_H * S, 0), C.cream)
 	blob(Vector3.new(0.8, 0.3, 0.8) * S, at * CFrame.new(0, (LAMP_H + 0.37) * S, 0), C.tealDeep)
 	ball(0.14 * S, at * CFrame.new(0, (LAMP_H + 0.55) * S, 0), C.tealDeep, DECOR)
 end
@@ -374,6 +384,7 @@ Build.mailbox = mailbox
 Build.barrel = barrel
 Build.house = house
 Build.DECOR = DECOR
+Build.SHADOW_SIZE = SHADOW_SIZE
 Build.LAMP_H = LAMP_H
 
 return Build

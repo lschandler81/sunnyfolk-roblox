@@ -49,6 +49,12 @@
       }
     },
 
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true
+      }
+    },
+
     "Lighting": {
       "$properties": {
         "ClockTime": 14.5,

@@ -7,6 +7,7 @@
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
@@ -612,6 +613,46 @@ end
 
 ---------------------------------------------------------------- building it all
 
+-- In Studio, prints how much is in the Workspace, to see how heavy the town is.
+function Town.count()
+	if not RunService:IsStudio() then
+		return
+	end
+	local parts, meshParts, models, lights, shadows, solid, small = 0, 0, 0, 0, 0, 0, 0
+	for _, thing in Workspace:GetDescendants() do
+		if thing:IsA("BasePart") then
+			parts += 1
+			if thing:IsA("MeshPart") then
+				meshParts += 1
+			end
+			if thing.CastShadow then
+				shadows += 1
+			end
+			if thing.CanCollide then
+				solid += 1
+			end
+			local size = thing.Size
+			if math.max(size.X, size.Y, size.Z) < Build.SHADOW_SIZE then
+				small += 1
+			end
+		elseif thing:IsA("Model") then
+			models += 1
+		elseif thing:IsA("PointLight") then
+			lights += 1
+		end
+	end
+	-- Some settings can't be read by scripts in every Roblox version, so read them carefully.
+	local function setting(name: string): string
+		local ok, value = pcall(function()
+			return (Workspace :: any)[name]
+		end)
+		return if ok then tostring(value) else "(can't be read here)"
+	end
+	print(`Town count: {parts} parts ({meshParts} MeshParts, {small} smaller than {Build.SHADOW_SIZE} studs),`
+		.. ` {models} Models, {lights} PointLights, {shadows} cast shadows, {solid} solid.`
+		.. ` StreamingEnabled = {setting("StreamingEnabled")}, StreamingTargetRadius = {setting("StreamingTargetRadius")}`)
+end
+
 -- Builds the town. Returns where the shop doors are, so the shopkeepers can stand by them.
 function Town.build(): { doors: { [string]: CFrame }, plots: { CFrame } }
 	-- The Baseplate template's floor and spawn pad aren't needed: the town has its own.
@@ -640,6 +681,7 @@ function Town.build(): { doors: { [string]: CFrame }, plots: { CFrame } }
 	edge()
 	sky()
 	folder.Parent = Workspace
+	pcall(Town.count) -- only for Studio; it must never stop the game starting
 	return { doors = doors, plots = plots }
 end
 

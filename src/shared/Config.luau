@@ -194,6 +194,7 @@ Config.WARDROBE_CHECK = false
 Config.PLAYER_CHAT = true
 
 Config.PLAYER_WALK_SPEED = 16
+Config.PLAYER_RUN_SPEED = 26 -- holding Shift, or with the Run button on
 Config.PLAYER_JUMP_HEIGHT = 6
 
 return Config

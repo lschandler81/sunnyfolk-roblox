@@ -22,6 +22,7 @@ local HomeDesigner = require(script.Parent.HomeDesigner)
 local Homes = require(script.Parent.Homes)
 local Hud = require(script.Parent.Hud)
 local Prompts = require(script.Parent.Prompts)
+local Run = require(script.Parent.Run)
 local Talk = require(script.Parent.Talk)
 
 local player = Players.LocalPlayer
@@ -50,6 +51,7 @@ end
 
 Animator.start()
 Prompts.start()
+Run.start()
 Coins.start()
 Talk.start(HatShop.open)
 Homes.start(Hud.toast)
@@ -98,6 +100,7 @@ local function chooseAnimal()
 		return
 	end
 	Hud.show(false)
+	Run.show(false)
 	Controls.set(false)
 	if not player.Character then
 		driftRoundSquare()
@@ -106,6 +109,7 @@ local function chooseAnimal()
 		Remotes.Play:FireServer(choice)
 		Controls.set(true)
 		Hud.show(true)
+		Run.show(true)
 	end)
 end
 

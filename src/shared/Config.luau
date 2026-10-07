@@ -158,7 +158,7 @@ end
 
 -- Studio only: this many pretend pets walk round you, to check the frame rate with a crowd
 -- (say 20). 0 for none. It does nothing outside Studio.
-Config.PET_TEST_CROWD = 20
+Config.PET_TEST_CROWD = 0
 
 ---------------------------------------------------------------- the daily present and the request board
 

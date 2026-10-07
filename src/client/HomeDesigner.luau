@@ -49,14 +49,16 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 	Controls.set(false)
 	local gui = Ui.screen("HomeDesigner", 16)
 	screen = gui
+	-- Laid out for a landscape phone (620 x 290), and grows on bigger screens: the house and the
+	-- buttons on the left, the choices on the right.
 	local card = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(900, 520),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(620, 290),
 		BackgroundColor3 = Ui.colors.paper,
 		Parent = gui,
-	}, { Ui.corner(28), Ui.stroke(4) })
-	Ui.fitToScreen(card, 900, 540)
+	}, { Ui.corner(22), Ui.stroke(3) })
+	Ui.fitToScreen(card, 620, 290)
 
 	local turning: RBXScriptConnection? = nil
 	local function close()
@@ -70,20 +72,21 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 
 	Ui.text({
 		Text = if movingHouse then "Move house?" elseif moving then "Your new home!" else "Change your home",
-		TextSize = 36,
+		TextSize = 20,
 		TextColor3 = Ui.colors.coral,
-		Position = UDim2.fromOffset(0, 18),
-		Size = UDim2.new(1, 0, 0, 44),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(14, 8),
+		Size = UDim2.fromOffset(212, 26),
 		Parent = card,
 	})
 
 	-- the picture of the house, turning gently
 	local stage = Ui.new("Frame", {
-		Position = UDim2.fromOffset(30, 80),
-		Size = UDim2.fromOffset(380, 340),
+		Position = UDim2.fromOffset(12, 38),
+		Size = UDim2.fromOffset(214, 150),
 		BackgroundColor3 = Ui.colors.mint,
 		Parent = card,
-	}, { Ui.corner(22), Ui.stroke(3) })
+	}, { Ui.corner(16), Ui.stroke(3) })
 	local view, camera = Ui.viewport({ Size = UDim2.fromScale(1, 1), Parent = stage })
 	local shown: Model? = nil
 	local function redraw()
@@ -109,31 +112,31 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 
 	-- the choices
 	local right = Ui.new("Frame", {
-		Position = UDim2.fromOffset(436, 80),
-		Size = UDim2.fromOffset(440, 340),
+		Position = UDim2.fromOffset(234, 6),
+		Size = UDim2.fromOffset(376, 278),
 		BackgroundTransparency = 1,
 		Parent = card,
-	}, { Ui.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	}, { Ui.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
 	local refresh: () -> ()
 	local function row(name: string, order: number): Frame
 		local line = Ui.new("Frame", {
-			Size = UDim2.new(1, 0, 0, 48),
+			Size = UDim2.new(1, 0, 0, Ui.TOUCH),
 			BackgroundTransparency = 1,
 			LayoutOrder = order,
 			Parent = right,
 		})
-		Ui.text({ Text = name, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.fromOffset(90, 48), Parent = line })
+		Ui.text({ Text = name, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.fromOffset(62, Ui.TOUCH), Parent = line })
 		return Ui.new("Frame", {
-			Position = UDim2.fromOffset(92, 0),
-			Size = UDim2.new(1, -92, 1, 0),
+			Position = UDim2.fromOffset(64, 0),
+			Size = UDim2.new(1, -64, 1, 0),
 			BackgroundTransparency = 1,
 			Parent = line,
 		}, {
 			Ui.new("UIListLayout", {
 				FillDirection = Enum.FillDirection.Horizontal,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
-				Padding = UDim.new(0, 8),
+				Padding = UDim.new(0, 6),
 			}),
 		})
 	end
@@ -148,12 +151,12 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 				option.pick()
 				refresh()
 			end, {
-				Size = UDim2.fromOffset(0, 40),
+				Size = UDim2.fromOffset(0, Ui.TOUCH),
 				AutomaticSize = Enum.AutomaticSize.X,
-				TextSize = 18,
+				TextSize = 15,
 				Parent = holder,
 			})
-			Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = button })
+			Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = button })
 			table.insert(updaters, function()
 				button.BackgroundColor3 = if option.picked() then Ui.colors.yellow else Ui.colors.cream
 			end)
@@ -167,7 +170,7 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 			local stroke = Ui.stroke(2.5)
 			local button = Ui.new("TextButton", {
 				Text = "",
-				Size = UDim2.fromOffset(40, 40),
+				Size = UDim2.fromOffset(Ui.TOUCH, Ui.TOUCH),
 				BackgroundColor3 = Color3.fromHex(option.color or "#ffffff"),
 				AutoButtonColor = false,
 				Parent = holder,
@@ -236,18 +239,17 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 
 	local note = Ui.text({
 		Text = if movingHouse then "Your home will move to this plot." else "More styles coming soon!",
-		TextSize = 17,
+		TextSize = 14,
 		TextColor3 = Ui.colors.teal,
-		Position = UDim2.fromOffset(30, 432),
-		Size = UDim2.fromOffset(380, 60),
+		Position = UDim2.fromOffset(12, 190),
+		Size = UDim2.fromOffset(214, 40),
 		Parent = card,
 	})
 
 	Ui.button("Not now", Ui.colors.cream, close, {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -290, 1, -26),
-		Size = UDim2.fromOffset(150, 60),
-		TextSize = 24,
+		Position = UDim2.fromOffset(12, 234),
+		Size = UDim2.fromOffset(84, 48),
+		TextSize = 17,
 		Parent = card,
 	})
 	Ui.button(if movingHouse then "Move here!" elseif moving then "Build it!" else "Save", Ui.colors.yellow, function()
@@ -265,10 +267,9 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 			note.Text = why or "Something went wrong. Please try again."
 		end
 	end, {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -30, 1, -26),
-		Size = UDim2.fromOffset(240, 60),
-		TextSize = 30,
+		Position = UDim2.fromOffset(102, 234),
+		Size = UDim2.fromOffset(124, 48),
+		TextSize = 20,
 		Parent = card,
 	})
 

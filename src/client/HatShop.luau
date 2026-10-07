@@ -69,14 +69,16 @@ function HatShop.open()
 	Controls.set(false)
 	local gui = Ui.screen("HatShop", 15)
 	screen = gui
+	-- Laid out for a landscape phone (620 x 290), and grows on bigger screens: you trying the
+	-- hat on, on the left; the shelves of hats on the right.
 	local card = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(840, 500),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(620, 290),
 		BackgroundColor3 = Ui.colors.paper,
 		Parent = gui,
-	}, { Ui.corner(28), Ui.stroke(4) })
-	Ui.fitToScreen(card, 840, 520)
+	}, { Ui.corner(22), Ui.stroke(3) })
+	Ui.fitToScreen(card, 620, 290)
 
 	local connections: { RBXScriptConnection } = {}
 	local function close()
@@ -90,25 +92,26 @@ function HatShop.open()
 
 	Ui.text({
 		Text = "Clover's Hat Shop",
-		TextSize = 34,
+		TextSize = 22,
 		TextColor3 = Ui.colors.coral,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(30, 16),
-		Size = UDim2.fromOffset(500, 42),
+		Position = UDim2.fromOffset(14, 8),
+		Size = UDim2.fromOffset(240, Ui.TOUCH),
 		Parent = card,
 	})
 	Ui.button("Bye!", Ui.colors.cream, close, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -22, 0, 18),
-		Size = UDim2.fromOffset(96, 44),
+		Position = UDim2.new(1, -8, 0, 8),
+		Size = UDim2.fromOffset(76, Ui.TOUCH),
+		TextSize = 20,
 		Parent = card,
 	})
 
 	-- your coins
 	local wallet = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -134, 0, 18),
-		Size = UDim2.fromOffset(0, 44),
+		Position = UDim2.new(1, -92, 0, 8),
+		Size = UDim2.fromOffset(0, Ui.TOUCH),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = Ui.colors.cream,
 		Parent = card,
@@ -122,18 +125,19 @@ function HatShop.open()
 			Padding = UDim.new(0, 6),
 		}),
 	})
-	Ui.coin(30, { Parent = wallet })
-	local walletText = Ui.text({ TextSize = 24, Size = UDim2.fromOffset(0, 36), AutomaticSize = Enum.AutomaticSize.X, Parent = wallet })
+	Ui.coin(28, { Parent = wallet })
+	local walletText = Ui.text({ TextSize = 20, Size = UDim2.fromOffset(0, 36), AutomaticSize = Enum.AutomaticSize.X, Parent = wallet })
 
 	-- the try-on picture
 	local stage = Ui.new("Frame", {
-		Position = UDim2.fromOffset(30, 74),
-		Size = UDim2.fromOffset(270, 280),
+		Position = UDim2.fromOffset(12, 58),
+		Size = UDim2.fromOffset(190, 120),
 		BackgroundColor3 = Ui.colors.mint,
 		Parent = card,
-	}, { Ui.corner(22), Ui.stroke(3) })
+	}, { Ui.corner(16), Ui.stroke(3) })
 	local view, camera = Ui.viewport({ Size = UDim2.fromScale(1, 1), Parent = stage })
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 4.4, -14.5), Vector3.new(0, 3.4, 0))
+	-- close up on the head and the hat (the picture is wider than it is tall)
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 5.4, -10), Vector3.new(0, 4.6, 0))
 	local you: Model? = nil
 	table.insert(connections, RunService.RenderStepped:Connect(function()
 		if you then
@@ -142,42 +146,42 @@ function HatShop.open()
 	end))
 
 	local hatName = Ui.text({
-		TextSize = 24,
-		Position = UDim2.fromOffset(30, 360),
-		Size = UDim2.fromOffset(270, 30),
-		Parent = card,
-	})
-	local action = Ui.button("", Ui.colors.yellow, function() end, {
-		Position = UDim2.fromOffset(45, 394),
-		Size = UDim2.fromOffset(240, 54),
-		TextSize = 24,
+		TextSize = 15,
+		Position = UDim2.fromOffset(12, 180),
+		Size = UDim2.fromOffset(190, 19),
 		Parent = card,
 	})
 	local note = Ui.text({
-		TextSize = 17,
-		Position = UDim2.fromOffset(20, 452),
-		Size = UDim2.fromOffset(290, 42),
+		TextSize = 14,
+		Position = UDim2.fromOffset(8, 200),
+		Size = UDim2.fromOffset(198, 36),
+		Parent = card,
+	})
+	local action = Ui.button("", Ui.colors.yellow, function() end, {
+		Position = UDim2.fromOffset(12, 239),
+		Size = UDim2.fromOffset(190, Ui.TOUCH),
+		TextSize = 20,
 		Parent = card,
 	})
 
 	-- the shelves
 	local shelves = Ui.new("ScrollingFrame", {
-		Position = UDim2.fromOffset(326, 74),
-		Size = UDim2.fromOffset(490, 400),
+		Position = UDim2.fromOffset(212, 58),
+		Size = UDim2.fromOffset(398, 224),
 		BackgroundColor3 = Ui.colors.cream,
-		ScrollBarThickness = 10,
+		ScrollBarThickness = 8,
 		ScrollBarImageColor3 = Ui.colors.ink,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		Parent = card,
 	}, {
-		Ui.corner(22),
+		Ui.corner(16),
 		Ui.stroke(3),
-		Ui.padding(12),
+		Ui.padding(6),
 		Ui.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(106, 132),
-			CellPadding = UDim2.fromOffset(10, 10),
+			CellSize = UDim2.fromOffset(88, 104),
+			CellPadding = UDim2.fromOffset(6, 6),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
@@ -193,10 +197,10 @@ function HatShop.open()
 			BackgroundColor3 = Ui.colors.paper,
 			LayoutOrder = i,
 			Parent = shelves,
-		}, { Ui.corner(16), stroke })
+		}, { Ui.corner(12), stroke })
 		local thumb, thumbCamera = Ui.viewport({
-			Position = UDim2.fromOffset(13, 6),
-			Size = UDim2.fromOffset(80, 70),
+			Position = UDim2.fromOffset(14, 2),
+			Size = UDim2.fromOffset(60, 52),
 			Parent = button,
 		})
 		local model = Builder.hatModel(choice.species, hat.id)
@@ -207,15 +211,15 @@ function HatShop.open()
 		end
 		Ui.text({
 			Text = hat.name,
-			TextSize = 15,
-			Position = UDim2.fromOffset(4, 76),
-			Size = UDim2.new(1, -8, 0, 32),
+			TextSize = 13,
+			Position = UDim2.fromOffset(2, 54),
+			Size = UDim2.new(1, -4, 0, 32),
 			Parent = button,
 		})
 		local priceRow = Ui.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 106),
-			Size = UDim2.fromOffset(0, 22),
+			Position = UDim2.new(0.5, 0, 0, 86),
+			Size = UDim2.fromOffset(0, 18),
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
 			Parent = button,
@@ -226,8 +230,8 @@ function HatShop.open()
 				Padding = UDim.new(0, 4),
 			}),
 		})
-		local coin = Ui.coin(18, { Parent = priceRow })
-		local price = Ui.text({ TextSize = 17, Size = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.X, Parent = priceRow })
+		local coin = Ui.coin(15, { Parent = priceRow })
+		local price = Ui.text({ TextSize = 14, Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Parent = priceRow })
 		price:SetAttribute("Price", hat.price)
 		coin.Name = "Coin"
 		button.Activated:Connect(function()

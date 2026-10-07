@@ -35,6 +35,13 @@ function Prompts.start()
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
+	-- On a touch screen, sit higher and a little to the right: clear of the thumbstick (the
+	-- left part of the screen) and above the Run and jump buttons (bottom right).
+	local function place()
+		list.Position = if UserInputService.TouchEnabled then UDim2.new(0.6, 0, 1, -100) else UDim2.new(0.5, 0, 1, -24)
+	end
+	place()
+	UserInputService:GetPropertyChangedSignal("TouchEnabled"):Connect(place)
 
 	local shown: { [ProximityPrompt]: GuiObject } = {}
 
@@ -47,7 +54,12 @@ function Prompts.start()
 			then PAD_NAMES[prompt.GamepadKeyCode] or "A"
 			elseif inputType == Enum.ProximityPromptInputType.Touch then nil
 			else UserInputService:GetStringForKeyCode(prompt.KeyboardKeyCode)
-		local words = if prompt.ObjectText ~= "" then `{prompt.ActionText}  ·  {prompt.ObjectText}` else prompt.ActionText
+		-- On a touch screen, just the action ("Make this my home"), so the button stays short and
+		-- clear of the thumbstick on the left.
+		local touch = inputType == Enum.ProximityPromptInputType.Touch
+		local words = if prompt.ObjectText ~= "" and not touch
+			then `{prompt.ActionText}  ·  {prompt.ObjectText}`
+			else prompt.ActionText
 
 		local button = Ui.new("TextButton", {
 			Text = "",
@@ -85,7 +97,7 @@ function Prompts.start()
 		end
 		Ui.text({
 			Text = words,
-			TextSize = 22,
+			TextSize = if touch then 18 else 22,
 			Size = UDim2.fromOffset(0, 40),
 			AutomaticSize = Enum.AutomaticSize.X,
 			TextWrapped = false,

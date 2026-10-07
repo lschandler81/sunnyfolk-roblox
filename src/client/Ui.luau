@@ -3,7 +3,6 @@
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 
 local Ui = {}
 
@@ -126,31 +125,40 @@ function Ui.coin(size: number, props: { [string]: any }?): Frame
 	return coin
 end
 
--- A screen for the local player.
+-- Every button should be at least this big (in pixels) on the smallest phone, so a child's
+-- finger can hit it. Screens are designed for a phone first and grow on bigger screens.
+Ui.TOUCH = 44
+Ui.MAX_SCALE = 1.6 -- how much a screen may grow on a tablet or computer
+
+-- A screen for the local player. It keeps clear of Roblox's top bar and of phone notches and
+-- rounded corners.
 function Ui.screen(name: string, order: number): ScreenGui
 	return Ui.new("ScreenGui", {
 		Name = name,
 		ResetOnSpawn = false,
 		DisplayOrder = order,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets,
 		Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
 	})
 end
 
--- Shrinks a card designed at `width` x `height` pixels to fit small screens (phones).
+-- Fits a card designed at `width` x `height` pixels (for a landscape phone) to the space on
+-- the screen: a little smaller on the tiniest phones, bigger on tablets and computers (up to
+-- Ui.MAX_SCALE). The card must already be in its ScreenGui.
 function Ui.fitToScreen(card: GuiObject, width: number, height: number)
 	local scale = Ui.new("UIScale", { Parent = card })
+	local screen = card:FindFirstAncestorOfClass("ScreenGui")
 	local function fit()
-		local camera = Workspace.CurrentCamera
-		if camera then
-			local view = camera.ViewportSize
-			scale.Scale = math.min(1, view.X * 0.96 / width, view.Y * 0.92 / height)
+		local space = if screen then screen.AbsoluteSize else Vector2.new(width, height)
+		if space.X > 0 and space.Y > 0 then
+			-- a small fixed margin, so a phone that just fits gets the card at full size
+			scale.Scale = math.min(Ui.MAX_SCALE, (space.X - 16) / width, (space.Y - 12) / height)
 		end
 	end
 	fit()
-	local camera = Workspace.CurrentCamera
-	if camera then
-		camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
+	if screen then
+		screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	end
 end
 

@@ -296,6 +296,44 @@ function Hud.toastFree(): boolean
 	return os.clock() >= toastUntil
 end
 
+-- Things waiting their turn to be shown (see Hud.inTurn).
+local waiting: { () -> () } = {}
+local running = false
+
+-- Runs `show` once you're playing (the HUD is up), no screen is open (the Hat Shop, the house
+-- designer...) and no big message is showing, so it's never hidden or cut short. Things wait
+-- in the order they came.
+function Hud.inTurn(show: () -> ())
+	table.insert(waiting, show)
+	if running then
+		return
+	end
+	running = true
+	task.spawn(function()
+		while #waiting > 0 do
+			local clearSince = os.clock()
+			repeat
+				task.wait(0.25)
+				local playing = screen ~= nil and screen.Enabled
+				if not playing or Ui.openScreens > 0 or not Hud.toastFree() then
+					clearSince = os.clock()
+				end
+			until os.clock() - clearSince >= 0.5
+			local nextOne = table.remove(waiting, 1)
+			-- in its own thread, so one going wrong never stops the rest
+			task.spawn(nextOne)
+		end
+		running = false
+	end)
+end
+
+-- A big friendly message, in turn (see Hud.inTurn).
+function Hud.announce(text: string, small: string?)
+	Hud.inTurn(function()
+		Hud.toast(text, small)
+	end)
+end
+
 -- The frame in the top right, for the goal card to go in (client/GoalsPanel).
 function Hud.corner(): Frame?
 	return cornerFrame

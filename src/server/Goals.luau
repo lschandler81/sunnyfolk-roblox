@@ -73,9 +73,20 @@ settle = function(player: Player)
 	end
 end
 
--- Something happened that might finish a goal. `kind` is one of the kinds in shared/Goals;
--- `what` says which resident, for "talk".
+-- Others who want to hear about the same things (the request board, server/Daily).
+local listeners: { (Player, string, string?) -> () } = {}
+
+-- Runs `callback(player, kind, what)` for everything Goals.event hears about.
+function Goals.onEvent(callback: (Player, string, string?) -> ())
+	table.insert(listeners, callback)
+end
+
+-- Something happened that might finish a goal (or a request). `kind` is one of the kinds in
+-- shared/Goals; `what` says which resident, for "talk".
 function Goals.event(player: Player, kind: string, what: string?)
+	for _, listener in listeners do
+		listener(player, kind, what)
+	end
 	local data = PlayerData.get(player)
 	local goal = data and LIST[data.goal]
 	if not (data and goal and goal.kind == kind) then

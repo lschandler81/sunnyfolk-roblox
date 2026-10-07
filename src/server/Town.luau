@@ -435,12 +435,28 @@ local function lawns()
 	ball(0.32 * S, picnic * CFrame.new(-0.25 * S, 0.2 * S, -0.5 * S), C.yuzu, DECOR)
 	keepClear(picnic.Position, 2.5)
 
-	local board = yawAt(Config.polar(198, 20.5), Config.faceIn(195))
+	-- the request board: three requests a day (server/Daily, client/DailyPanel)
+	local B = Config.REQUEST_BOARD
+	local board = yawAt(Config.polar(B.angle, B.dist), Config.faceIn(B.angle - 3))
 	for _, side in { -1, 1 } do
 		cylinder(0.1 * S, 2.2 * S, board * CFrame.new(side * 1.1 * S, 1.1 * S, 0), C.woodDark)
 	end
-	block(Vector3.new(2.6, 1.5, 0.15) * S, board * CFrame.new(0, 1.5 * S, 0), C.wood)
+	local face = block(Vector3.new(2.6, 1.5, 0.15) * S, board * CFrame.new(0, 1.5 * S, 0), C.wood)
 	block(Vector3.new(2.8, 0.2, 0.4) * S, board * CFrame.new(0, 2.35 * S, 0), C.coral)
+	local heading = block(Vector3.new(2.4, 0.42, 0.06) * S, board * CFrame.new(0, 2.62 * S, 0) * CFrame.Angles(0, math.pi, 0), C.cream, DECOR)
+	label(heading, "Requests", C.ink, C.cream)
+	label(heading, "Requests", C.ink, C.cream, Enum.NormalId.Back)
+	local read = Instance.new("ProximityPrompt")
+	read.Name = "RequestBoard"
+	read.ActionText = "Read"
+	read.ObjectText = "Request Board"
+	read.KeyboardKeyCode = Enum.KeyCode.E
+	read.GamepadKeyCode = Enum.KeyCode.ButtonX
+	read.HoldDuration = 0
+	read.MaxActivationDistance = 12
+	read.RequiresLineOfSight = false
+	read.Style = Enum.ProximityPromptStyle.Custom -- shown at the bottom of the screen (client/Prompts)
+	read.Parent = face
 	for i = 0, 3 do
 		local paper = { C.cream, C.white, C.yellow, C.skyBlue }
 		block(Vector3.new(0.5, 0.6, 0.02) * S, board * CFrame.new((-0.85 + i * 0.57) * S, (1.5 + (i % 2) * 0.1) * S, 0.09 * S) * CFrame.Angles(0, 0, random:NextNumber(-0.1, 0.1)), paper[i + 1], DECOR)

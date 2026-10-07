@@ -1,9 +1,10 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats,
--- their home, and how far they've got through the goals (with the sunshine they've earned).
+-- their home, how far they've got through the goals (with the sunshine they've earned), their
+-- daily present and today's requests.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, Look, HomeDesign, Goal, GoalCount, GoalMet,
--- Sun), which the game's screens read.
+-- Sun, DailyStreak, Requests), which the game's screens read.
 --
 -- Keeping saves safe:
 --   * Only one server at a time can have a player's save open. Opening it writes a lock (this
@@ -32,9 +33,9 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 2 -- the save version this code writes (see migrate)
+local VERSION = 3 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
-local FIELDS = { "coins", "look", "hat", "hats", "home", "goal", "goalCount", "goalMet", "sun" }
+local FIELDS = { "coins", "look", "hat", "hats", "home", "goal", "goalCount", "goalMet", "sun", "daily", "requests" }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
 
@@ -57,6 +58,11 @@ export type Data = {
 	goalCount: number, -- progress on a counting goal (coins picked up since it started)
 	goalMet: { string }, -- for a "say hello" goal, who they've said hello to so far
 	sun: number, -- sunshine earned
+	-- the daily present: the last day (server day number, see server/Daily) one was given,
+	-- which of the 7 days it was (0 before the first), and the day this round of seven began
+	daily: { last: number, streak: number, start: number },
+	-- today's requests (Config.requestsFor(day)): progress on each, and which are done
+	requests: { day: number, got: { number }, done: { boolean } },
 }
 type Profile = {
 	data: Data,
@@ -77,7 +83,19 @@ local loadedCallbacks: { (Player) -> () } = {}
 local busy: { [number]: boolean } = {}
 
 local function blank(): Data
-	return { coins = 0, look = nil, hat = nil, hats = {}, home = nil, goal = 1, goalCount = 0, goalMet = {}, sun = 0 }
+	return {
+		coins = 0,
+		look = nil,
+		hat = nil,
+		hats = {},
+		home = nil,
+		goal = 1,
+		goalCount = 0,
+		goalMet = {},
+		sun = 0,
+		daily = { last = 0, streak = 0, start = 0 },
+		requests = { day = 0, got = {}, done = {} },
+	}
 end
 
 -- Brings an old save up to date, one version at a time, before tidy() checks it. Saves from
@@ -96,6 +114,11 @@ local function migrate(saved: any): any
 		-- Version 2 added the goals and sunshine. Older saves start at the first goal with no
 		-- sunshine, which tidy() fills in.
 		version = 2
+	end
+	if version < 3 then
+		-- Version 3 added the daily present and the request board. Older saves start with no
+		-- present given yet and no requests, which tidy() fills in.
+		version = 3
 	end
 	saved.version = version
 	return saved
@@ -150,6 +173,23 @@ local function tidy(saved: any): Data
 		end
 	end
 	data.sun = count(saved.sun) or 0
+	local daily = saved.daily
+	if typeof(daily) == "table" then
+		data.daily = {
+			last = count(daily.last) or 0,
+			streak = math.clamp(count(daily.streak) or 0, 0, #Config.DAILY.COINS),
+			start = count(daily.start) or 0,
+		}
+	end
+	local requests = saved.requests
+	if typeof(requests) == "table" then
+		data.requests.day = count(requests.day) or 0
+		for i = 1, Config.REQUESTS_PER_DAY do
+			local got = typeof(requests.got) == "table" and count(requests.got[i])
+			data.requests.got[i] = got or 0
+			data.requests.done[i] = typeof(requests.done) == "table" and requests.done[i] == true
+		end
+	end
 	return data
 end
 
@@ -168,6 +208,8 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("GoalCount", data.goalCount)
 	player:SetAttribute("GoalMet", table.concat(data.goalMet, ","))
 	player:SetAttribute("Sun", data.sun)
+	player:SetAttribute("DailyStreak", data.daily.streak)
+	player:SetAttribute("Requests", HttpService:JSONEncode(data.requests))
 end
 
 -- Is this save open on another server that's still running?

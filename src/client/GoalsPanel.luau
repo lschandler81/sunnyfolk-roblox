@@ -2,8 +2,8 @@
 --   * a card under the Goals button saying which goal you're on, and how far you've got
 --   * a yellow arrow at your feet and a pin over the place to go, pointing the way (they only
 --     point: they never move you)
---   * "Well done!" when you finish one (waiting until any open screen has closed and the last
---     message has gone, so it's always seen)
+--   * "Well done!" when you finish one (Hud.announce: it waits until any open screen has closed
+--     and the last message has gone, so it's always seen)
 --   * the Goals screen (from the HUD's Goals button): every goal, ticked off, and your
 --     sunshine
 -- Everything here only shows what the server says; it never changes progress.
@@ -286,40 +286,16 @@ function GoalsPanel.start(corner: Frame)
 	end
 	refresh()
 
-	-- "Well done!", in turn: each message waits until no screen is open (the Hat Shop, the
-	-- house designer) and the last message has gone
-	local waiting: { { string } } = {}
-	local showing = false
-	local function showNext()
-		if showing then
-			return
-		end
-		showing = true
-		task.spawn(function()
-			while #waiting > 0 do
-				local clearSince = os.clock()
-				repeat
-					task.wait(0.25)
-					if Ui.openScreens > 0 or screen ~= nil or not Hud.toastFree() then
-						clearSince = os.clock()
-					end
-				until os.clock() - clearSince >= 0.5
-				local message = table.remove(waiting, 1)
-				Hud.toast(message[1], message[2])
-			end
-			showing = false
-		end)
-	end
+	-- "Well done!" (in turn: see Hud.announce)
 	Remotes.GoalDone.OnClientEvent:Connect(function(_id, coins, sun, finished)
 		if typeof(coins) ~= "number" or typeof(sun) ~= "number" then
 			return
 		end
-		table.insert(waiting, { "Well done!", `+{coins} coins and {sun} sunshine` })
+		Hud.announce("Well done!", `+{coins} coins and {sun} sunshine`)
 		if finished then
 			local bonus = GoalList.FINISH
-			table.insert(waiting, { "All goals done!", `+{bonus.coins} coins and {bonus.sun} sunshine. Now go and explore!` })
+			Hud.announce("All goals done!", `+{bonus.coins} coins and {bonus.sun} sunshine. Now go and explore!`)
 		end
-		showNext()
 	end)
 
 	-- The arrow and the pin. Where to point is worked out a few times a second; the arrow

@@ -16,7 +16,10 @@
           "WearHat": { "$className": "RemoteEvent" },
           "BuyHat": { "$className": "RemoteFunction" },
           "SetHome": { "$className": "RemoteFunction" },
-          "GoalDone": { "$className": "RemoteEvent" }
+          "GoalDone": { "$className": "RemoteEvent" },
+          "DailyPresent": { "$className": "RemoteEvent" },
+          "RequestDone": { "$className": "RemoteEvent" },
+          "StudioNextDay": { "$className": "RemoteEvent" }
         }
       },
       "SunnyfolkModels": {

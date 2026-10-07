@@ -7,8 +7,10 @@
 --     so the funnel shows new players rather than every visit. One exception: "joined" means
 --     "has never chosen an animal", so someone who leaves before choosing is counted again
 --     next time they join.
---   * Economy events log coins earned (from pickups, and as rewards for goals) and spent (on
---     hats).
+--   * Economy events log coins earned (from pickups, and as rewards for goals, daily presents
+--     and requests) and spent (on hats).
+--   * A "DailyPresent" funnel counts each day of the seven a player comes back for, and a
+--     custom event is logged for each request finished.
 --
 -- Every call to Roblox is wrapped in pcall, so analytics can never break the game. In Studio
 -- each event is also printed to the Output, so you can watch them while testing.
@@ -69,6 +71,23 @@ function Analytics.coinsEarned(player: Player, amount: number, balance: number, 
 			balance, Enum.AnalyticsEconomyTransactionType.Gameplay.Name, source)
 	end)
 	note(`{player.Name} earned {amount} coin(s) from {source}, now has {balance}`)
+end
+
+-- A daily present: day `day` (1 to 7) of a round of seven that began on day number `round`.
+-- Logged as a funnel, so the dashboard shows how many come back for day 2, day 3 and so on.
+function Analytics.dailyPresent(player: Player, day: number, round: number)
+	pcall(function()
+		AnalyticsService:LogFunnelStepEvent(player, "DailyPresent", `{player.UserId}-{round}`, day, `Day {day}`)
+	end)
+	note(`{player.Name} daily present: day {day} (round {round})`)
+end
+
+-- A request from the board done (`id` from Config.REQUESTS).
+function Analytics.requestDone(player: Player, id: string)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(player, `Request:{id}`)
+	end)
+	note(`{player.Name} finished the request "{id}"`)
 end
 
 -- Coins spent. `sink` says on what (like "hat:beret"); `balance` is their coins after.

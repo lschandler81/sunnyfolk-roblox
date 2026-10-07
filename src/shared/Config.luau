@@ -102,6 +102,61 @@ function Config.cottageAt(cottage): (CFrame, Vector3)
 	return CFrame.lookAt(spot, road) * CFrame.Angles(0, math.pi, 0), road
 end
 
+---------------------------------------------------------------- the daily present and the request board
+
+-- A present each day you visit (see server/Daily.luau). Days are counted on the server's
+-- clock (UTC), and go round 1 to 7. Missing a day doesn't start you again: your next visit is
+-- simply the next day of the seven.
+Config.DAILY = {
+	COINS = { 5, 6, 7, 8, 10, 12, 15 }, -- coins on days 1 to 7
+	-- day 7 also gives the cheapest shop hat you haven't got; if you've got them all, these
+	-- coins instead
+	ALL_HATS_COINS = 20,
+	CHECK_SECONDS = 30, -- how often the server looks to see whether a new day has started
+}
+
+-- The request board on the lawn by the fountain: three requests a day, the same for everyone,
+-- picked by the day's number. Each pays coins once.
+Config.REQUEST_BOARD = { angle = 198, dist = 20.5 } -- where the board stands
+Config.REQUESTS_PER_DAY = 3
+Config.REQUESTS = {
+	{ id = "coins", kind = "coin", need = 15, coins = 8, text = "Pick up 15 coins" },
+	{ id = "puddles", kind = "talk", who = "puddles", coins = 4, text = "Say hello to Puddles" },
+	{ id = "pebble", kind = "talk", who = "pebble", coins = 4, text = "Say hello to Pebble" },
+	{ id = "clover", kind = "talk", who = "clover", coins = 4, text = "Say hello to Clover" },
+	{ id = "hat", kind = "hat", coins = 8, text = "Buy a hat at Clover's" },
+	{ id = "homepond", kind = "visit", pond = 1, coins = 5, text = "Visit Home Pond" },
+	{ id = "lilypond", kind = "visit", pond = 2, coins = 5, text = "Visit Lily Pond" },
+	{ id = "library", kind = "visit", at = Config.polar(Config.LIBRARY.angle, Config.LIBRARY.dist - 5), coins = 5, text = "Visit the library" },
+	{ id = "gazebo", kind = "visit", at = Config.polar(Config.GAZEBO.angle, Config.GAZEBO.dist), coins = 5, text = "Visit the gazebo" },
+}
+Config.REQUEST_VISIT_RADIUS = 6 -- web units: how close to a place counts as visiting it
+Config.REQUEST_POND_EXTRA = 2 -- for a pond, anywhere on its ring path counts: Config.HOME.ringR plus this
+
+-- Where a "visit" request wants you to go.
+function Config.requestSpot(request): Vector3?
+	if request.pond then
+		local pond = Config.HOME.ponds[request.pond]
+		return if pond then Config.polar(pond.angle, pond.dist) else nil
+	end
+	return request.at
+end
+
+-- The day's three requests (indexes into Config.REQUESTS), the same for everyone on that day.
+function Config.requestsFor(day: number): { number }
+	local random = Random.new(day * 7919 + 11)
+	local left = {}
+	for i = 1, #Config.REQUESTS do
+		table.insert(left, i)
+	end
+	local picked: { number } = {}
+	while #picked < Config.REQUESTS_PER_DAY and #left > 0 do
+		local index = table.remove(left, random:NextInteger(1, #left)) :: number
+		table.insert(picked, index)
+	end
+	return picked
+end
+
 ---------------------------------------------------------------- coins
 
 Config.COIN_RETURN_SECONDS = 180 -- a coin you pick up comes back after this long
@@ -209,6 +264,7 @@ Config.REMOTE_LIMITS = {
 	CollectCoin = { calls = 12, seconds = 2 },
 	Play = { calls = 3, seconds = 5 },
 	SetHome = { calls = 3, seconds = 10 },
+	StudioNextDay = { calls = 2, seconds = 2 }, -- Studio only (server/Daily)
 }
 
 ---------------------------------------------------------------- testing

@@ -25,7 +25,7 @@ local PAD_NAMES = {
 }
 
 function Prompts.start()
-	local gui = Ui.screen("Prompts", 4)
+	local gui = Ui.screen("Prompts", 6) -- above the HUD, so nothing covers these buttons
 	local list = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -24),
@@ -179,6 +179,7 @@ function Prompts.start()
 			end)
 		end)
 		shown[prompt] = button
+		gui:SetAttribute("Showing", #list:GetChildren() - 1) -- (not counting the layout)
 	end)
 
 	ProximityPromptService.PromptHidden:Connect(function(prompt)
@@ -186,6 +187,7 @@ function Prompts.start()
 		if button then
 			button:Destroy()
 			shown[prompt] = nil
+			gui:SetAttribute("Showing", #list:GetChildren() - 1)
 		end
 		local connections = holding[prompt]
 		if connections then

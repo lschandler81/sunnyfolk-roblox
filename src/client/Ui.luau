@@ -146,6 +146,32 @@ function Ui.consoleSize(object: GuiObject)
 	end
 end
 
+-- Is this a phone on its side (a short screen)? Some things are smaller there.
+function Ui.shortScreen(): boolean
+	local camera = workspace.CurrentCamera
+	return camera ~= nil and camera.ViewportSize.Y > 0 and camera.ViewportSize.Y < Config.UI.SHORT_SCREEN
+end
+
+-- For the HUD: phone size on a phone, a little bigger on taller screens (a tablet or
+-- computer, up to Config.UI.HUD_MAX_SCALE), and Config.UI.CONSOLE_SCALE on a TV. `object`
+-- must already be in its ScreenGui.
+function Ui.hudSize(object: GuiObject)
+	if Ui.CONSOLE then
+		Ui.consoleSize(object)
+		return
+	end
+	local scale = Ui.new("UIScale", { Parent = object })
+	local screen = object:FindFirstAncestorOfClass("ScreenGui")
+	local function fit()
+		local tall = if screen then screen.AbsoluteSize.Y else 0
+		scale.Scale = math.clamp(tall / Config.UI.HUD_HEIGHT, 1, Config.UI.HUD_MAX_SCALE)
+	end
+	fit()
+	if screen then
+		screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	end
+end
+
 -- A screen for the local player. It keeps clear of Roblox's top bar and of phone notches and
 -- rounded corners.
 function Ui.screen(name: string, order: number): ScreenGui

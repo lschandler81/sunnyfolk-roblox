@@ -224,6 +224,13 @@ Config.WARDROBE_CHECK = false
 Config.UI = {
 	TOUCH = 44, -- the smallest button, in pixels, on the smallest phone (a child's finger)
 	MAX_SCALE = 1.6, -- how much a screen may grow on a tablet or computer
+	-- The HUD (coins, buttons, the goal card) grows on taller screens too, a little less:
+	-- full size on a screen this many pixels tall, and up to HUD_MAX_SCALE bigger.
+	HUD_HEIGHT = 520,
+	HUD_MAX_SCALE = 1.4,
+	-- A screen less tall than this (pixels) is a phone on its side: the goal card and speech
+	-- bubbles are made smaller there, so things don't pile up.
+	SHORT_SCREEN = 420,
 	-- On a TV (Xbox, PlayStation) players sit across the room, so everything is this much
 	-- bigger (Roblox's console guidelines suggest 1.5).
 	CONSOLE_SCALE = 1.5,

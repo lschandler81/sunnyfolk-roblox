@@ -7,7 +7,8 @@
 --     so the funnel shows new players rather than every visit. One exception: "joined" means
 --     "has never chosen an animal", so someone who leaves before choosing is counted again
 --     next time they join.
---   * Economy events log coins earned (from pickups) and spent (on hats).
+--   * Economy events log coins earned (from pickups, and as rewards for goals) and spent (on
+--     hats).
 --
 -- Every call to Roblox is wrapped in pcall, so analytics can never break the game. In Studio
 -- each event is also printed to the Output, so you can watch them while testing.

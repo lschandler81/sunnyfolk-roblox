@@ -1,8 +1,9 @@
--- Remembers each player between visits: their coins, the animal they picked, their hats and
--- their home.
+-- Remembers each player between visits: their coins, the animal they picked, their hats,
+-- their home, and how far they've got through the goals (with the sunshine they've earned).
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
--- their Player object (Coins, Hat, OwnedHats, Look, HomeDesign), which the game's screens read.
+-- their Player object (Coins, Hat, OwnedHats, Look, HomeDesign, Goal, GoalCount, GoalMet,
+-- Sun), which the game's screens read.
 --
 -- Keeping saves safe:
 --   * Only one server at a time can have a player's save open. Opening it writes a lock (this
@@ -26,12 +27,14 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
+local GoalList = require(Shared.Goals)
 local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 1 -- the save version this code writes (see migrate)
-local FIELDS = { "coins", "look", "hat", "hats", "home" } -- the game's own fields in a save
+local VERSION = 2 -- the save version this code writes (see migrate)
+-- the game's own fields in a save
+local FIELDS = { "coins", "look", "hat", "hats", "home", "goal", "goalCount", "goalMet", "sun" }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
 
@@ -50,6 +53,10 @@ export type Data = {
 	hat: string?, -- the hat they're wearing
 	hats: { string }, -- every hat they own
 	home: { design: Houses.Design, plot: number }?, -- their house at Home Pond, and which plot
+	goal: number, -- the goal they're on (see shared/Goals): 1 to #LIST, or #LIST + 1 when all done
+	goalCount: number, -- progress on a counting goal (coins picked up since it started)
+	goalMet: { string }, -- for a "say hello" goal, who they've said hello to so far
+	sun: number, -- sunshine earned
 }
 type Profile = {
 	data: Data,
@@ -70,7 +77,7 @@ local loadedCallbacks: { (Player) -> () } = {}
 local busy: { [number]: boolean } = {}
 
 local function blank(): Data
-	return { coins = 0, look = nil, hat = nil, hats = {}, home = nil }
+	return { coins = 0, look = nil, hat = nil, hats = {}, home = nil, goal = 1, goalCount = 0, goalMet = {}, sun = 0 }
 end
 
 -- Brings an old save up to date, one version at a time, before tidy() checks it. Saves from
@@ -85,8 +92,21 @@ local function migrate(saved: any): any
 		-- same as before, so there's nothing to change.
 		version = 1
 	end
+	if version < 2 then
+		-- Version 2 added the goals and sunshine. Older saves start at the first goal with no
+		-- sunshine, which tidy() fills in.
+		version = 2
+	end
 	saved.version = version
 	return saved
+end
+
+-- A whole number of at least 0, or nil if `value` isn't a proper number (nor "not a number").
+local function count(value: any): number?
+	if typeof(value) ~= "number" or value ~= value or value == math.huge then
+		return nil
+	end
+	return math.max(0, math.floor(value))
 end
 
 -- Only keep what makes sense, in case the saved data is old or odd.
@@ -95,9 +115,7 @@ local function tidy(saved: any): Data
 	if typeof(saved) ~= "table" then
 		return data
 	end
-	if typeof(saved.coins) == "number" then
-		data.coins = math.max(0, math.floor(saved.coins))
-	end
+	data.coins = count(saved.coins) or 0
 	if typeof(saved.hats) == "table" then
 		for _, hatId in saved.hats do
 			if typeof(hatId) == "string" and Looks.hat(hatId) and not table.find(data.hats, hatId) then
@@ -113,15 +131,25 @@ local function tidy(saved: any): Data
 		data.look = {
 			species = look.species,
 			coat = Looks.coat(look.species, look.coat).id,
-			scarf = if typeof(look.scarf) == "number" then math.clamp(math.floor(look.scarf), 1, #Looks.scarves()) else 1,
+			scarf = math.clamp(count(look.scarf) or 1, 1, #Looks.scarves()),
 		}
 	end
 	local home = saved.home
 	local design = typeof(home) == "table" and Houses.check(home.design)
 	if design then
-		local plot = if typeof(home.plot) == "number" then math.clamp(math.floor(home.plot), 1, Config.HOME.plots) else 1
+		local plot = math.clamp(count(home.plot) or 1, 1, Config.HOME.plots)
 		data.home = { design = design, plot = plot }
 	end
+	data.goal = math.clamp(count(saved.goal) or 1, 1, #GoalList.LIST + 1)
+	data.goalCount = count(saved.goalCount) or 0
+	if typeof(saved.goalMet) == "table" then
+		for _, id in saved.goalMet do
+			if typeof(id) == "string" and table.find(Config.RESIDENTS, id) and not table.find(data.goalMet, id) then
+				table.insert(data.goalMet, id)
+			end
+		end
+	end
+	data.sun = count(saved.sun) or 0
 	return data
 end
 
@@ -136,6 +164,10 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("OwnedHats", table.concat(data.hats, ","))
 	player:SetAttribute("Look", if data.look then HttpService:JSONEncode(data.look) else nil)
 	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
+	player:SetAttribute("Goal", data.goal)
+	player:SetAttribute("GoalCount", data.goalCount)
+	player:SetAttribute("GoalMet", table.concat(data.goalMet, ","))
+	player:SetAttribute("Sun", data.sun)
 end
 
 -- Is this save open on another server that's still running?
@@ -210,10 +242,12 @@ local function load(player: Player): (Data?, boolean, number)
 			local stamp = if typeof(saved) == "table" and typeof(saved.stamp) == "number" then saved.stamp else 0
 			return tidy(saved), true, stamp
 		elseif status == "failed" then
-			if IN_STUDIO and (string.find(result, "Studio") or string.find(result, "publish")) then
-				warn("Sunnyfolk: saving is off while testing in Studio. To turn it on, publish the place and turn on"
-					.. " Game Settings > Security > Enable Studio Access to API Services.")
-				return blank(), false, 0 -- play on, nothing saved
+			if IN_STUDIO then
+				-- Usually "Enable Studio Access to API Services" is off (Roblox's wording for that
+				-- changes, so any failure counts). Play on in Studio with nothing saved.
+				warn(`Sunnyfolk: saving is off in this Studio test ({result}). To turn it on, publish the place`
+					.. " and turn on Game Settings > Security > Enable Studio Access to API Services.")
+				return blank(), false, 0
 			end
 			warn(`Sunnyfolk: couldn't open {player.Name}'s save (try {attempt} of {SAVE.LOAD_TRIES}): {result}`)
 		else

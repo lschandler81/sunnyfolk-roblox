@@ -1,5 +1,7 @@
--- What's always on screen while you play: your coins (top right), a button to change your
--- animal, a nudge to find a home until you've got one, and friendly pop-up messages.
+-- What's always on screen while you play: a row along the top right (the Goals and "Change
+-- animal" buttons, and your coins in the corner), room under it for the goal you're on
+-- (client/GoalsPanel), a nudge to find a home once the goals are done, and friendly pop-up
+-- messages.
 -- With a controller, D-pad right puts the ring on the buttons here (A presses, B goes back
 -- to walking), like the web game's buttons at the top.
 
@@ -11,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Sunnyfolk").Config)
+local GoalList = require(ReplicatedStorage:WaitForChild("Sunnyfolk").Goals)
 local Controls = require(script.Parent.Controls)
 local Ui = require(script.Parent.Ui)
 
@@ -19,12 +22,16 @@ local player = Players.LocalPlayer
 local Hud = {}
 
 local screen: ScreenGui? = nil
+local cornerFrame: Frame? = nil
 local toastLabel: TextLabel? = nil
 local toastScale: UIScale? = nil
 local toastUntil = 0
 
-function Hud.create(onChangeAnimal: () -> ())
+function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 	local gui = Ui.screen("Hud", 5)
+	-- Roblox's own buttons are only at the top left, so the HUD can sit right up in the top
+	-- right corner, level with them (still clear of a phone's notch and rounded corners).
+	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	screen = gui
 	gui.Enabled = false
 
@@ -32,12 +39,29 @@ function Hud.create(onChangeAnimal: () -> ())
 	local corner = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = if Ui.CONSOLE then UDim2.fromScale(1 - edge, edge) else UDim2.new(1, -16, 0, 12),
-		Size = UDim2.fromOffset(220, 200),
+		Size = UDim2.fromOffset(420, 260),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
 		Ui.new("UIListLayout", {
 			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	-- one row along the top: the Goals and "Change animal" buttons, then your coins in the
+	-- corner
+	local top = Ui.new("Frame", {
+		Size = UDim2.fromOffset(0, Ui.TOUCH),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+		Parent = corner,
+	}, {
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
 			Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
@@ -49,8 +73,8 @@ function Hud.create(onChangeAnimal: () -> ())
 		Size = UDim2.fromOffset(0, Ui.TOUCH),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = Ui.colors.paper,
-		LayoutOrder = 1,
-		Parent = corner,
+		LayoutOrder = 3,
+		Parent = top,
 	}, {
 		Ui.round(),
 		Ui.stroke(3),
@@ -84,7 +108,8 @@ function Hud.create(onChangeAnimal: () -> ())
 	player:GetAttributeChangedSignal("Coins"):Connect(update)
 	update()
 
-	Ui.consoleSize(corner)
+	cornerFrame = corner
+	Ui.hudSize(corner)
 	Ui.keepRingInside(corner)
 
 	-- the controller's ring on these buttons: on with D-pad right, off with B (Roblox takes
@@ -100,23 +125,34 @@ function Hud.create(onChangeAnimal: () -> ())
 		end
 	end
 
-	local changeAnimal = Ui.button("Change animal", Ui.colors.cream, function()
+	-- the Goals and "Change animal" buttons, along the top beside the coins
+	local buttons = top
+	local goals = Ui.button("Goals", Ui.colors.yellow, function()
+		ringOff()
+		onGoals()
+	end, {
+		Size = UDim2.fromOffset(90, Ui.TOUCH),
+		TextSize = 17,
+		LayoutOrder = 1,
+		Parent = buttons,
+	})
+	Ui.button("Change animal", Ui.colors.cream, function()
 		ringOff()
 		onChangeAnimal()
 	end, {
 		Size = UDim2.fromOffset(160, Ui.TOUCH),
 		TextSize = 17,
 		LayoutOrder = 2,
-		Parent = corner,
+		Parent = buttons,
 	})
-	-- with a controller, the D-pad picture beside it says how to get there
+	-- with a controller, the D-pad picture beside them says how to get there
 	local padHint = Ui.new("ImageLabel", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(0, -6, 0.5, 0),
 		Size = UDim2.fromOffset(32, 32),
 		BackgroundTransparency = 1,
 		Image = Ui.padImage(Enum.KeyCode.DPadRight),
-		Parent = changeAnimal,
+		Parent = goals,
 	})
 	local function showPadHint()
 		padHint.Visible = Ui.usingController() and padHint.Image ~= ""
@@ -142,7 +178,7 @@ function Hud.create(onChangeAnimal: () -> ())
 		end
 		ringHere = true
 		Controls.set(false, "hud")
-		GuiService.SelectedObject = changeAnimal
+		GuiService.SelectedObject = goals
 	end)
 	GuiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
 		local now = GuiService.SelectedObject
@@ -156,13 +192,14 @@ function Hud.create(onChangeAnimal: () -> ())
 		end
 	end)
 
-	-- a nudge to find a home, until you've got one (under "Change animal", clear of Roblox's
-	-- chat window on the left and the jump button below)
+	-- a nudge to find a home, once the goals are done if they still haven't got one (under the
+	-- buttons, clear of Roblox's chat window on the left and the jump button below; while
+	-- they're doing the goals, the goal card sits here, at LayoutOrder 3)
 	local hint = Ui.new("Frame", {
-		Size = UDim2.fromOffset(220, 0),
+		Size = UDim2.fromOffset(250, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = Ui.colors.paper,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 		Parent = corner,
 	}, {
 		Ui.corner(14),
@@ -182,9 +219,12 @@ function Hud.create(onChangeAnimal: () -> ())
 		}),
 	})
 	local function updateHint()
-		hint.Visible = player:GetAttribute("HomePlot") == nil
+		local goal = player:GetAttribute("Goal")
+		local goalsDone = typeof(goal) == "number" and GoalList.done(goal)
+		hint.Visible = goalsDone and player:GetAttribute("HomePlot") == nil
 	end
 	player:GetAttributeChangedSignal("HomePlot"):Connect(updateHint)
+	player:GetAttributeChangedSignal("Goal"):Connect(updateHint)
 	updateHint()
 
 	-- big friendly messages ("Welcome home!")
@@ -192,22 +232,30 @@ function Hud.create(onChangeAnimal: () -> ())
 	toastLabel = Ui.text({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.42),
-		Size = UDim2.fromOffset(0, 70),
-		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 0),
+		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundTransparency = 0,
 		BackgroundColor3 = Ui.colors.yellow,
 		TextSize = 30,
 		TextWrapped = false,
+		RichText = true,
 		Visible = false,
 		Parent = gui,
 	})
-	for _, child in { Ui.round(), Ui.stroke(3.5), toastScale, Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 28), PaddingRight = UDim.new(0, 28) }) } do
+	local toastPadding = Ui.new("UIPadding", {
+		PaddingLeft = UDim.new(0, 28),
+		PaddingRight = UDim.new(0, 28),
+		PaddingTop = UDim.new(0, 16),
+		PaddingBottom = UDim.new(0, 16),
+	})
+	for _, child in { Ui.corner(30), Ui.stroke(3.5), toastScale, toastPadding } do
 		child.Parent = toastLabel
 	end
 	-- bigger on a TV (its UIScale is used for the pop-in, so the sizes change instead)
 	if Ui.CONSOLE and toastLabel then
 		toastLabel.TextSize = math.round(30 * Config.UI.CONSOLE_SCALE)
-		toastLabel.Size = UDim2.fromOffset(0, math.round(70 * Config.UI.CONSOLE_SCALE))
+		toastPadding.PaddingTop = UDim.new(0, math.round(16 * Config.UI.CONSOLE_SCALE))
+		toastPadding.PaddingBottom = UDim.new(0, math.round(16 * Config.UI.CONSOLE_SCALE))
 	end
 
 	-- a reminder for whoever's making the game, when coins won't be kept
@@ -218,19 +266,20 @@ function Hud.create(onChangeAnimal: () -> ())
 			TextColor3 = Ui.colors.coral,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Size = UDim2.fromOffset(200, 18),
-			LayoutOrder = 4,
+			LayoutOrder = 5,
 			Parent = corner,
 		})
 	end
 end
 
--- Shows a big friendly message for a few seconds.
-function Hud.toast(text: string)
+-- Shows a big friendly message for a few seconds, with a smaller line under it if `small` is
+-- given. (Only the game's own words go here: it's shown as rich text.)
+function Hud.toast(text: string, small: string?)
 	local label, scale = toastLabel, toastScale
 	if not (label and scale) then
 		return
 	end
-	label.Text = text
+	label.Text = if small then `{text}\n<font size="{math.round(label.TextSize * 0.65)}">{small}</font>` else text
 	label.Visible = true
 	scale.Scale = 0.6
 	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
@@ -240,6 +289,16 @@ function Hud.toast(text: string)
 			label.Visible = false
 		end
 	end)
+end
+
+-- Whether the big message has finished, so another can be shown without cutting it short.
+function Hud.toastFree(): boolean
+	return os.clock() >= toastUntil
+end
+
+-- The frame in the top right, for the goal card to go in (client/GoalsPanel).
+function Hud.corner(): Frame?
+	return cornerFrame
 end
 
 function Hud.show(visible: boolean)

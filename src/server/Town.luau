@@ -389,9 +389,15 @@ local function gazebo()
 		if i ~= 7 then -- leave the way in open
 			local mid = a + math.rad(22.5)
 			local length = 2 * postR * math.sin(math.rad(22.5))
+			local side = at * CFrame.Angles(0, mid, 0) * CFrame.new(0, 0, postR * math.cos(math.rad(22.5)))
 			for _, y in { 0.45, 0.9 } do
-				block(Vector3.new(length, 0.1 * S, 0.1 * S), at * CFrame.Angles(0, mid, 0) * CFrame.new(0, floor + y * S, postR * math.cos(math.rad(22.5))), C.white, DECOR)
+				block(Vector3.new(length, 0.1 * S, 0.1 * S), side * CFrame.new(0, floor + y * S, 0), C.white, DECOR)
 			end
+			-- an invisible fence behind the rails, so you go in by the way in
+			block(Vector3.new(length, 1.2 * S, 0.3 * S), side * CFrame.new(0, floor + 0.6 * S, 0), C.white, {
+				Transparency = 1,
+				Name = "Railing",
+			})
 		end
 	end
 	local tiers = { { 4.6, 0.3, 3.6, C.coral }, { 3.6, 0.45, 3.95, C.cream }, { 2.5, 0.45, 4.35, C.coral }, { 1.3, 0.45, 4.75, C.cream } }

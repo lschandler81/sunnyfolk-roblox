@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
 local Analytics = require(script.Parent.Analytics)
+local Goals = require(script.Parent.Goals)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -56,6 +57,7 @@ function Coins.start()
 		if balance then
 			Analytics.coinsEarned(player, 1, balance, "pickup")
 			Analytics.step(player, Analytics.FIRST_COIN, firstTime)
+			Goals.event(player, "coin")
 		end
 	end)
 

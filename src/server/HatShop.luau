@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Looks = require(Shared.Looks)
 local Analytics = require(script.Parent.Analytics)
+local Goals = require(script.Parent.Goals)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -52,6 +53,7 @@ function HatShop.start()
 			Analytics.step(player, Analytics.FIRST_HAT, firstTime)
 		end
 		wear(player, hat.id)
+		Goals.event(player, "hat")
 		return true
 	end
 

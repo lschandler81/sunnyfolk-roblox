@@ -97,10 +97,12 @@ local function say(model: Model, who: string, text: string)
 	if not root then
 		return
 	end
+	-- smaller on a phone, so it doesn't cover the buttons
+	local small = Ui.shortScreen()
 	local card = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(300, 0),
+		Size = UDim2.fromOffset(if small then 230 else 300, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = Ui.colors.paper,
 		ZIndex = 2,
@@ -116,7 +118,7 @@ local function say(model: Model, who: string, text: string)
 		Ui.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }),
 		Ui.text({
 			Text = who,
-			TextSize = 17,
+			TextSize = if small then 15 else 17,
 			TextColor3 = Ui.colors.coral,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Size = UDim2.new(1, 0, 0, 20),
@@ -125,7 +127,7 @@ local function say(model: Model, who: string, text: string)
 		}),
 		Ui.text({
 			Text = text,
-			TextSize = 21,
+			TextSize = if small then 17 else 21,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
@@ -146,7 +148,7 @@ local function say(model: Model, who: string, text: string)
 		Name = "SpeechBubble",
 		Adornee = root,
 		StudsOffsetWorldSpace = Vector3.new(0, TAG_HEIGHT - 0.4, 0),
-		Size = UDim2.fromOffset(320, 260),
+		Size = if small then UDim2.fromOffset(250, 210) else UDim2.fromOffset(320, 260),
 		SizeOffset = Vector2.new(0, 0.5),
 		AlwaysOnTop = true,
 		LightInfluence = 0,

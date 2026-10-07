@@ -13,6 +13,7 @@ local Build = require(Shared.Build)
 local Config = require(Shared.Config)
 local Houses = require(Shared.Houses)
 local Analytics = require(script.Parent.Analytics)
+local Goals = require(script.Parent.Goals)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 
@@ -183,6 +184,7 @@ function Homes.start(plotFrames: { CFrame })
 		end)
 		if changed then
 			Analytics.step(player, Analytics.FIRST_HOME, firstTime)
+			Goals.event(player, "home")
 		end
 		return true
 	end

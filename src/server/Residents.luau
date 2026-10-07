@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
 local Looks = require(Shared.Looks)
+local Goals = require(script.Parent.Goals)
 
 local S = Config.STUDS
 local TALK_PAUSE = 8 -- seconds a resident stays put after you talk to them
@@ -79,7 +80,10 @@ local function addResident(id: string, folder: Folder)
 	feet.Parent = root
 	local talk = prompt(feet, "Talk", "Talk", info.name, Enum.KeyCode.E, Enum.KeyCode.ButtonX)
 	if id == "clover" then
-		prompt(feet, "HatShop", "Hat Shop", "Clover's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		local shop = prompt(feet, "HatShop", "Hat Shop", "Clover's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		shop.Triggered:Connect(function(player)
+			Goals.event(player, "shop")
+		end)
 	end
 
 	model.Parent = folder
@@ -88,6 +92,7 @@ local function addResident(id: string, folder: Folder)
 	-- Stop and look at whoever's talking.
 	local pausedUntil = 0
 	talk.Triggered:Connect(function(player)
+		Goals.event(player, "talk", id)
 		local other = player.Character and player.Character.PrimaryPart
 		pausedUntil = os.clock() + TALK_PAUSE
 		humanoid:MoveTo(root.Position)
@@ -130,7 +135,9 @@ function Residents.start(doors: { [string]: CFrame })
 		spot.Transparency = 1
 		spot.Size = Vector3.new(4, 4, 1)
 		spot.CFrame = door * CFrame.new(0, 3, -1.5)
-		prompt(spot, "HatShop", "Look at hats", "Hat Shop", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		prompt(spot, "HatShop", "Look at hats", "Hat Shop", Enum.KeyCode.F, Enum.KeyCode.ButtonY).Triggered:Connect(function(player)
+			Goals.event(player, "shop")
+		end)
 		spot.Parent = folder
 	end
 end

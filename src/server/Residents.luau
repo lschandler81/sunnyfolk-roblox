@@ -139,7 +139,7 @@ function Residents.start(doors: { [string]: CFrame })
 		spot.Transparency = 1
 		spot.Size = Vector3.new(4, 4, 1)
 		spot.CFrame = door * CFrame.new(0, 3, -1.5)
-		local what = if shop.id == "hats" then "Look at hats" else "Look at clothes"
+		local what = `Look at {shop.id}` -- "Look at hats", "Look at clothes", "Look at pets"
 		local button = prompt(spot, "Shop", what, shop.label, Enum.KeyCode.F, Enum.KeyCode.ButtonY)
 		button:SetAttribute("ShopId", shop.id)
 		button.Triggered:Connect(function(player)

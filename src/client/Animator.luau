@@ -178,8 +178,11 @@ local function step(rig: Rig, dt: number, time: number)
 		a.lookT = random:NextNumber(2, 6)
 		a.lookTarget = if speed > 0.1 then 0 else random:NextNumber(-0.5, 0.5)
 	end
-	a.look += (a.lookTarget * (1 - w) - a.look) * math.min(1, dt * 3)
-	local nod = if a.talk > 0 then math.sin(time * 16) * 0.06 else 0
+	-- In a helmet that sits on the body (the space bubble), the head keeps still and faces
+	-- forward, or it would poke out through the glass.
+	local helmet = Builder.BODY_HATS[rig.model:GetAttribute("Hat") :: any] ~= nil
+	a.look += ((if helmet then 0 else a.lookTarget * (1 - w)) - a.look) * math.min(1, dt * 3)
+	local nod = if a.talk > 0 and not helmet then math.sin(time * 16) * 0.06 else 0
 	local headX = -math.abs(s) * 0.05 * w + math.sin(time * 1.3) * 0.02 * (1 - w) - a.air * 0.1 + nod
 	setJoint(rig, "Head", angles(headX, a.look, 0))
 

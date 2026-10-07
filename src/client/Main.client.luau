@@ -1,5 +1,5 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
--- coins, talking, the Hat Shop, homes, the goals, the daily present and request board, and
+-- coins, talking, the shops, homes, the goals, the daily present and request board, pets, and
 -- the animals' animation.
 
 local GuiService = game:GetService("GuiService")
@@ -24,6 +24,8 @@ local GoalsPanel = require(script.Parent.GoalsPanel)
 local HatShop = require(script.Parent.HatShop)
 local HomeDesigner = require(script.Parent.HomeDesigner)
 local Homes = require(script.Parent.Homes)
+local PetShop = require(script.Parent.PetShop)
+local Pets = require(script.Parent.Pets)
 local Hud = require(script.Parent.Hud)
 local Prompts = require(script.Parent.Prompts)
 local Run = require(script.Parent.Run)
@@ -58,7 +60,15 @@ Animator.start()
 Prompts.start()
 Run.start()
 Coins.start()
-Talk.start(HatShop.open)
+-- a shop's button opens its screen: the Pet Shop's own, or the shop screen for hats and clothes
+Talk.start(function(shopId)
+	if shopId == "pets" then
+		PetShop.open()
+	else
+		HatShop.open(shopId)
+	end
+end)
+Pets.start()
 Homes.start(Hud.toast)
 DailyPanel.start()
 
@@ -102,7 +112,7 @@ local function lastChoice()
 end
 
 local function chooseAnimal()
-	if HatShop.isOpen() or HomeDesigner.isOpen() or GoalsPanel.isOpen() or DailyPanel.isOpen() then
+	if HatShop.isOpen() or HomeDesigner.isOpen() or GoalsPanel.isOpen() or DailyPanel.isOpen() or PetShop.isOpen() then
 		return
 	end
 	Hud.show(false)

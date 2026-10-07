@@ -12,6 +12,9 @@
 --   hat    buy a hat (already owning one counts)
 --   home   make a home at a pond (already having one counts)
 --   visit  walk to `at` (within Goals.VISIT_RADIUS)
+--   pet    adopt a pet (already having one counts)
+--
+-- Only ever add new goals at the end: saves keep the number of the goal a player is on.
 
 local Config = require(script.Parent.Config)
 local Looks = require(script.Parent.Looks)
@@ -48,6 +51,8 @@ Goals.LIST = {
 		text = "Visit the library", hint = "Follow the arrow" },
 	{ id = "gazebo", kind = "visit", at = Config.polar(Config.GAZEBO.angle, Config.GAZEBO.dist), coins = 3, sun = 1,
 		text = "Visit the gazebo", hint = "Follow the arrow" },
+	{ id = "pet", kind = "pet", coins = 5, sun = 1,
+		text = "Adopt a pet", hint = `At the Pet Shop, for {Config.PETS.ADOPT_PRICE} coins` },
 } :: { Goal }
 
 -- A bonus for finishing them all.

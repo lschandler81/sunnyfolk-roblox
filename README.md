@@ -27,9 +27,13 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
   round hut), wall, roof and door colours, a garden (flowers, vegetables or a little pond) and
   a sign with your name. Change it any time at your front door. It's saved, and next visit
   you move straight back in.
-- **Goals**: a new player is led round town by eight little goals (say hello, pick up coins,
-  buy a hat, make a home, visit places), with a yellow arrow pointing the way. Each pays
-  coins and sunshine; sunshine will open the gated roads once there's something behind them.
+- **Pets**: adopt a puppy, kitten or duckling at the Pet Shop, pick its colour and a name, and
+  dress it in a collar and something for its head. It trots after you everywhere, sits when you
+  stop and hops when you jump, and everyone can see it.
+- **Goals**: a new player is led round town by nine little goals (say hello, pick up coins,
+  buy a hat, make a home, visit places, adopt a pet), with a yellow arrow pointing the way.
+  Each pays coins and sunshine; sunshine will open the gated roads once there's something
+  behind them.
 
 No fighting, nothing to lose, and chat stays within Roblox's filtered chat (see
 [Keeping it kind and safe](docs/roblox-studio.md#keeping-it-kind-and-safe-for-children)).
@@ -55,6 +59,7 @@ src/shared/             → ReplicatedStorage.Sunnyfolk (used by the server and 
   Build.luau              parts in the Sunnyfolk colours, and props: lamps, benches, trees, houses
   Houses.luau             the choices for players' houses, and building one from them
   Goals.luau              the goals for new players, and what each one pays
+  PetBuilder.luau         builds a pet from simple parts, and poses it
   Looks.luau              easy reading of sunnyfolk.json (coats, scarves, hats, residents)
   Models.luau             finds the imported models in ReplicatedStorage.SunnyfolkModels
   MeshLayout.luau         where every mesh sits (made by the tool above)
@@ -70,12 +75,15 @@ src/server/             → ServerScriptService.Sunnyfolk
   HatShop.luau            the shops (hats and clothes): checks each thing bought or worn
   Homes.luau              the plots at Home Pond: moving in, building houses, moving back in
   Goals.luau              watches for each goal, pays its coins and sunshine
+  Pets.luau               adopting, changing and dressing pets (checked here)
 
 src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Main.client.luau        starts everything on each player's computer
   Chooser.luau            the welcome screen (pick your animal)
   Hud.luau                your coins, and the Goals and Change animal buttons
   GoalsPanel.luau         the goal you're on, the arrow pointing the way, and the Goals screen
+  Pets.luau               everyone's pets, walked along behind their owners on your screen
+  PetShop.luau            the Pet Shop screen
   Coins.luau              the coins you see, spinning, and picking them up
   Talk.luau               speech bubbles and name tags
   HatShop.luau            the shop screen, for Clover's Hat Shop and the Clothes Shop

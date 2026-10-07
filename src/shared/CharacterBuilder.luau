@@ -366,8 +366,10 @@ function Builder.build(look: Look, options: Options?): Model
 end
 
 -- Hats that sit on the body rather than the head, so they don't swing about when the head
--- turns or nods (like the web game's space bubble, which goes round the whole head).
-Builder.BODY_HATS = { bubble = true }
+-- turns or nods (like the web game's space bubble, which goes round the whole head). `lift`
+-- raises one by that much of its own radius: the bubble was made so low that its bottom sank
+-- into the shoulders, so it's lifted to sit on them.
+Builder.BODY_HATS = { bubble = { lift = 0.4 } } :: { [string]: { lift: number } }
 
 -- Puts a hat on (or takes it off, with nil). The hats are fitted to each animal's head.
 function Builder.setHat(model: Model, hatId: string?)
@@ -386,14 +388,22 @@ function Builder.setHat(model: Model, hatId: string?)
 		return
 	end
 	local anchored = isAnchored(model)
+	local onBody = Builder.BODY_HATS[hatId]
+	local lift = CFrame.identity
+	if onBody then
+		local glass = MeshLayout[fileKey] and MeshLayout[fileKey].meshes[hatId .. "_glass"]
+		if glass then
+			lift = CFrame.new(0, glass[5] / 2 * onBody.lift, 0)
+		end
+	end
 	local folder = Instance.new("Folder")
 	folder.Name = "Hat"
 	for name in file.meshes do
 		local id, kind = string.match(name, "^(.-)_(%w+)$")
 		if id == hatId and kind then
-			local mesh = copyMesh(fileKey, file, name, CFrame.identity, anchored)
+			local mesh = copyMesh(fileKey, file, name, lift, anchored)
 			paint(mesh, kind, {})
-			if attach(model, if Builder.BODY_HATS[hatId] then "Torso" else "Head", mesh) then
+			if attach(model, if onBody then "Torso" else "Head", mesh) then
 				mesh.Parent = folder
 			end
 		end

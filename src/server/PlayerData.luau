@@ -1,10 +1,11 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
--- clothes, their home, how far they've got through the goals (with the sunshine they've earned), their
+-- clothes, their pet, their home, how far they've got through the goals (with the sunshine they've earned), their
 -- daily present and today's requests.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
--- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Look, HomeDesign, Goal,
--- GoalCount, GoalMet, Sun, DailyStreak, Requests), which the game's screens read.
+-- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
+-- HomeDesign, Goal, GoalCount, GoalMet, Sun, DailyStreak, Requests), which the game's screens
+-- read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
 --   * Only one server at a time can have a player's save open. Opening it writes a lock (this
@@ -33,11 +34,11 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 5 -- the save version this code writes (see migrate)
+local VERSION = 6 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
-	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "home", "goal", "goalCount", "goalMet", "sun",
-	"daily", "requests",
+	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "goal", "goalCount",
+	"goalMet", "goalsFinished", "sun", "daily", "requests",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -59,10 +60,15 @@ export type Data = {
 	hats: { string }, -- every hat they own
 	clothes: { string }, -- every piece of clothing they own (from the Clothes Shop)
 	wearing: { string }, -- the clothes they have on: at most one for each slot (Looks.SLOTS)
+	-- their pet (Config.PETS): its kind, which colour and name (numbers into the lists), and
+	-- the gear it has on; nil until they adopt one
+	pet: { kind: string, color: number, name: number, collar: string?, top: string? }?,
+	petGear: { string }, -- every piece of pet gear they own
 	home: { design: Houses.Design, plot: number }?, -- their house at Home Pond, and which plot
 	goal: number, -- the goal they're on (see shared/Goals): 1 to #LIST, or #LIST + 1 when all done
 	goalCount: number, -- progress on a counting goal (coins picked up since it started)
 	goalMet: { string }, -- for a "say hello" goal, who they've said hello to so far
+	goalsFinished: boolean, -- they've had the bonus for finishing the goals (it's only given once)
 	sun: number, -- sunshine earned
 	-- the daily present: the last day (server day number, see server/Daily) one was given,
 	-- which of the 7 days it was (0 before the first), and the day this round of seven began
@@ -97,10 +103,13 @@ local function blank(): Data
 		hats = {},
 		clothes = {},
 		wearing = {},
+		pet = nil,
+		petGear = {},
 		home = nil,
 		goal = 1,
 		goalCount = 0,
 		goalMet = {},
+		goalsFinished = false,
 		sun = 0,
 		daily = { last = 0, streak = 0, start = 0 },
 		requests = { day = 0, got = {}, done = {} },
@@ -141,6 +150,15 @@ local function migrate(saved: any): any
 		end
 		version = 5
 	end
+	if version < 6 then
+		-- Version 6 added pets, and a note of having had the bonus for finishing the goals.
+		-- Back then there were 8 goals, so goal 9 meant they'd finished them all (and had the
+		-- bonus); now there's a 9th goal for them to do, without a second bonus.
+		if typeof(saved.goal) == "number" and saved.goal >= 9 then
+			saved.goalsFinished = true
+		end
+		version = 6
+	end
 	saved.version = version
 	return saved
 end
@@ -178,6 +196,29 @@ local function tidy(saved: any): Data
 			end
 		end
 	end
+	if typeof(saved.petGear) == "table" then
+		for _, id in saved.petGear do
+			if typeof(id) == "string" and Config.petGear(id) and not table.find(data.petGear, id) then
+				table.insert(data.petGear, id)
+			end
+		end
+	end
+	local pet = saved.pet
+	local petKind = typeof(pet) == "table" and Config.PETS.KINDS[pet.kind]
+	if petKind then
+		-- gear it wears must be owned, and in the right place
+		local function worn(id: any, slot: string): string?
+			local gear = typeof(id) == "string" and table.find(data.petGear, id) and Config.petGear(id)
+			return if gear and gear.slot == slot then gear.id else nil
+		end
+		data.pet = {
+			kind = pet.kind,
+			color = math.clamp(count(pet.color) or 1, 1, #petKind.colors),
+			name = math.clamp(count(pet.name) or 1, 1, #Config.PETS.NAMES),
+			collar = worn(pet.collar, "collar"),
+			top = worn(pet.top, "top"),
+		}
+	end
 	if typeof(saved.wearing) == "table" then
 		-- only clothes they own, and one for each slot
 		local slots = {}
@@ -205,6 +246,7 @@ local function tidy(saved: any): Data
 	end
 	data.goal = math.clamp(count(saved.goal) or 1, 1, #GoalList.LIST + 1)
 	data.goalCount = count(saved.goalCount) or 0
+	data.goalsFinished = saved.goalsFinished == true
 	if typeof(saved.goalMet) == "table" then
 		for _, id in saved.goalMet do
 			if typeof(id) == "string" and table.find(Config.RESIDENTS, id) and not table.find(data.goalMet, id) then
@@ -244,6 +286,8 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("OwnedHats", table.concat(data.hats, ","))
 	player:SetAttribute("OwnedClothes", table.concat(data.clothes, ","))
 	player:SetAttribute("Wearing", table.concat(data.wearing, ","))
+	player:SetAttribute("Pet", if data.pet then HttpService:JSONEncode(data.pet) else nil)
+	player:SetAttribute("PetGear", table.concat(data.petGear, ","))
 	player:SetAttribute("Look", if data.look then HttpService:JSONEncode(data.look) else nil)
 	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
 	player:SetAttribute("Goal", data.goal)

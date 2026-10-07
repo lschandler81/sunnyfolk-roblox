@@ -19,7 +19,8 @@
           "GoalDone": { "$className": "RemoteEvent" },
           "DailyPresent": { "$className": "RemoteEvent" },
           "RequestDone": { "$className": "RemoteEvent" },
-          "StudioNextDay": { "$className": "RemoteEvent" }
+          "StudioNextDay": { "$className": "RemoteEvent" },
+          "PetAction": { "$className": "RemoteFunction" }
         }
       },
       "SunnyfolkModels": {

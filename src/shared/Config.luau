@@ -40,11 +40,11 @@ Config.EDGE_R = 72 -- the hedge round the town; nobody walks past it
 -- Where you appear (on the ground, facing the fountain).
 Config.SPAWN = CFrame.lookAt(Config.fromWeb(0, 11), Vector3.zero)
 
--- The shops round the square. Clover's Hat Shop and the Clothes Shop are open so far.
+-- The shops round the square. All but the Post Office are open so far.
 Config.SHOPS = {
 	{ id = "hats", angle = 36, label = "Hat Shop", wall = "#f7e8c8", roof = "#2f8a7c", awning = "#f07055", door = "#1f5f57", sign = "#2f8a7c", open = true },
 	{ id = "clothes", angle = 108, label = "Clothes Shop", wall = "#fbe3d2", roof = "#f07055", awning = "#2f8a7c", door = "#1f5f57", sign = "#d9604a", open = true },
-	{ id = "pets", angle = 252, label = "Pet Shop", wall = "#e2f1e6", roof = "#f6c64a", awning = "#f07055", door = "#f07055", sign = "#6fa057" },
+	{ id = "pets", angle = 252, label = "Pet Shop", wall = "#e2f1e6", roof = "#f6c64a", awning = "#f07055", door = "#f07055", sign = "#6fa057", open = true },
 	{ id = "post", angle = 324, label = "Post Office", wall = "#f7e8c8", roof = "#d9b3dc", awning = "#f6c64a", door = "#f07055", sign = "#2f8a7c" },
 }
 
@@ -101,6 +101,64 @@ function Config.cottageAt(cottage): (CFrame, Vector3)
 	local spot = road + Config.polar(cottage.road + 90 * cottage.side, Config.COTTAGE_OFFSET)
 	return CFrame.lookAt(spot, road) * CFrame.Angles(0, math.pi, 0), road
 end
+
+---------------------------------------------------------------- pets
+
+-- Pets from the Pet Shop (see shared/PetBuilder, server/Pets, client/Pets and client/PetShop),
+-- from the web game's pet.js. Each player can have one, and change its kind, colour and name
+-- for free once they've adopted it. Names come from the list (nobody types one in).
+Config.PETS = {
+	ADOPT_PRICE = 40,
+	ORDER = { "puppy", "kitten", "duckling" },
+	KINDS = {
+		puppy = { name = "Puppy", colors = { "#d9a46c", "#8a5a36", "#f3e2c8" } },
+		kitten = { name = "Kitten", colors = { "#f2a65a", "#9ea3ab", "#4a4f5c" } },
+		duckling = { name = "Duckling", colors = { "#f6d84a", "#f7f3e8", "#c9a26a" } },
+	},
+	NAMES = {
+		"Noodle", "Peanut", "Socks", "Bean", "Muffin", "Pickle",
+		"Button", "Sprout", "Nugget", "Dumpling", "Pip-squeak", "Biscotti",
+	},
+	-- things to wear: a collar, and something on top of the head ("short" fits on a button)
+	GEAR = {
+		{ id = "collar-teal", slot = "collar", name = "Teal collar", price = 6, color = "#2f8a7c" },
+		{ id = "collar-yellow", slot = "collar", name = "Sunny collar", price = 6, color = "#f6c64a" },
+		{ id = "collar-lilac", slot = "collar", name = "Lilac collar", price = 6, color = "#d9b3dc" },
+		{ id = "collar-blue", slot = "collar", name = "Sky collar", price = 6, color = "#9cc3d8" },
+		{ id = "bow", slot = "top", name = "Bow", short = "Bow", price = 10 },
+		{ id = "flower", slot = "top", name = "Flower", short = "Flower", price = 12 },
+		{ id = "party", slot = "top", name = "Party hat", short = "Party", price = 15 },
+		{ id = "crown", slot = "top", name = "Little crown", short = "Crown", price = 30 },
+	},
+	-- following: each player's own screen moves the pets (no physics, nothing sent as they walk)
+	BEHIND = 5, -- studs behind its owner
+	SIDE = 2.5, -- and this far to the side
+	CATCH_UP = 45, -- further away than this (studs), it pops back beside its owner
+	SPEED = 24, -- its top speed, studs a second
+	SIT_AFTER = 0.6, -- seconds of its owner standing still before it sits
+	NEAR = 60, -- closer to the camera than this (studs): moved every frame
+	FAR = 150, -- further than this: not shown at all
+	SHOW_AGAIN = 10, -- a hidden pet shows again this many studs nearer than FAR (so it doesn't flicker)
+	STEADY = 0.2, -- seconds its owner must stay at a height before it follows (not the top of a jump)
+	FAR_STEP = 1 / 20, -- in between: moved at most this often (seconds)
+	NAME_DISTANCE = 40, -- its name shows within this many studs
+	HOP = 0, -- how fast a pet hops up when its owner jumps (studs a second); 0 for no hop
+	GRAVITY = 70, -- how fast a hop slows and comes down
+}
+
+-- Find a piece of pet gear by its id.
+function Config.petGear(id: string?)
+	for _, gear in Config.PETS.GEAR do
+		if gear.id == id then
+			return gear
+		end
+	end
+	return nil
+end
+
+-- Studio only: this many pretend pets walk round you, to check the frame rate with a crowd
+-- (say 20). 0 for none. It does nothing outside Studio.
+Config.PET_TEST_CROWD = 20
 
 ---------------------------------------------------------------- the daily present and the request board
 
@@ -265,6 +323,7 @@ Config.REMOTE_LIMITS = {
 	Play = { calls = 3, seconds = 5 },
 	SetHome = { calls = 3, seconds = 10 },
 	StudioNextDay = { calls = 2, seconds = 2 }, -- Studio only (server/Daily)
+	Pet = { calls = 6, seconds = 2 }, -- adopting, changing and dressing your pet (server/Pets)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.

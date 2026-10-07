@@ -28,7 +28,7 @@ local settle: (Player) -> ()
 -- Pays for the goal they're on and moves them to the next one.
 local function complete(player: Player)
 	local goal: GoalList.Goal? = nil
-	local finished, balance = false, 0
+	local finished, bonus, balance = false, false, 0
 	PlayerData.update(player, function(data)
 		goal = LIST[data.goal]
 		if not goal then
@@ -41,8 +41,13 @@ local function complete(player: Player)
 		data.goalMet = {}
 		if GoalList.done(data.goal) then
 			finished = true
-			data.coins += GoalList.FINISH.coins
-			data.sun += GoalList.FINISH.sun
+			-- the bonus only once, even if more goals are added after someone's finished
+			if not data.goalsFinished then
+				data.goalsFinished = true
+				bonus = true
+				data.coins += GoalList.FINISH.coins
+				data.sun += GoalList.FINISH.sun
+			end
 		end
 		balance = data.coins
 	end)
@@ -50,13 +55,13 @@ local function complete(player: Player)
 		return
 	end
 	local done = goal :: GoalList.Goal
-	if finished then
+	if bonus then
 		Analytics.coinsEarned(player, done.coins, balance - GoalList.FINISH.coins, `goal:{done.id}`)
 		Analytics.coinsEarned(player, GoalList.FINISH.coins, balance, "goal:finish")
 	else
 		Analytics.coinsEarned(player, done.coins, balance, `goal:{done.id}`)
 	end
-	Remotes.GoalDone:FireClient(player, done.id, done.coins, done.sun, finished)
+	Remotes.GoalDone:FireClient(player, done.id, done.coins, done.sun, finished, bonus)
 	task.delay(NEXT_SECONDS, settle, player)
 end
 
@@ -68,7 +73,8 @@ settle = function(player: Player)
 	if not (data and goal and player.Parent) then
 		return
 	end
-	if (goal.kind == "hat" and #data.hats > 0) or (goal.kind == "home" and data.home ~= nil) then
+	if (goal.kind == "hat" and #data.hats > 0) or (goal.kind == "home" and data.home ~= nil)
+		or (goal.kind == "pet" and data.pet ~= nil) then
 		complete(player)
 	end
 end

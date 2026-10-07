@@ -107,13 +107,20 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 			end
 		end
 		return nearestTo(from, spots)
-	elseif goal.kind == "shop" or goal.kind == "hat" then
+	elseif goal.kind == "shop" or goal.kind == "hat" or goal.kind == "pet" then
+		-- the shop's door: the goal's own shop, the Pet Shop for a pet, or else the Hat Shop
+		local shopId = goal.shop or (if goal.kind == "pet" then "pets" else "hats")
 		local residents = Workspace:FindFirstChild("Residents")
-		local door = residents and residents:FindFirstChild(`ShopDoor_{goal.shop or "hats"}`)
+		local door = residents and residents:FindFirstChild(`ShopDoor_{shopId}`)
 		if door and door:IsA("BasePart") then
 			return door.Position
 		end
-		return Config.polar(Config.SHOPS[1].angle, Config.SHOP_DIST - 4)
+		for _, shop in Config.SHOPS do
+			if shop.id == shopId then
+				return Config.polar(shop.angle, Config.SHOP_DIST - 4)
+			end
+		end
+		return nil
 	elseif goal.kind == "home" then
 		local plots = Workspace:FindFirstChild("HomePlots")
 		local spots = {}
@@ -287,14 +294,16 @@ function GoalsPanel.start(corner: Frame)
 	refresh()
 
 	-- "Well done!" (in turn: see Hud.announce)
-	Remotes.GoalDone.OnClientEvent:Connect(function(_id, coins, sun, finished)
+	Remotes.GoalDone.OnClientEvent:Connect(function(_id, coins, sun, finished, bonus)
 		if typeof(coins) ~= "number" or typeof(sun) ~= "number" then
 			return
 		end
 		Hud.announce("Well done!", `+{coins} coins and {sun} sunshine`)
-		if finished then
-			local bonus = GoalList.FINISH
-			Hud.announce("All goals done!", `+{bonus.coins} coins and {bonus.sun} sunshine. Now go and explore!`)
+		if finished and bonus == true then
+			local extra = GoalList.FINISH
+			Hud.announce("All goals done!", `+{extra.coins} coins and {extra.sun} sunshine. Now go and explore!`)
+		elseif finished then
+			Hud.announce("All goals done!", "Now go and explore!")
 		end
 	end)
 

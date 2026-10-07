@@ -47,7 +47,8 @@ local EARNED: { [string]: (PlayerData.Data) -> boolean } = {
 		return data.daily.streak >= #Config.DAILY.COINS
 	end,
 	allGoals = function(data)
-		return GoalList.done(data.goal)
+		-- (goalsFinished: they finished the goals there were then, even if more came since)
+		return data.goalsFinished or GoalList.done(data.goal)
 	end,
 }
 

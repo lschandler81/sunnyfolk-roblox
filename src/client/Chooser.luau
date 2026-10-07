@@ -1,6 +1,6 @@
 -- The welcome screen: pick your animal (capybara, bunny or guinea pig), its colours and a
 -- scarf, see yourself turning round, then press Play. It opens again from the
--- "Change animal" button.
+-- "Change animal" button. With a controller, the ring starts on Play!
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -25,8 +25,9 @@ local function swatchColors(coat): (Color3, Color3)
 end
 
 -- Opens the screen. `onPlay(choice)` runs when they press Play. `hat` is the hat they're
--- wearing, so the picture shows it.
-function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
+-- wearing, so the picture shows it. `onBack`, if given, lets a controller's B close the
+-- screen without changing anything (when they've already got an animal).
+function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> (), onBack: (() -> ())?)
 	local choice: Choice = start and table.clone(start) or {
 		species = Config.START_ANIMALS[math.random(#Config.START_ANIMALS)],
 		coat = "",
@@ -125,7 +126,9 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 	heading("Scarf", 5)
 	local scarfRow = row(6, Ui.TOUCH, 5)
 
-	local function swatch(parent: Instance, size: number, a: Color3, b: Color3, chosen: boolean, onClick: () -> ())
+	-- a round colour button; returns its outline, which shows when it's chosen
+	local function swatch(parent: Instance, size: number, a: Color3, b: Color3, onClick: () -> ()): UIStroke
+		local stroke = Ui.stroke(2.5)
 		local button = Ui.new("TextButton", {
 			Text = "",
 			Size = UDim2.fromOffset(size, size),
@@ -134,7 +137,7 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 			Parent = parent,
 		}, {
 			Ui.round(),
-			Ui.stroke(if chosen then 5 else 2.5, if chosen then Ui.colors.coral else Ui.colors.ink),
+			stroke,
 			Ui.new("UIGradient", {
 				Rotation = 45,
 				Color = ColorSequence.new({
@@ -146,6 +149,24 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 			}),
 		})
 		button.Activated:Connect(onClick)
+		return stroke
+	end
+	local function showChosen(stroke: UIStroke, chosen: boolean)
+		stroke.Thickness = if chosen then 5 else 2.5
+		stroke.Color = if chosen then Ui.colors.coral else Ui.colors.ink
+	end
+
+	-- The buttons are made once (the colours again when the animal changes) and only their
+	-- outlines change, so a controller's ring stays on the button it was on.
+	local coatStrokes: { [string]: UIStroke } = {}
+	local coatsFor = ""
+	local scarfStrokes: { UIStroke } = {}
+	for i, hex in Looks.scarves() do
+		local color = Looks.color(hex)
+		scarfStrokes[i] = swatch(scarfRow, Ui.TOUCH, color, color, function()
+			choice.scarf = i
+			refresh()
+		end)
 	end
 
 	refresh = function()
@@ -157,37 +178,38 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 				stroke.Thickness = if chosen then 4 else 3
 			end
 		end
-		for _, child in coatRow:GetChildren() do
-			if child:IsA("GuiButton") then
-				child:Destroy()
+		if coatsFor ~= choice.species then
+			coatsFor = choice.species
+			for _, child in coatRow:GetChildren() do
+				if child:IsA("GuiButton") then
+					child:Destroy()
+				end
+			end
+			coatStrokes = {}
+			for _, coat in Looks.coats(choice.species) do
+				local a, b = swatchColors(coat)
+				coatStrokes[coat.id] = swatch(coatRow, 48, a, b, function()
+					choice.coat = coat.id
+					refresh()
+				end)
 			end
 		end
-		for _, coat in Looks.coats(choice.species) do
-			local a, b = swatchColors(coat)
-			swatch(coatRow, 48, a, b, coat.id == choice.coat, function()
-				choice.coat = coat.id
-				refresh()
-			end)
+		for id, stroke in coatStrokes do
+			showChosen(stroke, id == choice.coat)
 		end
-		for _, child in scarfRow:GetChildren() do
-			if child:IsA("GuiButton") then
-				child:Destroy()
-			end
-		end
-		for i, hex in Looks.scarves() do
-			local color = Looks.color(hex)
-			swatch(scarfRow, Ui.TOUCH, color, color, i == choice.scarf, function()
-				choice.scarf = i
-				refresh()
-			end)
+		for i, stroke in scarfStrokes do
+			showChosen(stroke, i == choice.scarf)
 		end
 		redraw()
 	end
 	refresh()
 
-	Ui.button("Play!", Ui.colors.yellow, function()
+	local function close()
 		turning:Disconnect()
 		screen:Destroy()
+	end
+	local play = Ui.button("Play!", Ui.colors.yellow, function()
+		close()
 		onPlay(choice)
 	end, {
 		Position = UDim2.fromOffset(12, 226),
@@ -195,6 +217,12 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> ())
 		TextSize = 28,
 		Parent = card,
 	})
+	Ui.controller(screen, card, play, if onBack
+		then function()
+			close()
+			onBack()
+		end
+		else nil)
 end
 
 return Chooser

@@ -1,10 +1,17 @@
 -- What's always on screen while you play: your coins (top right), a button to change your
 -- animal, a nudge to find a home until you've got one, and friendly pop-up messages.
+-- With a controller, D-pad right puts the ring on the buttons here (A presses, B goes back
+-- to walking), like the web game's buttons at the top.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
+local Config = require(ReplicatedStorage:WaitForChild("Sunnyfolk").Config)
+local Controls = require(script.Parent.Controls)
 local Ui = require(script.Parent.Ui)
 
 local player = Players.LocalPlayer
@@ -21,9 +28,10 @@ function Hud.create(onChangeAnimal: () -> ())
 	screen = gui
 	gui.Enabled = false
 
+	local edge = Config.UI.TV_SAFE
 	local corner = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 12),
+		Position = if Ui.CONSOLE then UDim2.fromScale(1 - edge, edge) else UDim2.new(1, -16, 0, 12),
 		Size = UDim2.fromOffset(220, 200),
 		BackgroundTransparency = 1,
 		Parent = gui,
@@ -76,12 +84,77 @@ function Hud.create(onChangeAnimal: () -> ())
 	player:GetAttributeChangedSignal("Coins"):Connect(update)
 	update()
 
-	Ui.button("Change animal", Ui.colors.cream, onChangeAnimal, {
+	Ui.consoleSize(corner)
+	Ui.keepRingInside(corner)
+
+	-- the controller's ring on these buttons: on with D-pad right, off with B (Roblox takes
+	-- the ring off) or by pressing a button
+	local ringHere = false
+	local function ringOff()
+		if ringHere then
+			ringHere = false
+			Controls.set(true, "hud")
+			if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(corner) then
+				GuiService.SelectedObject = nil
+			end
+		end
+	end
+
+	local changeAnimal = Ui.button("Change animal", Ui.colors.cream, function()
+		ringOff()
+		onChangeAnimal()
+	end, {
 		Size = UDim2.fromOffset(160, Ui.TOUCH),
 		TextSize = 17,
 		LayoutOrder = 2,
 		Parent = corner,
 	})
+	-- with a controller, the D-pad picture beside it says how to get there
+	local padHint = Ui.new("ImageLabel", {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(0, -6, 0.5, 0),
+		Size = UDim2.fromOffset(32, 32),
+		BackgroundTransparency = 1,
+		Image = Ui.padImage(Enum.KeyCode.DPadRight),
+		Parent = changeAnimal,
+	})
+	local function showPadHint()
+		padHint.Visible = Ui.usingController() and padHint.Image ~= ""
+	end
+	UserInputService.LastInputTypeChanged:Connect(function()
+		showPadHint()
+		if not Ui.usingController() then
+			ringOff() -- they've gone back to the mouse, keyboard or touch screen
+		end
+	end)
+	showPadHint()
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if input.KeyCode == Enum.KeyCode.ButtonB then
+			ringOff()
+			return
+		end
+		if input.KeyCode ~= Enum.KeyCode.DPadRight or processed or ringHere then
+			return
+		end
+		if not gui.Enabled or Ui.openScreens > 0 or GuiService.MenuIsOpen then
+			return
+		end
+		ringHere = true
+		Controls.set(false, "hud")
+		GuiService.SelectedObject = changeAnimal
+	end)
+	GuiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
+		local now = GuiService.SelectedObject
+		if ringHere and not (now and now:IsDescendantOf(corner)) then
+			ringOff()
+		end
+	end)
+	gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if not gui.Enabled then
+			ringOff()
+		end
+	end)
 
 	-- a nudge to find a home, until you've got one (under "Change animal", clear of Roblox's
 	-- chat window on the left and the jump button below)
@@ -130,6 +203,11 @@ function Hud.create(onChangeAnimal: () -> ())
 	})
 	for _, child in { Ui.round(), Ui.stroke(3.5), toastScale, Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 28), PaddingRight = UDim.new(0, 28) }) } do
 		child.Parent = toastLabel
+	end
+	-- bigger on a TV (its UIScale is used for the pop-in, so the sizes change instead)
+	if Ui.CONSOLE and toastLabel then
+		toastLabel.TextSize = math.round(30 * Config.UI.CONSOLE_SCALE)
+		toastLabel.Size = UDim2.fromOffset(0, math.round(70 * Config.UI.CONSOLE_SCALE))
 	end
 
 	-- a reminder for whoever's making the game, when coins won't be kept

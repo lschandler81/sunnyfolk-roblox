@@ -1,6 +1,6 @@
 -- Running: hold Shift on a keyboard, press the left stick in on a controller, or tap the Run
 -- button on a phone or tablet (tap again to walk). The button sits just left of Roblox's jump
--- button, so it's easy to reach with the same thumb.
+-- button, so it's easy to reach with the same thumb. It's never shown on a TV (console).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -40,7 +40,8 @@ function Run.start()
 		AnchorPoint = Vector2.new(1, 0.5),
 		Size = UDim2.fromOffset(72, 72),
 		TextSize = 22,
-		Visible = UserInputService.TouchEnabled,
+		Visible = UserInputService.TouchEnabled and not Ui.CONSOLE,
+		Selectable = false, -- a controller runs with the left stick instead
 		Parent = gui,
 	})
 	local corner = button:FindFirstChildOfClass("UICorner")
@@ -98,7 +99,7 @@ function Run.start()
 	end)
 	-- The button appears if a touch screen is used later (some laptops have one).
 	UserInputService:GetPropertyChangedSignal("TouchEnabled"):Connect(function()
-		button.Visible = UserInputService.TouchEnabled
+		button.Visible = UserInputService.TouchEnabled and not Ui.CONSOLE
 	end)
 
 	-- A new animal (after changing animal) walks or runs as you were.

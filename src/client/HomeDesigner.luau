@@ -1,6 +1,7 @@
 -- The screen for designing your house: pick its shape, colours, garden and whether it has a
 -- sign with your name, and see it change as you go. Opens when you move into a free plot,
--- or from "Change my home" at your own house.
+-- or from "Change my home" at your own house. With a controller, the ring starts on the
+-- build button, and B is "Not now".
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -38,15 +39,15 @@ end
 -- Opens the designer. `plotIndex` is the free plot they're moving into, or nil to change
 -- the house they've got. `onDone(message)` runs when it's built.
 function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
-	if screen then
-		return
+	if screen or Ui.openScreens > 0 then
+		return -- not on top of another screen
 	end
 	local design = savedDesign()
 	local moving = plotIndex ~= nil
 	local movingHouse = moving and player:GetAttribute("HomePlot") ~= nil -- they've a home already
 	local busy = false
 
-	Controls.set(false)
+	Controls.set(false, "home")
 	local gui = Ui.screen("HomeDesigner", 16)
 	screen = gui
 	-- Laid out for a landscape phone (620 x 290), and grows on bigger screens: the house and the
@@ -67,7 +68,13 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 		end
 		gui:Destroy()
 		screen = nil
-		Controls.set(true)
+		Controls.set(true, "home")
+	end
+	-- "Not now" (or B) waits while the house is being built
+	local function notNow()
+		if not busy then
+			close()
+		end
 	end
 
 	Ui.text({
@@ -246,13 +253,13 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 		Parent = card,
 	})
 
-	Ui.button("Not now", Ui.colors.cream, close, {
+	Ui.button("Not now", Ui.colors.cream, notNow, {
 		Position = UDim2.fromOffset(12, 234),
 		Size = UDim2.fromOffset(84, 48),
 		TextSize = 17,
 		Parent = card,
 	})
-	Ui.button(if movingHouse then "Move here!" elseif moving then "Build it!" else "Save", Ui.colors.yellow, function()
+	local build = Ui.button(if movingHouse then "Move here!" elseif moving then "Build it!" else "Save", Ui.colors.yellow, function()
 		if busy then
 			return
 		end
@@ -280,6 +287,7 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 		redraw()
 	end
 	refresh()
+	Ui.controller(gui, card, build, notNow)
 end
 
 function HomeDesigner.isOpen(): boolean

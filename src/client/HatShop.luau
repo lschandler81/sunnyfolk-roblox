@@ -1,6 +1,7 @@
 -- Clover's Hat Shop screen. Tap a hat to try it on (the picture shows you wearing it), then
 -- buy it with coins, put it on, or take it off. The server checks every purchase
--- (server/HatShop).
+-- (server/HatShop). With a controller, the ring starts on the hat you're wearing (or the
+-- first one), and B says bye.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -57,8 +58,8 @@ local function frame(camera: Camera, model: Model, from: Vector3)
 end
 
 function HatShop.open()
-	if screen then
-		return
+	if screen or Ui.openScreens > 0 then
+		return -- not on top of another screen
 	end
 	local choice = myChoice()
 	local hats = Looks.shopHats()
@@ -66,7 +67,7 @@ function HatShop.open()
 	local message = CLOVER_SAYS[math.random(#CLOVER_SAYS)]
 	local busy = false
 
-	Controls.set(false)
+	Controls.set(false, "hatshop")
 	local gui = Ui.screen("HatShop", 15)
 	screen = gui
 	-- Laid out for a landscape phone (620 x 290), and grows on bigger screens: you trying the
@@ -87,7 +88,7 @@ function HatShop.open()
 		end
 		gui:Destroy()
 		screen = nil
-		Controls.set(true)
+		Controls.set(true, "hatshop")
 	end
 
 	Ui.text({
@@ -174,6 +175,7 @@ function HatShop.open()
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Selectable = false, -- a controller's ring goes straight to the hats
 		Parent = card,
 	}, {
 		Ui.corner(16),
@@ -321,6 +323,9 @@ function HatShop.open()
 		table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(refresh))
 	end
 	refresh()
+
+	local start = (selected and cards[selected]) or cards[hats[1].id]
+	Ui.controller(gui, card, start.button, close)
 end
 
 function HatShop.isOpen(): boolean

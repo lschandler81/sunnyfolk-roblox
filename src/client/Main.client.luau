@@ -1,6 +1,7 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
 -- coins, talking, the Hat Shop, homes and the animals' animation.
 
+local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,8 +36,9 @@ for _, kind in { Enum.CoreGuiType.Backpack, Enum.CoreGuiType.Health, Enum.CoreGu
 	end)
 end
 
--- No chat box at all, if Config.PLAYER_CHAT is turned off.
-if not Config.PLAYER_CHAT then
+-- No chat box at all, if Config.PLAYER_CHAT is turned off. On a TV (Xbox, PlayStation)
+-- there's never one: Roblox's console guidelines say the chat window must be off there.
+if not Config.PLAYER_CHAT or GuiService:IsTenFootInterface() then
 	pcall(function()
 		local window = TextChatService:FindFirstChildOfClass("ChatWindowConfiguration")
 		local input = TextChatService:FindFirstChildOfClass("ChatInputBarConfiguration")
@@ -101,16 +103,21 @@ local function chooseAnimal()
 	end
 	Hud.show(false)
 	Run.show(false)
-	Controls.set(false)
+	Controls.set(false, "chooser")
 	if not player.Character then
 		driftRoundSquare()
 	end
-	Chooser.open(lastChoice(), player:GetAttribute("Hat"), function(choice)
-		Remotes.Play:FireServer(choice)
-		Controls.set(true)
+	local function backToPlaying()
+		Controls.set(true, "chooser")
 		Hud.show(true)
 		Run.show(true)
-	end)
+	end
+	-- a controller's B goes back without changing anything, once they've got an animal
+	local back = if player.Character then backToPlaying else nil
+	Chooser.open(lastChoice(), player:GetAttribute("Hat"), function(choice)
+		Remotes.Play:FireServer(choice)
+		backToPlaying()
+	end, back)
 end
 
 if not player:GetAttribute("Loaded") then

@@ -210,6 +210,20 @@ Config.REMOTE_LIMITS = {
 -- nothing outside Studio. Turn it off again to play normally.
 Config.WARDROBE_CHECK = false
 
+---------------------------------------------------------------- screens
+
+-- Sizes for the game's screens, which are designed for a landscape phone first.
+Config.UI = {
+	TOUCH = 44, -- the smallest button, in pixels, on the smallest phone (a child's finger)
+	MAX_SCALE = 1.6, -- how much a screen may grow on a tablet or computer
+	-- On a TV (Xbox, PlayStation) players sit across the room, so everything is this much
+	-- bigger (Roblox's console guidelines suggest 1.5).
+	CONSOLE_SCALE = 1.5,
+	-- On a TV, the edges of the picture can be cut off, so the HUD and the buttons at the
+	-- bottom keep this far in from the edges (0.05 is 5% of the screen).
+	TV_SAFE = 0.05,
+}
+
 ---------------------------------------------------------------- players
 
 -- Players can chat using Roblox's own chat, which Roblox filters and keeps to each player's

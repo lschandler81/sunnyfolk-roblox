@@ -1,5 +1,5 @@
 -- Easy ways to read assets/characters/sunnyfolk.json: the animals and their coats, the scarf
--- colours, the hats and the residents.
+-- colours, the hats, the clothes and the residents.
 
 local CharacterData: any = require(script.Parent.CharacterData)
 
@@ -62,6 +62,37 @@ function Looks.shopHats(): { any }
 	return list
 end
 
+-- The places clothes go. One thing can be worn in each; the free scarf is worn on the neck
+-- whenever nothing else is.
+Looks.SLOTS = { "neck", "body", "back" }
+
+-- Clothes the Clothes Shop sells (cheapest first): ones with a price, for one of the slots
+-- above (not the residents' own aprons). Worked out once, as it never changes.
+local shopClothes = {}
+local shopById = {}
+for _, item in CharacterData.clothes do
+	if (item.price or 0) > 0 and table.find(Looks.SLOTS, item.slot) then
+		table.insert(shopClothes, item)
+		shopById[item.id] = item
+	end
+end
+table.sort(shopClothes, function(a, b)
+	if a.price ~= b.price then
+		return a.price < b.price
+	end
+	return a.name < b.name
+end)
+
+-- The Clothes Shop's things (don't change the list you get back).
+function Looks.shopClothes(): { any }
+	return shopClothes
+end
+
+-- One of the shop's clothes, or nil if `clothesId` isn't one.
+function Looks.shopItem(clothesId: string?)
+	return if typeof(clothesId) == "string" then shopById[clothesId] else nil
+end
+
 function Looks.clothes(clothesId: string)
 	for _, item in CharacterData.clothes do
 		if item.id == clothesId then
@@ -89,15 +120,29 @@ function Looks.resident(residentId: string)
 	return nil
 end
 
--- What a player looks like, from what they picked: { species, coat, scarf }.
--- `scarf` is a number: which of the scarf colours.
-function Looks.playerLook(choice: { species: string, coat: string?, scarf: number? }, hat: string?)
+-- What a player looks like, from what they picked: { species, coat, scarf }, the hat they're
+-- wearing and the clothes they're wearing (shop clothes ids). `scarf` is a number: which of the
+-- scarf colours. The scarf goes on unless something else is worn on the neck.
+function Looks.playerLook(choice: { species: string, coat: string?, scarf: number? }, hat: string?, wearing: { string }?)
 	local scarves = Looks.scarves()
+	local clothes = {}
+	local neckTaken = false
+	local worn: { string } = wearing or {}
+	for _, id in worn do
+		local item = Looks.shopItem(id)
+		if item then
+			table.insert(clothes, id)
+			neckTaken = neckTaken or item.slot == "neck"
+		end
+	end
+	if not neckTaken then
+		table.insert(clothes, 1, "scarf")
+	end
 	return {
 		species = choice.species,
 		coat = choice.coat,
 		scarf = scarves[choice.scarf or 1] or scarves[1],
-		clothes = { "scarf" },
+		clothes = clothes,
 		hat = hat,
 	}
 end

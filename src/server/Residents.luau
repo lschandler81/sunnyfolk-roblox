@@ -80,9 +80,10 @@ local function addResident(id: string, folder: Folder)
 	feet.Parent = root
 	local talk = prompt(feet, "Talk", "Talk", info.name, Enum.KeyCode.E, Enum.KeyCode.ButtonX)
 	if id == "clover" then
-		local shop = prompt(feet, "HatShop", "Hat Shop", "Clover's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		local shop = prompt(feet, "Shop", "Hat Shop", "Clover's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		shop:SetAttribute("ShopId", "hats")
 		shop.Triggered:Connect(function(player)
-			Goals.event(player, "shop")
+			Goals.event(player, "shop", "hats")
 		end)
 	end
 
@@ -123,11 +124,14 @@ function Residents.start(doors: { [string]: CFrame })
 		addResident(id, folder)
 	end
 
-	-- You can also open the Hat Shop at its door.
-	local door = doors.hats
-	if door then
+	-- Each open shop also opens at its door (the part is called "ShopDoor_<shop id>").
+	for _, shop in Config.SHOPS do
+		local door = doors[shop.id]
+		if not (shop.open and door) then
+			continue
+		end
 		local spot = Instance.new("Part")
-		spot.Name = "HatShopDoor"
+		spot.Name = `ShopDoor_{shop.id}`
 		spot.Anchored = true
 		spot.CanCollide = false
 		spot.CanQuery = false
@@ -135,8 +139,11 @@ function Residents.start(doors: { [string]: CFrame })
 		spot.Transparency = 1
 		spot.Size = Vector3.new(4, 4, 1)
 		spot.CFrame = door * CFrame.new(0, 3, -1.5)
-		prompt(spot, "HatShop", "Look at hats", "Hat Shop", Enum.KeyCode.F, Enum.KeyCode.ButtonY).Triggered:Connect(function(player)
-			Goals.event(player, "shop")
+		local what = if shop.id == "hats" then "Look at hats" else "Look at clothes"
+		local button = prompt(spot, "Shop", what, shop.label, Enum.KeyCode.F, Enum.KeyCode.ButtonY)
+		button:SetAttribute("ShopId", shop.id)
+		button.Triggered:Connect(function(player)
+			Goals.event(player, "shop", shop.id)
 		end)
 		spot.Parent = folder
 	end

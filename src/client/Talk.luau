@@ -184,8 +184,8 @@ end
 
 ---------------------------------------------------------------- starting
 
--- `openHatShop` runs when someone presses the Hat Shop button by Clover or the shop door.
-function Talk.start(openHatShop: () -> ())
+-- `openShop(shopId)` runs when someone presses a shop's button (by Clover, or at a shop door).
+function Talk.start(openShop: (string) -> ())
 	CollectionService:GetInstanceAddedSignal(Builder.TAG):Connect(function(model)
 		task.spawn(addTag, model)
 	end)
@@ -200,9 +200,10 @@ function Talk.start(openHatShop: () -> ())
 		local model = prompt:FindFirstAncestorOfClass("Model")
 		if prompt.Name == "Talk" and model then
 			talkTo(model)
-		elseif prompt.Name == "HatShop" then
+		elseif prompt.Name == "Shop" then
+			local shopId = prompt:GetAttribute("ShopId")
 			hush()
-			openHatShop()
+			openShop(if typeof(shopId) == "string" then shopId else "hats")
 		end
 	end)
 

@@ -40,10 +40,10 @@ Config.EDGE_R = 72 -- the hedge round the town; nobody walks past it
 -- Where you appear (on the ground, facing the fountain).
 Config.SPAWN = CFrame.lookAt(Config.fromWeb(0, 11), Vector3.zero)
 
--- The shops round the square. Only Clover's Hat Shop is open so far.
+-- The shops round the square. Clover's Hat Shop and the Clothes Shop are open so far.
 Config.SHOPS = {
 	{ id = "hats", angle = 36, label = "Hat Shop", wall = "#f7e8c8", roof = "#2f8a7c", awning = "#f07055", door = "#1f5f57", sign = "#2f8a7c", open = true },
-	{ id = "clothes", angle = 108, label = "Clothes Shop", wall = "#fbe3d2", roof = "#f07055", awning = "#2f8a7c", door = "#1f5f57", sign = "#d9604a" },
+	{ id = "clothes", angle = 108, label = "Clothes Shop", wall = "#fbe3d2", roof = "#f07055", awning = "#2f8a7c", door = "#1f5f57", sign = "#d9604a", open = true },
 	{ id = "pets", angle = 252, label = "Pet Shop", wall = "#e2f1e6", roof = "#f6c64a", awning = "#f07055", door = "#f07055", sign = "#6fa057" },
 	{ id = "post", angle = 324, label = "Post Office", wall = "#f7e8c8", roof = "#d9b3dc", awning = "#f6c64a", door = "#f07055", sign = "#2f8a7c" },
 }
@@ -259,13 +259,16 @@ Config.SAVE = {
 -- most `calls` in any `seconds`. Anything more is quietly ignored. These are well above what
 -- normal play needs, so only a script hammering the server notices them.
 Config.REMOTE_LIMITS = {
-	BuyHat = { calls = 4, seconds = 2 },
-	WearHat = { calls = 6, seconds = 2 },
+	Buy = { calls = 4, seconds = 2 }, -- buying a hat or clothes
+	Wear = { calls = 6, seconds = 2 }, -- putting on or taking off a hat or clothes
 	CollectCoin = { calls = 12, seconds = 2 },
 	Play = { calls = 3, seconds = 5 },
 	SetHome = { calls = 3, seconds = 10 },
 	StudioNextDay = { calls = 2, seconds = 2 }, -- Studio only (server/Daily)
 }
+-- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
+-- most this often (seconds), so nobody's animal is rebuilt many times a second.
+Config.CLOTHES_REBUILD_SECONDS = 1
 
 ---------------------------------------------------------------- testing
 

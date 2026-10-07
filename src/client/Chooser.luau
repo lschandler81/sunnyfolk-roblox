@@ -2,6 +2,7 @@
 -- scarf, see yourself turning round, then press Play. It opens again from the
 -- "Change animal" button. With a controller, the ring starts on Play!
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -63,7 +64,8 @@ function Chooser.open(start: Choice?, hat: string?, onPlay: (Choice) -> (), onBa
 		if shown then
 			shown:Destroy()
 		end
-		local look = Looks.playerLook(choice, hat)
+		local wearing = Players.LocalPlayer:GetAttribute("Wearing")
+		local look = Looks.playerLook(choice, hat, if typeof(wearing) == "string" and wearing ~= "" then string.split(wearing, ",") else nil)
 		local model = Builder.build(look, { viewport = true })
 		model.Parent = view
 		shown = model

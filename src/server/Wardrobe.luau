@@ -1,7 +1,9 @@
 -- The wardrobe check: a fitting room for testing in Studio. When Config.WARDROBE_CHECK is on,
 -- pressing Play builds rows of every imported animal wearing every hat, every piece of
 -- clothing, every scarf colour and every held thing, each with a label, and you start
--- there instead of in town. The animals take turns walking, standing and waving, so you can
+-- there instead of in town. The animals players can be also get a row of the Clothes Shop's
+-- things worn the way players wear them (with the scarf, or a bandana instead of it), and a
+-- few whole outfits. The animals take turns walking, standing and waving, so you can
 -- spot anything that pokes through or doesn't line up. Anything missing is listed in the
 -- Output.
 --
@@ -24,6 +26,13 @@ local ORIGIN = Vector3.new(0, 0, 1100) -- well away from the town
 local SPACING = 7 -- studs between animals in a row
 local ROW_GAP = 16 -- studs between rows
 local ANIMALS = { "capybara", "bunny", "guineapig", "duck", "penguin", "frog" }
+-- whole outfits, one thing in each slot
+local OUTFITS = {
+	{ "bandana-teal", "raincoat", "backpack" },
+	{ "bandana-coral", "spacesuit", "backpack-space" },
+	{ "bandana-lilac", "smock", "backpack-coral" },
+	{ "apron-pink", "backpack" },
+}
 
 local function nameTag(model: Model, text: string)
 	local root = model.PrimaryPart
@@ -114,6 +123,20 @@ function Wardrobe.build(): CFrame?
 			column += 1
 		end
 		z += ROW_GAP
+		-- the Clothes Shop's things as players wear them, then whole outfits
+		if table.find(Config.START_ANIMALS, species) then
+			local you = { species = species, coat = Looks.coats(species)[1].id, scarf = 1 }
+			column = 0
+			for _, item in Looks.shopClothes() do
+				place(Looks.playerLook(you, nil, { item.id }), `{species} wears: {item.name}`, column)
+				column += 1
+			end
+			for _, outfit in OUTFITS do
+				place(Looks.playerLook(you, nil, outfit), `{species}: {table.concat(outfit, " + ")}`, column)
+				column += 1
+			end
+			z += ROW_GAP
+		end
 		-- a row of things to hold
 		for i, item in data.held do
 			local model = place({ species = species, held = { item.id } }, `{species}: {item.id}`, i - 1)

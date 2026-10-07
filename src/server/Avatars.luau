@@ -59,7 +59,7 @@ function Avatars.spawn(player: Player, atStart: boolean?)
 	local old = player.Character
 	local at = (not atStart and standingAt(old)) or Avatars.spawnPoint
 
-	local character = Builder.build(Looks.playerLook(data.look, data.hat), { cframe = at, name = player.Name })
+	local character = Builder.build(Looks.playerLook(data.look, data.hat, data.wearing), { cframe = at, name = player.Name })
 	character:SetAttribute("DisplayName", player.DisplayName)
 	character:SetAttribute("UserId", player.UserId)
 	local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid

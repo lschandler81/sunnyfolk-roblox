@@ -1,7 +1,7 @@
--- Clover's Hat Shop screen. Tap a hat to try it on (the picture shows you wearing it), then
--- buy it with coins, put it on, or take it off. The server checks every purchase
--- (server/HatShop). With a controller, the ring starts on the hat you're wearing (or the
--- first one), and B says bye.
+-- The shop screen, for Clover's Hat Shop and the Clothes Shop. Tap something to try it on (the
+-- picture shows you wearing it), then buy it with coins, put it on, or take it off. The
+-- server checks every purchase (server/HatShop). With a controller, the ring starts on what
+-- you're wearing (or the first thing), and B says bye.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -19,16 +19,52 @@ local player = Players.LocalPlayer
 
 local HatShop = {}
 
-local CLOVER_SAYS = {
-	"A good hat makes any day better.",
-	"Try on as many as you like!",
-	"Every hat here fits every animal.",
+-- What's different about each shop.
+type Shop = {
+	title: string,
+	says: { string }, -- a friendly line when you come in
+	items: () -> { any }, -- what it sells, cheapest first
+	thumb: (string, string) -> Model?, -- (species, id): one thing on its own, for a shelf
+	thumbFrom: Vector3, -- which way the shelf's little camera looks at it
+	camera: CFrame, -- the try-on picture's camera
+	owned: string, -- the attribute listing what you own
+}
+
+local SHOPS: { [string]: Shop } = {
+	hats = {
+		title = "Clover's Hat Shop",
+		says = {
+			"A good hat makes any day better.",
+			"Try on as many as you like!",
+			"Every hat here fits every animal.",
+		},
+		items = Looks.shopHats,
+		thumb = Builder.hatModel,
+		thumbFrom = Vector3.new(0.3, 0.55, -1),
+		-- close up on the head and the hat (the picture is wider than it is tall)
+		camera = CFrame.lookAt(Vector3.new(0, 5.4, -10), Vector3.new(0, 4.6, 0)),
+		owned = "OwnedHats",
+	},
+	clothes = {
+		title = "The Clothes Shop",
+		says = {
+			"Something cosy for every animal!",
+			"Try on as many as you like!",
+			"One for your neck, your body and your back.",
+		},
+		items = Looks.shopClothes,
+		thumb = Builder.clothesModel,
+		thumbFrom = Vector3.new(0.35, 0.25, -1),
+		-- the whole animal
+		camera = CFrame.lookAt(Vector3.new(0, 3.6, -15), Vector3.new(0, 2.7, 0)),
+		owned = "OwnedClothes",
+	},
 }
 
 local screen: ScreenGui? = nil
 
-local function owned(): { string }
-	local list = player:GetAttribute("OwnedHats")
+local function listAttribute(name: string): { string }
+	local list = player:GetAttribute(name)
 	return if typeof(list) == "string" and list ~= "" then string.split(list, ",") else {}
 end
 
@@ -57,14 +93,31 @@ local function frame(camera: Camera, model: Model, from: Vector3)
 	camera.CFrame = CFrame.lookAt(centre + from.Unit * (biggest * 2.3 + 1), centre)
 end
 
-function HatShop.open()
+-- Opens a shop: "hats" or "clothes".
+function HatShop.open(shopId: string?)
 	if screen or Ui.openScreens > 0 then
 		return -- not on top of another screen
 	end
+	local id = shopId or "hats"
+	local shop = SHOPS[id]
+	if not shop then
+		return
+	end
+	local isHats = id == "hats"
 	local choice = myChoice()
-	local hats = Looks.shopHats()
-	local selected: string? = player:GetAttribute("Hat") or hats[1].id
-	local message = CLOVER_SAYS[math.random(#CLOVER_SAYS)]
+	local items = shop.items()
+	local function find(itemId: string?): any
+		for _, item in items do
+			if item.id == itemId then
+				return item
+			end
+		end
+		return nil
+	end
+	-- start on what you're wearing, if anything, or else the first thing
+	local wornNow = if isHats then player:GetAttribute("Hat") else listAttribute("Wearing")[1]
+	local selected: string? = if find(wornNow) then wornNow else items[1].id
+	local message = shop.says[math.random(#shop.says)]
 	local busy = false
 
 	Controls.set(false, "hatshop")
@@ -92,7 +145,7 @@ function HatShop.open()
 	end
 
 	Ui.text({
-		Text = "Clover's Hat Shop",
+		Text = shop.title,
 		TextSize = 22,
 		TextColor3 = Ui.colors.coral,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -137,12 +190,15 @@ function HatShop.open()
 		Parent = card,
 	}, { Ui.corner(16), Ui.stroke(3) })
 	local view, camera = Ui.viewport({ Size = UDim2.fromScale(1, 1), Parent = stage })
-	-- close up on the head and the hat (the picture is wider than it is tall)
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 5.4, -10), Vector3.new(0, 4.6, 0))
+	camera.CFrame = shop.camera
 	local you: Model? = nil
+	-- which way you face in the picture: the front, or turned round to show a backpack
+	local facing, turnedTo = 0, 0
 	table.insert(connections, RunService.RenderStepped:Connect(function()
 		if you then
-			you:PivotTo(CFrame.new(0, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, math.sin(os.clock() * 0.8) * 0.5, 0))
+			-- turn smoothly towards the way you should face, swaying gently from side to side
+			turnedTo += (facing - turnedTo) * 0.12
+			you:PivotTo(CFrame.new(0, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, turnedTo + math.sin(os.clock() * 0.8) * 0.5, 0))
 		end
 	end))
 
@@ -175,7 +231,7 @@ function HatShop.open()
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ScrollingDirection = Enum.ScrollingDirection.Y,
-		Selectable = false, -- a controller's ring goes straight to the hats
+		Selectable = false, -- a controller's ring goes straight to the things on the shelves
 		Parent = card,
 	}, {
 		Ui.corner(16),
@@ -191,7 +247,7 @@ function HatShop.open()
 	local refresh: () -> ()
 	local cards: { [string]: { button: TextButton, price: TextLabel, stroke: UIStroke } } = {}
 
-	for i, hat in hats do
+	for i, hat in items do
 		local stroke = Ui.stroke(2.5)
 		local button = Ui.new("TextButton", {
 			Text = "",
@@ -205,11 +261,11 @@ function HatShop.open()
 			Size = UDim2.fromOffset(60, 52),
 			Parent = button,
 		})
-		local model = Builder.hatModel(choice.species, hat.id)
+		local model = shop.thumb(choice.species, hat.id)
 		if model then
 			model:PivotTo(CFrame.Angles(0, 0.5, 0))
 			model.Parent = thumb
-			frame(thumbCamera, model, Vector3.new(0.3, 0.55, -1))
+			frame(thumbCamera, model, shop.thumbFrom)
 		end
 		Ui.text({
 			Text = hat.name,
@@ -233,7 +289,13 @@ function HatShop.open()
 			}),
 		})
 		local coin = Ui.coin(15, { Parent = priceRow })
-		local price = Ui.text({ TextSize = 14, Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Parent = priceRow })
+		local price = Ui.text({
+			TextSize = 14,
+			TextWrapped = false, -- so "Wearing" is never cut short
+			Size = UDim2.fromOffset(0, 18),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Parent = priceRow,
+		})
 		price:SetAttribute("Price", hat.price)
 		coin.Name = "Coin"
 		button.Activated:Connect(function()
@@ -246,39 +308,63 @@ function HatShop.open()
 
 	local shownLook = ""
 	refresh = function()
-		local mine = owned()
-		local wearing = player:GetAttribute("Hat")
+		local mine = listAttribute(shop.owned)
+		local wearing = if isHats then { player:GetAttribute("Hat") } else listAttribute("Wearing")
 		walletText.Text = tostring(coins())
 
-		for id, c in cards do
-			local have = table.find(mine, id) ~= nil
-			c.price.Text = if id == wearing then "Wearing" elseif have then "Yours!" else tostring(c.price:GetAttribute("Price"))
+		for itemId, c in cards do
+			local have = table.find(mine, itemId) ~= nil
+			c.price.Text = if table.find(wearing, itemId) then "Wearing"
+				elseif have then "Yours!"
+				else tostring(c.price:GetAttribute("Price"))
 			local coin = c.price.Parent and c.price.Parent:FindFirstChild("Coin")
 			if coin and coin:IsA("GuiObject") then
 				coin.Visible = not have
 			end
-			c.stroke.Color = if id == selected then Ui.colors.coral else Ui.colors.ink
-			c.stroke.Thickness = if id == selected then 4.5 else 2.5
-			c.button.BackgroundColor3 = if id == selected then Ui.colors.yellowLight else Ui.colors.paper
+			c.stroke.Color = if itemId == selected then Ui.colors.coral else Ui.colors.ink
+			c.stroke.Thickness = if itemId == selected then 4.5 else 2.5
+			c.button.BackgroundColor3 = if itemId == selected then Ui.colors.yellowLight else Ui.colors.paper
 		end
 
-		-- you, trying on the selected hat
-		local lookKey = `{choice.species}/{choice.coat}/{choice.scarf}/{selected}`
+		-- you, trying on the selected thing: a hat on its own, or clothes with the rest of what
+		-- you're wearing (the selected one taking the place of whatever's in its slot)
+		local hatOn = player:GetAttribute("Hat")
+		local clothesOn = listAttribute("Wearing")
+		local look
+		if isHats then
+			look = Looks.playerLook(choice, selected, clothesOn)
+		else
+			local picked = Looks.shopItem(selected)
+			-- show your back for something worn on it (a three-quarter turn, so you see your face too)
+			facing = if picked and picked.slot == "back" then math.rad(150) else 0
+			local outfit = {}
+			for _, worn in clothesOn do
+				local item = Looks.shopItem(worn)
+				if item and not (picked and item.slot == picked.slot) then
+					table.insert(outfit, worn)
+				end
+			end
+			if picked then
+				table.insert(outfit, picked.id)
+			end
+			look = Looks.playerLook(choice, hatOn, outfit)
+		end
+		local lookKey = `{choice.species}/{choice.coat}/{choice.scarf}/{look.hat}/{table.concat(look.clothes, ",")}`
 		if lookKey ~= shownLook then
 			shownLook = lookKey
 			if you then
 				you:Destroy()
 			end
-			you = Builder.build(Looks.playerLook(choice, selected), { viewport = true })
+			you = Builder.build(look, { viewport = true })
 			;(you :: Model).Parent = view
 		end
 
-		local hat = Looks.hat(selected)
-		hatName.Text = if hat then hat.name else "No hat"
+		local hat = find(selected)
+		hatName.Text = if hat then hat.name else ""
 		local have = selected ~= nil and table.find(mine, selected) ~= nil
 		local canAfford = hat ~= nil and coins() >= hat.price
 		local stroke = action:FindFirstChildOfClass("UIStroke")
-		if hat and selected == wearing then
+		if hat and table.find(wearing, selected) then
 			action.Text = "Take it off"
 			action.BackgroundColor3 = Ui.colors.cream
 		elseif have then
@@ -299,32 +385,39 @@ function HatShop.open()
 	end
 
 	action.Activated:Connect(function()
-		local hat = Looks.hat(selected)
-		if busy or not hat then
+		local item = find(selected)
+		if busy or not item then
 			return
 		end
-		local have = table.find(owned(), hat.id) ~= nil
-		if hat.id == player:GetAttribute("Hat") then
-			Remotes.WearHat:FireServer(nil)
-			message = "Hat off! Pop it back on any time."
-		elseif have then
-			Remotes.WearHat:FireServer(hat.id)
-			message = "Looking lovely!"
-		elseif coins() >= hat.price then
+		local have = table.find(listAttribute(shop.owned), item.id) ~= nil
+		local wearingIt = if isHats then item.id == player:GetAttribute("Hat") else table.find(listAttribute("Wearing"), item.id) ~= nil
+		if wearingIt or have then
+			Remotes.Wear:FireServer(id, if wearingIt then nil else item.id, item.slot)
+			message = if not wearingIt then "Looking lovely!"
+				elseif isHats then "Hat off! Pop it back on any time."
+				else "Taken off! Pop it back on any time."
+			if not isHats then
+				-- clothes rebuild your animal: wait a moment before the next change
+				busy = true
+				task.delay(1, function()
+					busy = false
+				end)
+			end
+		elseif coins() >= item.price then
 			busy = true
-			local ok, why = Remotes.BuyHat:InvokeServer(hat.id)
+			local ok, why = Remotes.Buy:InvokeServer(id, item.id)
 			busy = false
-			message = if ok then `The {hat.name} is yours! Clover pops it on your head.` else (why or "")
+			message = if ok then `The {item.name} is yours! On it goes.` else (why or "")
 		end
 		refresh()
 	end)
 
-	for _, attribute in { "Coins", "OwnedHats", "Hat" } do
+	for _, attribute in { "Coins", "Hat", "Wearing", shop.owned } do
 		table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(refresh))
 	end
 	refresh()
 
-	local start = (selected and cards[selected]) or cards[hats[1].id]
+	local start = (selected and cards[selected]) or cards[items[1].id]
 	Ui.controller(gui, card, start.button, close)
 end
 

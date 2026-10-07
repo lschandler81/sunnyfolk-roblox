@@ -105,6 +105,10 @@ function Goals.event(player: Player, kind: string, what: string?)
 		if met >= #who then
 			complete(player)
 		end
+	elseif kind == "shop" then
+		if goal.shop == nil or goal.shop == what then
+			complete(player)
+		end
 	elseif kind == "coin" then
 		local got = 0
 		PlayerData.update(player, function(d)

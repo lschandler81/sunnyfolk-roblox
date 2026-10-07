@@ -8,7 +8,7 @@
 -- kind: what finishes it.
 --   talk   say hello to everyone in `who` (resident ids)
 --   coin   pick up `need` coins
---   shop   open Clover's Hat Shop
+--   shop   open the shop `shop` ("hats" or "clothes")
 --   hat    buy a hat (already owning one counts)
 --   home   make a home at a pond (already having one counts)
 --   visit  walk to `at` (within Goals.VISIT_RADIUS)
@@ -22,6 +22,7 @@ export type Goal = {
 	hint: string, -- a little help underneath
 	kind: string,
 	who: { string }?,
+	shop: string?,
 	need: number?,
 	at: Vector3?,
 	coins: number,
@@ -37,7 +38,7 @@ Goals.LIST = {
 		text = "Pick up 10 coins", hint = "They're all round the square" },
 	{ id = "friends", kind = "talk", who = { "puddles", "pebble" }, coins = 3, sun = 1,
 		text = "Say hello to Puddles and Pebble", hint = "Follow the arrow to find them" },
-	{ id = "shop", kind = "shop", coins = 2, sun = 1,
+	{ id = "shop", kind = "shop", shop = "hats", coins = 2, sun = 1,
 		text = "Look round Clover's Hat Shop", hint = "Clover or the shop door can open it" },
 	{ id = "hat", kind = "hat", coins = 5, sun = 1,
 		text = "Buy a hat", hint = `Hats start at {Looks.shopHats()[1].price} coins` },

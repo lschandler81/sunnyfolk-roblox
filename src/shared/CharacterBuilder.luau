@@ -423,4 +423,34 @@ function Builder.hatModel(species: string, hatId: string): Model?
 	return model
 end
 
+-- Just one piece of clothing on its own (for shop shelves): its parts where they'd sit on
+-- that animal, with the bottom middle of the whole thing on the origin. nil if that animal's
+-- clothes haven't been imported.
+function Builder.clothesModel(species: string, clothesId: string): Model?
+	local fileKey = species .. "-clothes"
+	local file = Models.get(fileKey)
+	if not file then
+		return nil
+	end
+	local colors = colorsFor({ species = species } :: any)
+	local model = Instance.new("Model")
+	model.Name = clothesId
+	for name in file.meshes do
+		local id, _, kind = string.match(name, "^(.-)_(%w+)_(%w+)$")
+		if id == clothesId and kind then
+			local mesh = copyMesh(fileKey, file, name, CFrame.identity, true)
+			paint(mesh, kind, colors)
+			mesh.Parent = model
+		end
+	end
+	if #model:GetChildren() == 0 then
+		model:Destroy()
+		return nil
+	end
+	local box, size = model:GetBoundingBox()
+	model.WorldPivot = CFrame.new(box.Position - Vector3.new(0, size.Y / 2, 0))
+	model:PivotTo(CFrame.identity)
+	return model
+end
+
 return Builder

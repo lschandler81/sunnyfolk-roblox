@@ -1,10 +1,10 @@
--- Remembers each player between visits: their coins, the animal they picked, their hats,
--- their home, how far they've got through the goals (with the sunshine they've earned), their
+-- Remembers each player between visits: their coins, the animal they picked, their hats and
+-- clothes, their home, how far they've got through the goals (with the sunshine they've earned), their
 -- daily present and today's requests.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
--- their Player object (Coins, Hat, OwnedHats, Look, HomeDesign, Goal, GoalCount, GoalMet,
--- Sun, DailyStreak, Requests), which the game's screens read.
+-- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Look, HomeDesign, Goal,
+-- GoalCount, GoalMet, Sun, DailyStreak, Requests), which the game's screens read.
 --
 -- Keeping saves safe:
 --   * Only one server at a time can have a player's save open. Opening it writes a lock (this
@@ -33,9 +33,12 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 3 -- the save version this code writes (see migrate)
+local VERSION = 4 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
-local FIELDS = { "coins", "look", "hat", "hats", "home", "goal", "goalCount", "goalMet", "sun", "daily", "requests" }
+local FIELDS = {
+	"coins", "look", "hat", "hats", "clothes", "wearing", "home", "goal", "goalCount", "goalMet", "sun", "daily",
+	"requests",
+}
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
 
@@ -53,6 +56,8 @@ export type Data = {
 	look: Choice?, -- nil until they've picked an animal
 	hat: string?, -- the hat they're wearing
 	hats: { string }, -- every hat they own
+	clothes: { string }, -- every piece of clothing they own (from the Clothes Shop)
+	wearing: { string }, -- the clothes they have on: at most one for each slot (Looks.SLOTS)
 	home: { design: Houses.Design, plot: number }?, -- their house at Home Pond, and which plot
 	goal: number, -- the goal they're on (see shared/Goals): 1 to #LIST, or #LIST + 1 when all done
 	goalCount: number, -- progress on a counting goal (coins picked up since it started)
@@ -88,6 +93,8 @@ local function blank(): Data
 		look = nil,
 		hat = nil,
 		hats = {},
+		clothes = {},
+		wearing = {},
 		home = nil,
 		goal = 1,
 		goalCount = 0,
@@ -120,6 +127,10 @@ local function migrate(saved: any): any
 		-- present given yet and no requests, which tidy() fills in.
 		version = 3
 	end
+	if version < 4 then
+		-- Version 4 added clothes. Older saves start with none, which tidy() fills in.
+		version = 4
+	end
 	saved.version = version
 	return saved
 end
@@ -148,6 +159,24 @@ local function tidy(saved: any): Data
 	end
 	if typeof(saved.hat) == "string" and table.find(data.hats, saved.hat) then
 		data.hat = saved.hat
+	end
+	if typeof(saved.clothes) == "table" then
+		for _, id in saved.clothes do
+			if typeof(id) == "string" and Looks.shopItem(id) and not table.find(data.clothes, id) then
+				table.insert(data.clothes, id)
+			end
+		end
+	end
+	if typeof(saved.wearing) == "table" then
+		-- only clothes they own, and one for each slot
+		local slots = {}
+		for _, id in saved.wearing do
+			local item = typeof(id) == "string" and table.find(data.clothes, id) and Looks.shopItem(id)
+			if item and not slots[item.slot] then
+				slots[item.slot] = true
+				table.insert(data.wearing, id)
+			end
+		end
 	end
 	local look = saved.look
 	if typeof(look) == "table" and table.find(Config.START_ANIMALS, look.species) then
@@ -202,6 +231,8 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Coins", data.coins)
 	player:SetAttribute("Hat", data.hat)
 	player:SetAttribute("OwnedHats", table.concat(data.hats, ","))
+	player:SetAttribute("OwnedClothes", table.concat(data.clothes, ","))
+	player:SetAttribute("Wearing", table.concat(data.wearing, ","))
 	player:SetAttribute("Look", if data.look then HttpService:JSONEncode(data.look) else nil)
 	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
 	player:SetAttribute("Goal", data.goal)

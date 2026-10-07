@@ -109,7 +109,7 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 		return nearestTo(from, spots)
 	elseif goal.kind == "shop" or goal.kind == "hat" then
 		local residents = Workspace:FindFirstChild("Residents")
-		local door = residents and residents:FindFirstChild("HatShopDoor")
+		local door = residents and residents:FindFirstChild(`ShopDoor_{goal.shop or "hats"}`)
 		if door and door:IsA("BasePart") then
 			return door.Position
 		end

@@ -18,7 +18,9 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
   time each visit, they wave and say hello by name.
 - **Coins** float round the square. Walk into one to pick it up; it comes back a few
   minutes later. Coins are saved between visits.
-- **Clover's Hat Shop**: try hats on, buy them with coins and wear them. Everyone sees your hat.
+- **Clover's Hat Shop** and **the Clothes Shop**: try things on, buy them with coins and wear
+  them: a hat, and clothes for your neck (bandanas, instead of your scarf), body (aprons,
+  raincoats, a space suit) and back (backpacks). Everyone sees what you're wearing.
 - **Your own home at Home Pond**: follow the Home Pond road to two neighbourhoods of ten
   plots, each round a pond (Home Pond, and Lily Pond along a path just inside the town
   hedge). Pick a free plot and design your house: its shape (cottage, tall house or
@@ -65,7 +67,7 @@ src/server/             → ServerScriptService.Sunnyfolk
   Avatars.luau            gives each player their animal
   Residents.luau          Clover, Puddles and Pebble: strolling, and facing you when you talk
   Coins.luau              checks each coin picked up
-  HatShop.luau            checks each hat bought or worn
+  HatShop.luau            the shops (hats and clothes): checks each thing bought or worn
   Homes.luau              the plots at Home Pond: moving in, building houses, moving back in
   Goals.luau              watches for each goal, pays its coins and sunshine
 
@@ -76,7 +78,7 @@ src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   GoalsPanel.luau         the goal you're on, the arrow pointing the way, and the Goals screen
   Coins.luau              the coins you see, spinning, and picking them up
   Talk.luau               speech bubbles and name tags
-  HatShop.luau            the Hat Shop screen
+  HatShop.luau            the shop screen, for Clover's Hat Shop and the Clothes Shop
   Homes.luau              the "Make this my home" and "Change my home" buttons
   HomeDesigner.luau       the screen for designing your house
   Animator.luau           walking, breathing, blinking, nodding and waving

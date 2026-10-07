@@ -120,17 +120,36 @@ function Looks.resident(residentId: string)
 	return nil
 end
 
+-- Things worn over the neck, so no scarf or bandana goes under them: the space bubble helmet
+-- and the space suit (which has its own collar).
+Looks.COVERS_NECK = { bubble = true, spacesuit = true }
+
+-- Does this hat, or anything in `wearing`, cover the neck?
+function Looks.neckCovered(hat: string?, wearing: { string }?): boolean
+	if hat and Looks.COVERS_NECK[hat] then
+		return true
+	end
+	for _, id in wearing or {} :: { string } do
+		if Looks.COVERS_NECK[id] then
+			return true
+		end
+	end
+	return false
+end
+
 -- What a player looks like, from what they picked: { species, coat, scarf }, the hat they're
 -- wearing and the clothes they're wearing (shop clothes ids). `scarf` is a number: which of the
--- scarf colours. The scarf goes on unless something else is worn on the neck.
+-- scarf colours. The scarf goes on unless something else is worn on the neck, and nothing is
+-- worn on the neck under something that covers it (Looks.COVERS_NECK).
 function Looks.playerLook(choice: { species: string, coat: string?, scarf: number? }, hat: string?, wearing: { string }?)
 	local scarves = Looks.scarves()
 	local clothes = {}
-	local neckTaken = false
 	local worn: { string } = wearing or {}
+	local covered = Looks.neckCovered(hat, worn)
+	local neckTaken = covered
 	for _, id in worn do
 		local item = Looks.shopItem(id)
-		if item then
+		if item and not (covered and item.slot == "neck") then
 			table.insert(clothes, id)
 			neckTaken = neckTaken or item.slot == "neck"
 		end

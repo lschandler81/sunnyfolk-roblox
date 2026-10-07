@@ -270,6 +270,22 @@ Config.REMOTE_LIMITS = {
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.
 Config.CLOTHES_REBUILD_SECONDS = 1
 
+---------------------------------------------------------------- badges
+
+-- Badges (see server/Badges.luau). Make each one in the Creator Dashboard (Sunnyfolk >
+-- Associated Items > Badges) and paste its id here. A badge whose id is 0 is skipped, so the
+-- game works before they exist (in Studio, the Output says when one would have been given).
+Config.BADGES = {
+	chooseAnimal = 987446869448604, -- chose an animal for the first time (Welcome to Sunnyfolk!)
+	firstHat = 2111861747121851, -- got a first hat (Hat Fan)
+	firstHome = 3675593365643579, -- made a first home (Home Sweet Home)
+	coins = 210790741519207, -- earned Config.BADGE_COINS coins in all (Coin Collector)
+	week = 0, -- got the day 7 present (Seven Sunny Days: not made yet)
+	allGoals = 2034554655062774, -- finished all the goals (Sunnyfolk Explorer)
+}
+Config.BADGE_COINS = 100
+Config.BADGE_RETRY_SECONDS = 60 -- if Roblox couldn't give a badge, wait this long before asking again
+
 ---------------------------------------------------------------- testing
 
 -- Turn this on (true) to check how hats and clothes look: pressing Play in Studio builds a

@@ -33,11 +33,11 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 4 -- the save version this code writes (see migrate)
+local VERSION = 5 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
-	"coins", "look", "hat", "hats", "clothes", "wearing", "home", "goal", "goalCount", "goalMet", "sun", "daily",
-	"requests",
+	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "home", "goal", "goalCount", "goalMet", "sun",
+	"daily", "requests",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -53,6 +53,7 @@ local SOMEWHERE_ELSE = "You've opened Sunnyfolk somewhere else, so this game has
 export type Choice = { species: string, coat: string, scarf: number }
 export type Data = {
 	coins: number,
+	earned: number, -- every coin they've ever been given, however (spending doesn't lower it)
 	look: Choice?, -- nil until they've picked an animal
 	hat: string?, -- the hat they're wearing
 	hats: { string }, -- every hat they own
@@ -90,6 +91,7 @@ local busy: { [number]: boolean } = {}
 local function blank(): Data
 	return {
 		coins = 0,
+		earned = 0,
 		look = nil,
 		hat = nil,
 		hats = {},
@@ -131,6 +133,14 @@ local function migrate(saved: any): any
 		-- Version 4 added clothes. Older saves start with none, which tidy() fills in.
 		version = 4
 	end
+	if version < 5 then
+		-- Version 5 added the total of coins ever earned. Older saves don't know how many
+		-- they've spent, so their total starts at the coins they have now.
+		if saved.earned == nil then
+			saved.earned = saved.coins
+		end
+		version = 5
+	end
 	saved.version = version
 	return saved
 end
@@ -150,6 +160,7 @@ local function tidy(saved: any): Data
 		return data
 	end
 	data.coins = count(saved.coins) or 0
+	data.earned = math.max(count(saved.earned) or 0, data.coins)
 	if typeof(saved.hats) == "table" then
 		for _, hatId in saved.hats do
 			if typeof(hatId) == "string" and Looks.hat(hatId) and not table.find(data.hats, hatId) then
@@ -431,7 +442,13 @@ function PlayerData.update(player: Player, change: (Data) -> ())
 	if not profile or profile.closing then
 		return -- not loaded yet, or they're leaving and their last save has started
 	end
+	local before = profile.data.coins
 	change(profile.data)
+	-- coins given (by any part of the game) count towards the total ever earned
+	local gained = profile.data.coins - before
+	if gained > 0 then
+		profile.data.earned += gained
+	end
 	publish(player, profile.data)
 end
 

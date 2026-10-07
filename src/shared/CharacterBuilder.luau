@@ -365,6 +365,10 @@ function Builder.build(look: Look, options: Options?): Model
 	return model
 end
 
+-- Hats that sit on the body rather than the head, so they don't swing about when the head
+-- turns or nods (like the web game's space bubble, which goes round the whole head).
+Builder.BODY_HATS = { bubble = true }
+
 -- Puts a hat on (or takes it off, with nil). The hats are fitted to each animal's head.
 function Builder.setHat(model: Model, hatId: string?)
 	local old = model:FindFirstChild("Hat")
@@ -389,7 +393,7 @@ function Builder.setHat(model: Model, hatId: string?)
 		if id == hatId and kind then
 			local mesh = copyMesh(fileKey, file, name, CFrame.identity, anchored)
 			paint(mesh, kind, {})
-			if attach(model, "Head", mesh) then
+			if attach(model, if Builder.BODY_HATS[hatId] then "Torso" else "Head", mesh) then
 				mesh.Parent = folder
 			end
 		end

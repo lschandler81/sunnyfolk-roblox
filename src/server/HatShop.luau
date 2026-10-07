@@ -44,14 +44,6 @@ local SHOPS = {
 	},
 }
 
-local function wearHat(player: Player, hatId: string?)
-	PlayerData.update(player, function(data)
-		data.hat = hatId
-	end)
-	if player.Character then
-		Builder.setHat(player.Character, hatId)
-	end
-end
 
 -- Rebuilds a player's animal in what they're now wearing: straight away, or, if it was
 -- rebuilt very recently, once Config.CLOTHES_REBUILD_SECONDS have passed (with every change
@@ -71,6 +63,24 @@ local function rebuild(player: Player)
 			Avatars.spawn(player)
 		end
 	end)
+end
+
+local function wearHat(player: Player, hatId: string?)
+	local before: string? = nil
+	PlayerData.update(player, function(data)
+		before = data.hat
+		data.hat = hatId
+	end)
+	if not player.Character then
+		return
+	end
+	-- a hat that covers the neck (the space bubble) takes the scarf away, or gives it back, so
+	-- the animal is rebuilt; any other hat just goes on
+	if Looks.neckCovered(before, nil) ~= Looks.neckCovered(hatId, nil) then
+		rebuild(player)
+	else
+		Builder.setHat(player.Character, hatId)
+	end
 end
 
 -- Puts `item` on (in its slot, instead of whatever was there), or empties `slot`.

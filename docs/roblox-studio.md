@@ -82,18 +82,18 @@ imported at the wrong size, the game fixes it and the Output tells you.
    the game and the imported models.
 2. **File** → **Publish to Roblox**. Make a new experience called **Sunnyfolk**. This also
    saves the imported models with the place. In the publish window:
-   - **Devices**: Computer, Phone and Tablet. Leave **Console** and **VR** off until the
-     game has been through the controller and console pass (Step 7b in `docs/BUILD_STEPS.md`).
+   - **Devices**: Computer, Phone, Tablet and Console (the game works with a controller
+     since Step 7b). Leave **VR** off.
    - **Team Create**: off. Its live script editing (Collaborative Editing) stops Rojo from
      updating scripts.
 3. **File** → **Experience Settings** (called Game Settings in older Studio) → **Security**:
    turn on **Enable Studio Access to API Services**, then **Save**. Now coins, your animal
    and your hats are remembered between tests in Studio, as they will be for players.
-4. Set the **server size to 10 players**, to match the ten plots at Home Pond. In the
-   [Creator Dashboard](https://create.roblox.com/dashboard/creations), open Sunnyfolk →
-   **Places** → the Sunnyfolk place → **Configure** (or **Access**), and set **Max Players**
-   (server size) to 10. If more players join than there are plots, the extra ones can still
-   play, but won't get a house on that server.
+4. Set the **server size to 20 players**, to match the twenty plots (ten at Home Pond, ten at
+   Lily Pond). In the [Creator Dashboard](https://create.roblox.com/dashboard/creations), open
+   Sunnyfolk → **Places** → the Sunnyfolk place → **Configure** (or **Access**), and set
+   **Max Players** (server size) to 20. If more players join than there are plots, the extra
+   ones can still play, but won't get a house on that server.
 5. Optional backup of the models: right-click `SunnyfolkModels` → **Save to File…** and save
    it into `assets/models` as `SunnyfolkModels.rbxm` (see `assets/models/README.md`).
 

@@ -57,18 +57,26 @@ Config.ROADS = {
 	{ angle = 288, name = "Art Studio", color = "#b583b9" },
 }
 
--- Home Pond: the neighbourhood at the end of the Home Pond road, where each player picks a
--- plot for their own house. Its plots sit in a ring round a pond, all facing it.
+-- Home Pond: where each player picks a plot for their own house. There are two ponds, each
+-- with a ring of plots round it, all facing the water: Home Pond at the end of the Home Pond
+-- road (plots 1 to 10), and Lily Pond beside it (plots 11 to 20), reached by a path that
+-- branches off the road just inside the town hedge. Plot numbers are saved, so plots 1 to 10
+-- must never move.
 Config.HOME = {
-	angle = 216, -- which way from the fountain
-	dist = 96, -- from the fountain to the middle of the pond
-	radius = 26, -- the hedge round the neighbourhood
+	ponds = {
+		{ name = "Home Pond", angle = 216, dist = 96 }, -- which way from the fountain, and how far
+		{ name = "Lily Pond", angle = 180, dist = 96, color = "#d9b3dc", branch = 64 },
+	},
+	radius = 26, -- the hedge round each pond's neighbourhood
 	pondR = 6,
-	ringR = 9.5, -- the path round the pond
-	plotR = 19.5, -- from the pond's middle to each house
-	plots = 10, -- one for each player on a server (set the server size to match)
-	wayIn = 40, -- degrees left open for the road in
+	ringR = 9.5, -- the path round each pond
+	plotR = 19.5, -- from a pond's middle to each house
+	plotsPerPond = 10,
+	plots = 20, -- one for each player on a server (set the server size to match)
+	wayIn = 40, -- degrees left open for the way in to each pond
 }
+-- `branch`: how far from the fountain Lily Pond's path leaves the Home Pond road. `color`: its
+-- gate (Home Pond's is sky blue).
 
 -- The library on the south lawn, and a gazebo on the east lawn.
 Config.LIBRARY = { angle = 180, dist = 38 }

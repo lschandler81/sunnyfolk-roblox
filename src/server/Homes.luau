@@ -1,7 +1,8 @@
--- Players' homes at Home Pond. Each free plot has a "Free plot" sign: press it to design your
--- house (client/HomeDesigner), and the server builds it there. Your design and favourite plot
--- are saved, so next time you move straight back in (to the same plot if it's free, or the
--- next free one). When you leave, your plot is free for someone else.
+-- Players' homes at Home Pond and Lily Pond (Config.HOME). Each free plot has a "Free plot"
+-- sign: press it to design your house (client/HomeDesigner), and the server builds it there.
+-- Your design and favourite plot are saved, so next time you move straight back in (to the
+-- same plot if it's free, or the nearest free one). When you leave, your plot is free for
+-- someone else.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -91,12 +92,24 @@ local function moveIn(player: Player, index: number, design: Houses.Design)
 	player:SetAttribute("HomePlot", index)
 end
 
--- The plot to move a returning player into: their old one if it's free, or the nearest free.
+-- Which pond a plot is round (1 for Home Pond, 2 for Lily Pond).
+local function pondOf(index: number): number
+	return math.ceil(index / Config.HOME.plotsPerPond)
+end
+
+-- The plot to move a returning player into: their old one if it's free, or the free one
+-- nearest to it, at the same pond if there's room there.
 local function plotFor(wanted: number?): number?
+	local from = if wanted and plots[wanted] then plots[wanted].cframe.Position else nil
 	local best, bestGap = nil, math.huge
 	for _, plot in plots do
 		if not plot.owner then
-			local gap = if wanted then math.abs(plot.index - wanted) else plot.index
+			local gap = plot.index
+			if wanted and from then
+				-- another pond counts as further than anywhere at their own pond
+				local otherPond = if pondOf(plot.index) == pondOf(wanted) then 0 else 100000
+				gap = (plot.cframe.Position - from).Magnitude + otherPond
+			end
 			if gap < bestGap then
 				best, bestGap = plot.index, gap
 			end
@@ -159,7 +172,7 @@ function Homes.start(plotFrames: { CFrame })
 			index = plotIndex
 		end
 		if not index then
-			return false, "Find a free plot at Home Pond first."
+			return false, "Find a free plot at Home Pond or Lily Pond first."
 		end
 		lastBuilt[player] = os.clock()
 		moveIn(player, index, checked)

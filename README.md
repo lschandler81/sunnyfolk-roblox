@@ -19,8 +19,9 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 - **Coins** float round the square. Walk into one to pick it up; it comes back a few
   minutes later. Coins are saved between visits.
 - **Clover's Hat Shop**: try hats on, buy them with coins and wear them. Everyone sees your hat.
-- **Your own home at Home Pond**: follow the Home Pond road to a neighbourhood of ten plots
-  round a pond. Pick a free plot and design your house: its shape (cottage, tall house or
+- **Your own home at Home Pond**: follow the Home Pond road to two neighbourhoods of ten
+  plots, each round a pond (Home Pond, and Lily Pond along a path just inside the town
+  hedge). Pick a free plot and design your house: its shape (cottage, tall house or
   round hut), wall, roof and door colours, a garden (flowers, vegetables or a little pond) and
   a sign with your name. Change it any time at your front door. It's saved, and next visit
   you move straight back in.

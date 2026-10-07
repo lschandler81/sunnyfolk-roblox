@@ -274,7 +274,8 @@ local function roads()
 		if road.open then
 			-- this one carries on to Home Pond, where an arch welcomes you in (see homePond)
 			local H = Config.HOME
-			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, H.dist - H.ringR), Config.ROAD_W, 0.11)
+			local home = H.ponds[1]
+			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, home.dist - H.ringR), Config.ROAD_W, 0.11)
 		else
 			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, Config.EDGE_R + 1), Config.ROAD_W, 0.11)
 			gate(yawAt(Config.polar(road.angle, Config.EDGE_R - 0.5), Config.faceIn(road.angle)), road.name, Color3.fromHex(road.color))
@@ -469,72 +470,106 @@ local function lawns()
 	end)
 end
 
--- Home Pond: a ring of plots round a pond, where players build their houses. Returns each
--- plot's middle, facing the pond (see Houses.build for what goes on a plot).
+-- Home Pond and Lily Pond: each is a ring of plots round a pond, where players build their
+-- houses. Returns each plot's middle, facing its pond, in plot-number order (Home Pond's 1 to
+-- 10, then Lily Pond's 11 to 20). See Houses.build for what goes on a plot.
 local function homePond(): { CFrame }
 	local H = Config.HOME
-	local centre = Config.polar(H.angle, H.dist)
-	local base = CFrame.lookAt(centre, Vector3.zero) * CFrame.Angles(0, math.pi, 0) -- +Z points back to town
-	local function around(degrees: number, dist: number): CFrame
-		return base * CFrame.Angles(0, math.rad(degrees), 0) * CFrame.new(0, 0, dist * S)
-	end
-
-	pond(CFrame.new(centre), H.pondR)
-	-- a path all the way round the pond
-	local segments = 28
-	for i = 0, segments - 1 do
-		local a = around(i / segments * 360, H.ringR).Position
-		local b = around((i + 1) / segments * 360, H.ringR).Position
-		footpath(a, b + (b - a).Unit * 0.6 * S, 2.6)
-	end
-
-	-- the plots, in a ring with a gap for the way in
 	local plots = {}
-	local step = (360 - H.wayIn) / H.plots
-	for k = 0, H.plots - 1 do
-		local plot = around(H.wayIn / 2 + step * (k + 0.5), H.plotR) * CFrame.Angles(0, math.pi, 0) -- facing the pond
-		block(Vector3.new(9.2, 0.1, 11.5) * S, plot * CFrame.new(0, -0.02, 2 * S), C.grassDark)
-		footpath((plot * CFrame.new(0, 0, 2.6 * S)).Position, (plot * CFrame.new(0, 0, (H.plotR - H.ringR - 1) * S)).Position, 1.6)
-		keepClear(plot.Position, 5)
-		keepClear((plot * CFrame.new(0, 0, 5.5 * S)).Position, 3.5)
-		table.insert(plots, plot)
-	end
-	-- trees between the plots; and by the pond, between the plots' paths, lamps and benches
-	-- looking at the water (on the pond side, so they don't stand in front of the plots' signs)
-	for k = 0, H.plots do
-		local between = H.wayIn / 2 + step * k
-		local treeSpot = around(between, H.plotR + 1).Position
-		if isClear(treeSpot, 0.5) then
-			tree(CFrame.new(treeSpot), random:NextNumber(1.0, 1.3), random:NextNumber() < 0.3)
+	for _, info in H.ponds do
+		local centre = Config.polar(info.angle, info.dist)
+		local base = CFrame.lookAt(centre, Vector3.zero) * CFrame.Angles(0, math.pi, 0) -- +Z points back to town
+		local function around(degrees: number, dist: number): CFrame
+			return base * CFrame.Angles(0, math.rad(degrees), 0) * CFrame.new(0, 0, dist * S)
 		end
-		if k % 2 == 0 then
-			lamp(around(between, H.pondR + 1.6))
-		else
-			Build.bench(around(between, H.pondR + 1.6) * CFrame.Angles(0, math.pi, 0))
+
+		-- a pond that isn't at the end of the Home Pond road has a path from it: round the
+		-- inside of the town hedge, then straight in through its gate
+		local gateColor = if info.color then Color3.fromHex(info.color) else C.skyBlue
+		if info.branch then
+			local from = H.ponds[1].angle
+			local pieces = 12
+			for i = 0, pieces - 1 do
+				local a = Config.polar(from + (info.angle - from) * i / pieces, info.branch)
+				local b = Config.polar(from + (info.angle - from) * (i + 1) / pieces, info.branch)
+				footpath(a, b + (b - a).Unit * 0.6 * S, 3)
+			end
+			footpath(Config.polar(info.angle, info.branch), Config.polar(info.angle, info.dist - H.ringR), 3)
+			-- a round patch of path filling the corner where it turns in
+			cylinder(1.5 * S, 0.1, CFrame.new(Config.polar(info.angle, info.branch) + Vector3.new(0, 0.02, 0)), C.path)
+			-- a sign where the path leaves the road, pointing the way
+			local turn = if info.angle < from then -1 else 1
+			local post = Config.polar(from + 4 * turn, info.branch - 2.8)
+			local h = 2.6 * S
+			cylinder(0.12 * S, h, CFrame.new(post + Vector3.new(0, h / 2, 0)), C.woodDark)
+			ball(0.3 * S, CFrame.new(post + Vector3.new(0, h + 0.05 * S, 0)), gateColor, DECOR)
+			local ahead = Config.polar(from + 12 * turn, info.branch)
+			local dir = Vector3.new(ahead.X - post.X, 0, ahead.Z - post.Z).Unit
+			local at = post + dir * 1.1 * S + Vector3.new(0, 2.2 * S, 0)
+			local board = block(Vector3.new(2.2, 0.5, 0.08) * S, CFrame.fromMatrix(at, dir, Vector3.yAxis), C.cream, DECOR)
+			label(board, info.name, gateColor, C.cream, Enum.NormalId.Front)
+			label(board, info.name, gateColor, C.cream, Enum.NormalId.Back)
+			keepClear(post, 1.5)
 		end
-	end
-	-- trees behind the houses
-	for _ = 1, 40 do
-		local spot = around(random:NextNumber(H.wayIn / 2, 360 - H.wayIn / 2), random:NextNumber(H.plotR + 3.5, H.radius - 1.5)).Position
-		if isClear(spot, 1.5) then
-			tree(CFrame.new(spot), random:NextNumber(1.0, 1.5), random:NextNumber() < 0.2)
-			keepClear(spot, 1)
+
+		pond(CFrame.new(centre), H.pondR)
+		-- a path all the way round the pond
+		local segments = 28
+		for i = 0, segments - 1 do
+			local a = around(i / segments * 360, H.ringR).Position
+			local b = around((i + 1) / segments * 360, H.ringR).Position
+			footpath(a, b + (b - a).Unit * 0.6 * S, 2.6)
 		end
+
+		-- the plots, in a ring with a gap for the way in
+		local step = (360 - H.wayIn) / H.plotsPerPond
+		for k = 0, H.plotsPerPond - 1 do
+			local plot = around(H.wayIn / 2 + step * (k + 0.5), H.plotR) * CFrame.Angles(0, math.pi, 0) -- facing the pond
+			block(Vector3.new(9.2, 0.1, 11.5) * S, plot * CFrame.new(0, -0.02, 2 * S), C.grassDark)
+			footpath((plot * CFrame.new(0, 0, 2.6 * S)).Position, (plot * CFrame.new(0, 0, (H.plotR - H.ringR - 1) * S)).Position, 1.6)
+			keepClear(plot.Position, 5)
+			keepClear((plot * CFrame.new(0, 0, 5.5 * S)).Position, 3.5)
+			table.insert(plots, plot)
+		end
+		-- trees between the plots; and by the pond, between the plots' paths, lamps and benches
+		-- looking at the water (on the pond side, so they don't stand in front of the plots' signs)
+		for k = 0, H.plotsPerPond do
+			local between = H.wayIn / 2 + step * k
+			local treeSpot = around(between, H.plotR + 1).Position
+			if isClear(treeSpot, 0.5) then
+				tree(CFrame.new(treeSpot), random:NextNumber(1.0, 1.3), random:NextNumber() < 0.3)
+			end
+			if k % 2 == 0 then
+				lamp(around(between, H.pondR + 1.6))
+			else
+				Build.bench(around(between, H.pondR + 1.6) * CFrame.Angles(0, math.pi, 0))
+			end
+		end
+		-- trees behind the houses
+		for _ = 1, 40 do
+			local spot = around(random:NextNumber(H.wayIn / 2, 360 - H.wayIn / 2), random:NextNumber(H.plotR + 3.5, H.radius - 1.5)).Position
+			if isClear(spot, 1.5) then
+				tree(CFrame.new(spot), random:NextNumber(1.0, 1.5), random:NextNumber() < 0.2)
+				keepClear(spot, 1)
+			end
+		end
+		-- the way in
+		gate(around(0, H.radius - 2), info.name, gateColor, true)
+		keepClear(centre, H.ringR + 1.5)
 	end
-	-- the way in, from the Home Pond road
-	gate(around(0, H.radius - 2), "Home Pond", C.skyBlue, true)
-	keepClear(centre, H.ringR + 1.5)
 	return plots
 end
 
--- The hedge round the edge of town and Home Pond, with woods and hills beyond, and an
--- invisible wall so nobody wanders off. Where the two circles meet, they join up.
+-- The hedge round the edge of town and each pond's neighbourhood, with woods and hills
+-- beyond, and an invisible wall so nobody wanders off. Where two circles meet, they join up.
 local function edge()
 	local H = Config.HOME
 	local circles = {
 		{ centre = Vector3.zero, r = Config.EDGE_R },
-		{ centre = Config.polar(H.angle, H.dist), r = H.radius },
 	}
+	for _, info in H.ponds do
+		table.insert(circles, { centre = Config.polar(info.angle, info.dist), r = H.radius })
+	end
 	local function inside(spot: Vector3, margin: number): boolean
 		for _, circle in circles do
 			if flat(spot - circle.centre).Magnitude < (circle.r - margin) * S then

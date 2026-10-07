@@ -174,7 +174,7 @@ function Hud.create(onChangeAnimal: () -> ())
 			PaddingBottom = UDim.new(0, 6),
 		}),
 		Ui.text({
-			Text = "Pick a free plot at Home Pond to make your home!",
+			Text = "Pick a free plot at Home Pond or Lily Pond to make your home!",
 			TextSize = 15,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Size = UDim2.fromScale(1, 0),

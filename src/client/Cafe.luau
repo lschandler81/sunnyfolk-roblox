@@ -13,17 +13,20 @@
 --     plates; and what you're carrying, over your head. Everyone sees what every helper carries.
 --   * a row of dots over the counter that fills up as orders are served, and the card at the
 --     end of a shift
---   * while you're helping: an "End shift" button above the emote button, and Biscuit's and
+--   * while you're helping: an "End shift" button above the emote button (D-pad up on a
+--     controller, with its picture beside the button), and Biscuit's and
 --     Chef Pepper's own buttons step aside, so only the counter's buttons show there
 -- Nobody has to read: every order is a picture, there's no timer, and the wrong food just makes
 -- the bubble give a little shake.
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
@@ -818,34 +821,52 @@ function Cafe.start()
 	local washBubble, washCircle = bubbleOver(washSpot)
 	picture(CafeFood.model("dirty"), Vector3.new(0.2, 0.8, 1), { Size = UDim2.fromScale(1, 1), Parent = washCircle }, 1.6)
 
-	-- End shift, just above the emote button (client/Emotes), while you're helping
+	-- End shift, just above the emote button (client/Emotes), while you're helping. On a
+	-- controller it's D-pad up, with the D-pad's picture beside the button.
+	local ending = false
+	local function endShift()
+		if ending then
+			return
+		end
+		ending = true
+		pcall(function()
+			Remotes.CafeAction:InvokeServer("stop")
+		end)
+		ending = false
+		Hud.announce("Thank you for helping!", "Ask Biscuit if you'd like another shift.")
+	end
 	local endButton: GuiObject? = nil
+	local padHint: ImageLabel? = nil
+	local function showPadHint()
+		if padHint then
+			padHint.Visible = Ui.usingController() and padHint.Image ~= ""
+		end
+	end
 	local function showEndButton(mine: boolean)
 		local hud = Hud.gui()
 		if mine and not endButton and hud then
 			-- (on a TV it's sized up by hand: a second UIScale would undo the button's press squash)
 			local k = if Ui.CONSOLE then Config.UI.CONSOLE_SCALE else 1
 			local gap = EMOTE_BUTTON / 2 * k + 10
-			local ending = false
-			local made = Ui.button("End shift", Ui.colors.cream, function()
-				if ending then
-					return
-				end
-				ending = true
-				pcall(function()
-					Remotes.CafeAction:InvokeServer("stop")
-				end)
-				ending = false
-				Hud.announce("Thank you for helping!", "Ask Biscuit if you'd like another shift.")
-			end, {
+			local made = Ui.button("End shift", Ui.colors.cream, endShift, {
 				AnchorPoint = Vector2.new(1, 1),
 				Position = if Ui.CONSOLE
 					then UDim2.new(1 - Config.UI.TV_SAFE, 0, 0.55, -gap)
 					else UDim2.new(1, -16, 0.55, -gap),
 				Size = UDim2.fromOffset(120 * k, Ui.TOUCH * k),
 				TextSize = math.round(18 * k),
+				Selectable = false, -- a controller uses D-pad up instead
 				Parent = hud,
 			})
+			padHint = Ui.new("ImageLabel", {
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(0, -6, 0.5, 0),
+				Size = UDim2.fromOffset(32 * k, 32 * k),
+				BackgroundTransparency = 1,
+				Image = Ui.padImage(Enum.KeyCode.DPadUp),
+				Parent = made,
+			})
+			showPadHint()
 			endButton = made
 		end
 		if endButton then
@@ -869,6 +890,15 @@ function Cafe.start()
 	end
 	CollectionService:GetInstanceAddedSignal(RESIDENT_TAG):Connect(function()
 		task.defer(counterStaff)
+	end)
+	UserInputService.LastInputTypeChanged:Connect(showPadHint)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		local hud = Hud.gui()
+		-- (not while a screen is open, the menu is up, or the ring is on a button)
+		if input.KeyCode == Enum.KeyCode.DPadUp and not processed and helping() and hud and hud.Enabled
+			and Ui.openScreens == 0 and not GuiService.MenuIsOpen and GuiService.SelectedObject == nil then
+			endShift()
+		end
 	end)
 	-- (and if one of their buttons streams in later still, it steps aside as it shows)
 	ProximityPromptService.PromptShown:Connect(function(prompt)

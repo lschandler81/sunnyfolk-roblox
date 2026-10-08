@@ -1,11 +1,11 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
--- clothes, their pet, their home, how far they've got through the goals (with the sunshine they've earned), their
+-- clothes, their pet, their home, their garden, how far they've got through the goals (with the sunshine they've earned), their
 -- daily present and today's requests.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
--- HomeDesign, Goal, GoalCount, GoalMet, Sun, DailyStreak, Requests), which the game's screens
--- read. Everyone's Pet attribute is seen by every player, so their screens can show it.
+-- HomeDesign, Garden, Goal, GoalCount, GoalMet, Sun, DailyStreak, Requests), which the game's
+-- screens read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
 --   * Only one server at a time can have a player's save open. Opening it writes a lock (this
@@ -34,11 +34,11 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 6 -- the save version this code writes (see migrate)
+local VERSION = 7 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
-	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "goal", "goalCount",
-	"goalMet", "goalsFinished", "sun", "daily", "requests",
+	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden", "goal",
+	"goalCount", "goalMet", "goalsFinished", "sun", "daily", "requests",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -65,6 +65,10 @@ export type Data = {
 	pet: { kind: string, color: number, name: number, collar: string?, top: string? }?,
 	petGear: { string }, -- every piece of pet gear they own
 	home: { design: Houses.Design, plot: number }?, -- their house at Home Pond, and which plot
+	-- their beds in the Garden (one for each of Config.GARDEN.BEDS): what's planted (or nil), its
+	-- stage (0 seeds to Config.GARDEN.STAGES ripe), and when the watered stage finishes (server
+	-- clock, os.time), or nil while it waits for water. See Config.gardenState.
+	garden: { { crop: string?, stage: number, readyAt: number? } },
 	goal: number, -- the goal they're on (see shared/Goals): 1 to #LIST, or #LIST + 1 when all done
 	goalCount: number, -- progress on a counting goal (coins picked up since it started)
 	goalMet: { string }, -- for a "say hello" goal, who they've said hello to so far
@@ -94,6 +98,15 @@ local loadedCallbacks: { (Player) -> () } = {}
 -- on the same server waits for that to finish, so the two visits never mix up their saves.
 local busy: { [number]: boolean } = {}
 
+-- Every bed in the Garden, with nothing planted.
+local function emptyGarden(): { { crop: string?, stage: number, readyAt: number? } }
+	local beds = {}
+	for i = 1, #Config.GARDEN.BEDS do
+		beds[i] = { crop = nil, stage = 0, readyAt = nil }
+	end
+	return beds
+end
+
 local function blank(): Data
 	return {
 		coins = 0,
@@ -106,6 +119,7 @@ local function blank(): Data
 		pet = nil,
 		petGear = {},
 		home = nil,
+		garden = emptyGarden(),
 		goal = 1,
 		goalCount = 0,
 		goalMet = {},
@@ -158,6 +172,10 @@ local function migrate(saved: any): any
 			saved.goalsFinished = true
 		end
 		version = 6
+	end
+	if version < 7 then
+		-- Version 7 added the Garden. Older saves start with empty beds, which tidy() fills in.
+		version = 7
 	end
 	saved.version = version
 	return saved
@@ -255,6 +273,22 @@ local function tidy(saved: any): Data
 		end
 	end
 	data.sun = count(saved.sun) or 0
+	-- the garden: one entry for each bed, with only crops that exist and sensible numbers
+	for i = 1, #Config.GARDEN.BEDS do
+		local plot = typeof(saved.garden) == "table" and saved.garden[i]
+		local crop = typeof(plot) == "table" and typeof(plot.crop) == "string" and Config.GARDEN.CROPS[plot.crop] and plot.crop
+		if crop then
+			-- (a watered stage can't finish later than one stage from now)
+			local readyAt = count(plot.readyAt)
+			data.garden[i] = {
+				crop = crop,
+				stage = math.clamp(count(plot.stage) or 0, 0, Config.GARDEN.STAGES),
+				readyAt = if readyAt then math.min(readyAt, os.time() + Config.GARDEN.CROPS[crop].stage) else nil,
+			}
+		else
+			data.garden[i] = { crop = nil, stage = 0, readyAt = nil }
+		end
+	end
 	local daily = saved.daily
 	if typeof(daily) == "table" then
 		data.daily = {
@@ -288,6 +322,7 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Wearing", table.concat(data.wearing, ","))
 	player:SetAttribute("Pet", if data.pet then HttpService:JSONEncode(data.pet) else nil)
 	player:SetAttribute("PetGear", table.concat(data.petGear, ","))
+	player:SetAttribute("Garden", HttpService:JSONEncode(data.garden))
 	player:SetAttribute("Look", if data.look then HttpService:JSONEncode(data.look) else nil)
 	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
 	player:SetAttribute("Goal", data.goal)

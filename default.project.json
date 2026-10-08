@@ -20,7 +20,8 @@
           "DailyPresent": { "$className": "RemoteEvent" },
           "RequestDone": { "$className": "RemoteEvent" },
           "StudioNextDay": { "$className": "RemoteEvent" },
-          "PetAction": { "$className": "RemoteFunction" }
+          "PetAction": { "$className": "RemoteFunction" },
+          "GardenAction": { "$className": "RemoteFunction" }
         }
       },
       "SunnyfolkModels": {

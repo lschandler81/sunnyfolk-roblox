@@ -23,6 +23,7 @@ local block, cylinder, ball, blob, label, yawAt = Build.block, Build.cylinder, B
 local flower, lamp, bunting, bench, planter = Build.flower, Build.lamp, Build.bunting, Build.bench, Build.planter
 local bush, tree, house = Build.bush, Build.tree, Build.house
 local random = Build.random
+local Garden = require(script.Parent.places.Garden)
 
 local Town = {}
 
@@ -276,6 +277,12 @@ local function roads()
 			local H = Config.HOME
 			local home = H.ponds[1]
 			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, home.dist - H.ringR), Config.ROAD_W, 0.11)
+		elseif road.place == "garden" then
+			-- this one carries on into the Garden, through an open arch (each player's screen
+			-- puts a ribbon across it until they've enough sunshine: see client/Garden)
+			local G = Config.GARDEN
+			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, G.dist - (G.radius - 6)), Config.ROAD_W, 0.11)
+			gate(yawAt(Config.polar(road.angle, Config.EDGE_R - 0.5), Config.faceIn(road.angle)), road.name, Color3.fromHex(road.color), true)
 		else
 			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, Config.EDGE_R + 1), Config.ROAD_W, 0.11)
 			gate(yawAt(Config.polar(road.angle, Config.EDGE_R - 0.5), Config.faceIn(road.angle)), road.name, Color3.fromHex(road.color))
@@ -592,6 +599,7 @@ local function edge()
 	for _, info in H.ponds do
 		table.insert(circles, { centre = Config.polar(info.angle, info.dist), r = H.radius })
 	end
+	table.insert(circles, { centre = Config.polar(Config.GARDEN.angle, Config.GARDEN.dist), r = Config.GARDEN.radius })
 	local function inside(spot: Vector3, margin: number): boolean
 		for _, circle in circles do
 			if flat(spot - circle.centre).Magnitude < (circle.r - margin) * S then
@@ -733,6 +741,7 @@ function Town.build(): { doors: { [string]: CFrame }, plots: { CFrame } }
 	end
 	gazebo()
 	local plots = homePond()
+	Garden.build()
 	streetLamps()
 	lawns()
 	edge()

@@ -68,9 +68,11 @@ function Prompts.start()
 		-- On a touch screen, just the action ("Make this my home"), so the button stays short and
 		-- clear of the thumbstick on the left.
 		local touch = inputType == Enum.ProximityPromptInputType.Touch
-		local words = if prompt.ObjectText ~= "" and not touch
-			then `{prompt.ActionText}  ·  {prompt.ObjectText}`
-			else prompt.ActionText
+		local function wordsFor(): string
+			return if prompt.ObjectText ~= "" and not touch
+				then `{prompt.ActionText}  ·  {prompt.ObjectText}`
+				else prompt.ActionText
+		end
 
 		local button = Ui.new("TextButton", {
 			Text = "",
@@ -161,8 +163,8 @@ function Prompts.start()
 				Parent = button,
 			})
 		end
-		Ui.text({
-			Text = words,
+		local label = Ui.text({
+			Text = wordsFor(),
 			TextSize = if touch then 18 else 22,
 			Size = UDim2.fromOffset(0, 40),
 			AutomaticSize = Enum.AutomaticSize.X,
@@ -170,6 +172,12 @@ function Prompts.start()
 			LayoutOrder = 3,
 			Parent = button,
 		})
+		-- the words can change while it's showing (a garden bed counting down)
+		local function rewrite()
+			label.Text = wordsFor()
+		end
+		table.insert(holding[prompt], prompt:GetPropertyChangedSignal("ActionText"):Connect(rewrite))
+		table.insert(holding[prompt], prompt:GetPropertyChangedSignal("ObjectText"):Connect(rewrite))
 
 		-- tapping or clicking it works like pressing the key
 		button.Activated:Connect(function()

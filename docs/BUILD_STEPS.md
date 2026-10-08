@@ -221,6 +221,23 @@ Plan first. Build the Garden at the end of the Garden road (Config.ROADS angle 1
 
 **Done when:** a crop planted, then left while you rejoin, is a stage further on when you come back, and two players have separate beds.
 
+### Step 14b: Garden and pets polish
+
+**Why:** the Garden and pets work, but on a phone the messages crowd each other and some props look basic (the owner's Studio test, 2026-10-08). **Files:** `src/client/Garden.luau`, `src/client/Prompts.luau`, `src/client/GoalsPanel.luau`, `src/server/places/Garden.luau`, `src/shared/PetBuilder.luau`, `src/shared/Config.luau`.
+
+```text
+Polish the Garden and pets, from the owner's phone-emulator screenshots:
+1. Bed signs ("Needs water", "Ready!"): float higher, AlwaysOnTop, and hide when you're standing at that bed (its button already says it), so they're never hidden behind your animal.
+2. The goal pin: hide it once you've arrived (within about 25 studs); for the Garden goal, point at the bed that needs you (to plant, water or harvest), not the Garden's middle.
+3. Prompt buttons on phones: smaller (44 high, shorter words, like "Growing · 29:57"), placed in the free space between the thumbstick and the Run/jump buttons, so they don't cover your animal or crowd Run.
+4. The well: a ring of chunky stones, a rope and a bucket with a handle and crank, like the web game's.
+5. The scarecrow: cuter, with a proper straw hat, a dungaree shirt and straw tufts at its hands.
+6. Pet hats: the flower with real petals round a yellow middle, the party hat a proper striped cone with a pompom, the crown with points.
+Keep part counts small and numbers in Config. Check every screen on a small phone, a tablet and with a controller.
+```
+
+**Done when:** on a small phone the bed signs, the goal pin and the buttons never cover each other or your animal, and the well, scarecrow and pet hats look finished.
+
 ### Step 15: Cafe shift
 
 **Why:** a simple activity with a coin payout that works with two players at once. **Files:** `Config.ROADS` (Cafe, angle 72), new `src/server/places/Cafe.luau`, `src/client/Cafe.luau`, `Config.RESIDENTS`.

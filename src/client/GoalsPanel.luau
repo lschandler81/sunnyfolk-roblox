@@ -133,6 +133,8 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 		return nearestTo(from, spots)
 	elseif goal.kind == "visit" then
 		return goal.at
+	elseif goal.kind == "harvest" then
+		return Config.gardenFrame().Position
 	end
 	return nil
 end

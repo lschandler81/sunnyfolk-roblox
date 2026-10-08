@@ -13,6 +13,7 @@
 --   home   make a home at a pond (already having one counts)
 --   visit  walk to `at` (within Goals.VISIT_RADIUS)
 --   pet    adopt a pet (already having one counts)
+--   harvest  pick something you grew in the Garden
 --
 -- Only ever add new goals at the end: saves keep the number of the goal a player is on.
 
@@ -53,6 +54,8 @@ Goals.LIST = {
 		text = "Visit the gazebo", hint = "Follow the arrow" },
 	{ id = "pet", kind = "pet", coins = 5, sun = 1,
 		text = "Adopt a pet", hint = `At the Pet Shop, for {Config.PETS.ADOPT_PRICE} coins` },
+	{ id = "harvest", kind = "harvest", coins = 5, sun = 1,
+		text = "Pick something you grew", hint = "Plant seeds in the Garden, water them, then pick them" },
 } :: { Goal }
 
 -- A bonus for finishing them all.

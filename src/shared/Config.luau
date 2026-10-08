@@ -52,7 +52,7 @@ Config.SHOPS = {
 Config.ROADS = {
 	{ angle = 0, name = "Kart Track", color = "#f07055" },
 	{ angle = 72, name = "Cafe", color = "#2f8a7c" },
-	{ angle = 144, name = "Garden", color = "#6fa057" },
+	{ angle = 144, name = "Garden", color = "#6fa057", place = "garden" }, -- see Config.GARDEN
 	{ angle = 216, name = "Home Pond", color = "#5a8fae", open = true },
 	{ angle = 288, name = "Art Studio", color = "#b583b9" },
 }
@@ -100,6 +100,69 @@ function Config.cottageAt(cottage): (CFrame, Vector3)
 	local road = Config.polar(cottage.road, cottage.dist)
 	local spot = road + Config.polar(cottage.road + 90 * cottage.side, Config.COTTAGE_OFFSET)
 	return CFrame.lookAt(spot, road) * CFrame.Angles(0, math.pi, 0), road
+end
+
+---------------------------------------------------------------- the Garden
+
+-- Fern's Garden, at the end of the Garden road (see server/places/Garden and client/Garden),
+-- from the web game's garden. Its gate opens for anyone with enough sunshine. Everyone has
+-- their own six beds in it: plant seeds (free), water each stage, and it grows by the
+-- server's clock, even while you're away; then harvest for coins. Distances are web units.
+Config.GARDEN = {
+	angle = 144, -- which way from the fountain
+	dist = 94, -- from the fountain to its middle
+	radius = 24, -- its hedge, which joins the town's
+	SUN = 6, -- sunshine needed to go in
+	-- the beds: x across, z towards the way in (from the middle), and their size
+	BEDS = { { -7, -4.6 }, { 0, -4.6 }, { 7, -4.6 }, { -7, 4 }, { 0, 4 }, { 7, 4 } },
+	BED_W = 4.8,
+	BED_D = 3.7,
+	REACH = 20, -- studs: how close to a bed you must be to plant, water or harvest it
+	-- the ribbon across the way in, until you've enough sunshine: wide enough to cover the whole
+	-- gap where the town's hedge and the Garden's meet (that gap is about 17 wide)
+	GATE_WIDTH = 24,
+	-- each player's screen thinks it's this many seconds earlier than the server, so a bed
+	-- never says "Water" or "Harvest" a moment before the server agrees
+	CLIENT_LAG = 1,
+	STAGES = 3, -- a crop is ready at stage 3 (each stage before needs watering)
+	ORDER = { "sunflower", "carrot", "strawberry", "pumpkin" },
+	-- each stage takes `stage` seconds once watered; `count` plants fill a bed
+	CROPS = {
+		sunflower = { name = "Sunflowers", stage = 2 * 60, coins = 4, count = 3 },
+		carrot = { name = "Carrots", stage = 10 * 60, coins = 8, count = 6 },
+		strawberry = { name = "Strawberries", stage = 30 * 60, coins = 15, count = 4 },
+		pumpkin = { name = "Giant pumpkin", stage = 3 * 60 * 60, coins = 30, count = 1 },
+	},
+}
+
+-- The Garden's middle, on the ground, with +Z pointing back along the road to town.
+function Config.gardenFrame(): CFrame
+	local G = Config.GARDEN
+	local centre = Config.polar(G.angle, G.dist)
+	return CFrame.lookAt(centre, Vector3.zero) * CFrame.Angles(0, math.pi, 0)
+end
+
+-- The middle of bed `i`, on the ground (facing the same way as the Garden).
+function Config.gardenBed(i: number): CFrame
+	local spot = Config.GARDEN.BEDS[i]
+	return Config.gardenFrame() * CFrame.new(spot[1] * S, 0, spot[2] * S)
+end
+
+-- Where a bed has got to at time `now` (seconds, server clock): its stage (0 seeds to
+-- STAGES ripe), whether it needs watering, and when the current stage finishes (or nil).
+-- A watered stage that's finished counts as the next stage, needing water again.
+function Config.gardenState(plot: any, now: number): (number, boolean, number?)
+	if not (plot and plot.crop) then
+		return 0, false, nil
+	end
+	local stage = plot.stage or 0
+	local readyAt = plot.readyAt
+	if readyAt and now >= readyAt then
+		stage += 1
+		readyAt = nil
+	end
+	stage = math.min(stage, Config.GARDEN.STAGES)
+	return stage, stage < Config.GARDEN.STAGES and readyAt == nil, readyAt
 end
 
 ---------------------------------------------------------------- pets
@@ -324,6 +387,7 @@ Config.REMOTE_LIMITS = {
 	SetHome = { calls = 3, seconds = 10 },
 	StudioNextDay = { calls = 2, seconds = 2 }, -- Studio only (server/Daily)
 	Pet = { calls = 6, seconds = 2 }, -- adopting, changing and dressing your pet (server/Pets)
+	Garden = { calls = 8, seconds = 2 }, -- planting, watering and harvesting (server/places/Garden)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.

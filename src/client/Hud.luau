@@ -414,6 +414,11 @@ function Hud.corner(): Frame?
 	return cornerFrame
 end
 
+-- The HUD's screen, for other buttons that show and hide with it (client/Emotes).
+function Hud.gui(): ScreenGui?
+	return screen
+end
+
 function Hud.show(visible: boolean)
 	if screen then
 		screen.Enabled = visible

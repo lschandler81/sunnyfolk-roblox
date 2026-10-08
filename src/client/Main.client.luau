@@ -1,6 +1,6 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
 -- coins, talking, the shops, "My things", homes, the goals, the daily present and request
--- board, pets, the Garden and its Garden Book, and the animals' animation.
+-- board, pets, the Garden and its Garden Book, emotes, and the animals' animation.
 
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
@@ -33,6 +33,7 @@ local Run = require(script.Parent.Run)
 local Talk = require(script.Parent.Talk)
 local Wardrobe = require(script.Parent.Wardrobe)
 local GardenBook = require(script.Parent.GardenBook)
+local Emotes = require(script.Parent.Emotes)
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -146,6 +147,10 @@ end
 Hud.create(GoalsPanel.open, function()
 	Wardrobe.open(chooseAnimal)
 end, GardenBook.open)
+local hudGui = Hud.gui()
+if hudGui then
+	Emotes.start(hudGui)
+end
 local corner = Hud.corner()
 if corner then
 	GoalsPanel.start(corner)

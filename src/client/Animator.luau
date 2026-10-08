@@ -1,6 +1,7 @@
 -- Makes every animal move: walking, breathing, looking around, blinking, nodding while it
--- talks and waving hello. It's the web game's src/chars/animate.js, worked out in the same
--- (web) units and turned into Roblox joint angles at the end.
+-- talks, and the emotes (client/Emotes): waving hello, cheering, dancing and sitting down.
+-- It's the web game's src/chars/animate.js, worked out in the same (web) units and turned
+-- into Roblox joint angles at the end.
 --
 -- It runs on each player's own computer, for every animal nearby, so it costs the server
 -- nothing. Animals are found by their CharacterBuilder tag.
@@ -17,6 +18,7 @@ local Config = require(Shared.Config)
 local S = Config.STUDS
 local WALK_SPEED = 14 -- studs a second that counts as a normal walk
 local ANIMATE = Config.ANIMATE -- how far away animals are animated, and how often
+local WAVE = (Config.emote("wave") :: any).seconds -- how long a wave lasts
 
 -- The web game's left arm (side -1) is Roblox's right arm: the models were turned round to
 -- face -Z when they were exported.
@@ -42,6 +44,11 @@ type Rig = {
 	eyesShut: boolean,
 	talk: number,
 	wave: number,
+	cheer: number, -- seconds of cheering left, out of cheerFor
+	cheerFor: number,
+	dance: number, -- seconds of dancing left, out of danceFor
+	danceFor: number,
+	sit: boolean, -- sitting down, until it moves
 	offset: number, -- so showcase animals don't all move in step
 	waited: number, -- time since a far-away animal was last updated
 }
@@ -92,6 +99,11 @@ local function makeRig(model: Model): Rig?
 		eyesShut = false,
 		talk = 0,
 		wave = 0,
+		cheer = 0,
+		cheerFor = 1,
+		dance = 0,
+		danceFor = 1,
+		sit = false,
 		offset = random:NextNumber(0, 12),
 		waited = random:NextNumber(0, Config.ANIMATE.FAR_STEP), -- spread far-away updates out
 
@@ -132,7 +144,7 @@ local function step(rig: Rig, dt: number, time: number)
 		speed = if beat < 5 then 1 else 0
 		grounded = true
 		if beat >= 9 and beat < 9 + dt then
-			a.wave = 1.6
+			a.wave = WAVE
 		end
 	end
 
@@ -145,6 +157,16 @@ local function step(rig: Rig, dt: number, time: number)
 	a.air += ((if grounded then 0 else 1) - a.air) * math.min(1, dt * 12)
 	a.talk = math.max(0, a.talk - dt)
 	a.wave = math.max(0, a.wave - dt)
+	a.cheer = math.max(0, a.cheer - dt)
+	a.dance = math.max(0, a.dance - dt)
+	-- sitting ends as soon as it walks or jumps
+	if a.sit and (speed > 0.15 or not grounded) then
+		a.sit = false
+	end
+	-- how far into a cheer or a dance (0 to 1, easing in and out at each end)
+	local cheerK = math.min(1, a.cheer * 4, (a.cheerFor - a.cheer) * 4)
+	local danceK = math.min(1, a.dance * 3, (a.danceFor - a.dance) * 3)
+	local beat = time * 7 -- the dance's beat
 
 	-- legs and arms swing opposite ways; an arm holding something keeps its pose
 	local _, _, leftBusy = armPose(rig.model, "LeftArm")
@@ -157,12 +179,31 @@ local function step(rig: Rig, dt: number, time: number)
 		local armX = poseX - s * 0.7 * w * side * k - a.air * 1.4 * k
 		local armZ = poseZ + side * (0.08 + a.air * 0.5 * k + (1 - w) * math.sin(time * 2) * 0.03)
 		if a.wave > 0 and i == waver then
-			local up = math.min(1, a.wave * 4, (1.6 - a.wave) * 4)
+			local up = math.min(1, a.wave * 4, (WAVE - a.wave) * 4)
 			armX = -0.4 * up
 			armZ = side * (2.4 * up + math.sin(time * 14) * 0.25 * up)
 		end
-		setJoint(rig, info.leg, angles(legX, 0, 0))
-		setJoint(rig, info.arm, angles(armX, 0, armZ))
+		-- cheering: both arms up high, waggling (an arm holding something stays put)
+		if cheerK > 0 and not holding then
+			armX += (-0.3 - armX) * cheerK
+			armZ += (side * (2.7 + math.sin(time * 12) * 0.15) - armZ) * cheerK
+		end
+		-- dancing: arms swing up and down in turn, and the feet step to the beat
+		if danceK > 0 then
+			if not holding then
+				armZ += (side * (1.3 + math.sin(beat + (if side > 0 then math.pi else 0)) * 0.9) - armZ) * danceK
+				armX += (math.sin(beat) * 0.3 - armX) * danceK
+			end
+			legX += (math.sin(beat + side) * 0.3 - legX) * danceK * (1 - w)
+		end
+		if a.sit then
+			-- sitting: legs straight out in front, the arms resting
+			setJoint(rig, info.leg, CFrame.new(0, -0.32 * S, 0) * angles(-1.45, 0, 0))
+			setJoint(rig, info.arm, angles(if holding then armX else -0.35, 0, armZ))
+		else
+			setJoint(rig, info.leg, angles(legX, 0, 0))
+			setJoint(rig, info.arm, angles(armX, 0, armZ))
+		end
 	end
 
 	-- the body bobs and waddles as it walks, and breathes when it stands
@@ -170,6 +211,13 @@ local function step(rig: Rig, dt: number, time: number)
 	local bodyY = math.abs(c) * 0.09 * w + breathe
 	local bodyX = 0.06 * w - a.air * 0.08
 	local bodyZ = s * 0.07 * w
+	-- a little hop while cheering; a sway and a bounce while dancing; lower when sitting
+	bodyY += math.abs(math.sin(time * 9)) * 0.1 * cheerK
+	bodyY += math.abs(math.sin(beat)) * 0.05 * danceK
+	bodyZ += math.sin(beat) * 0.14 * danceK
+	if a.sit then
+		bodyY -= 0.32
+	end
 	setJoint(rig, "Torso", CFrame.new(0, bodyY * S, 0) * angles(bodyX, 0, bodyZ))
 
 	-- the head looks around now and then, and nods while talking
@@ -184,7 +232,11 @@ local function step(rig: Rig, dt: number, time: number)
 	a.look += ((if helmet then 0 else a.lookTarget * (1 - w)) - a.look) * math.min(1, dt * 3)
 	local nod = if a.talk > 0 and not helmet then math.sin(time * 16) * 0.06 else 0
 	local headX = -math.abs(s) * 0.05 * w + math.sin(time * 1.3) * 0.02 * (1 - w) - a.air * 0.1 + nod
-	setJoint(rig, "Head", angles(headX, a.look, 0))
+	-- looking up while cheering; the head bobs side to side while dancing
+	local still = if helmet then 0 else 1
+	headX -= 0.15 * cheerK * still
+	local headZ = math.sin(beat) * 0.12 * danceK * still
+	setJoint(rig, "Head", angles(headX, a.look, headZ))
 
 	-- blink every few seconds by squashing the eyes flat
 	a.blinkT -= dt
@@ -214,7 +266,29 @@ end
 function Animator.wave(model: Model)
 	local rig = rigs[model]
 	if rig then
-		rig.wave = 1.6
+		rig.wave = WAVE
+	end
+end
+
+-- An emote from Config.EMOTES ("wave", "cheer", "dance" or "sit"). A new one takes over from
+-- one that's still going.
+function Animator.emote(model: Model, id: string)
+	local rig = rigs[model]
+	local emote = Config.emote(id)
+	if not (rig and emote) then
+		return
+	end
+	rig.cheer, rig.dance, rig.sit = 0, 0, false
+	if id == "wave" then
+		rig.wave = WAVE
+	elseif id == "cheer" then
+		rig.cheer = emote.seconds or WAVE
+		rig.cheerFor = rig.cheer
+	elseif id == "dance" then
+		rig.dance = emote.seconds or WAVE
+		rig.danceFor = rig.dance
+	elseif id == "sit" then
+		rig.sit = true
 	end
 end
 

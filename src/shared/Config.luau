@@ -432,6 +432,7 @@ Config.REMOTE_LIMITS = {
 	Pet = { calls = 6, seconds = 2 }, -- adopting, changing and dressing your pet (server/Pets)
 	Garden = { calls = 8, seconds = 2 }, -- planting, watering and harvesting (server/places/Garden)
 	ChooseAdventure = { calls = 4, seconds = 2 }, -- choosing an Adventure on the Goals screen (server/Goals)
+	Emote = { calls = 4, seconds = 3 }, -- waving, cheering, dancing, sitting (server/Emotes)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.
@@ -524,6 +525,31 @@ Config.UI = {
 	GOAL_PIN_ARRIVED = 25,
 	GOAL_PIN_GAP = 12, -- pixels between a garden bed's sign and the goal's pin above it
 }
+
+---------------------------------------------------------------- emotes
+
+-- Things your animal can do to say hello without typing (client/Emotes, client/Animator), each
+-- with its picture on the emote buttons and how long it lasts (seconds). Sitting lasts until
+-- you move. The server only passes the name on, to players within EMOTE_RANGE.
+Config.EMOTES = {
+	{ id = "wave", icon = "👋", seconds = 1.6 },
+	{ id = "cheer", icon = "🎉", seconds = 1.8 },
+	{ id = "dance", icon = "💃", seconds = 3.2 },
+	{ id = "sit", icon = "💺" }, -- (a seat: an older picture than the chair, so every device has it)
+}
+Config.EMOTE_BUTTON = "😊" -- the picture on the button that opens them
+Config.EMOTE_RANGE = 120 -- studs: players further away than this aren't sent your emote
+Config.EMOTE_WAIT = 1 -- seconds between emotes on your own screen (the server has its own limit)
+
+-- An emote by its id, or nil if there isn't one.
+function Config.emote(id: any): { id: string, icon: string, seconds: number? }?
+	for _, emote in Config.EMOTES do
+		if emote.id == id then
+			return emote
+		end
+	end
+	return nil
+end
 
 ---------------------------------------------------------------- players
 

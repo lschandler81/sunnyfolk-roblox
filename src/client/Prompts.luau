@@ -2,8 +2,10 @@
 -- of the screen, like the web game's talk hint, instead of floating over the person you're
 -- talking to (where they'd cover them up). Each one shows its key (E, F, or a picture of the
 -- controller button: an Xbox letter or a PlayStation shape) and can also be tapped or clicked.
--- On a TV they're bigger and keep in from the bottom edge. A button that has to be held
--- (like "Make this my home") says "hold" by its key, and fills up with yellow while held.
+-- On a TV they're bigger and keep in from the bottom edge. On a phone or tablet they're
+-- smaller and sit along the bottom, between the thumbstick and the Run and jump buttons, so
+-- they never cover your animal. A button that has to be held (like "Make this my home") says
+-- "hold" by its key, and fills up with yellow while held.
 --
 -- It handles every ProximityPrompt whose Style is Custom; the game's prompts all are.
 
@@ -11,6 +13,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage:WaitForChild("Sunnyfolk").Config)
 local Ui = require(script.Parent.Ui)
@@ -41,17 +44,30 @@ function Prompts.start()
 		}),
 	})
 	Ui.consoleSize(list)
-	-- On a touch screen, sit higher and a little to the right: clear of the thumbstick (the
-	-- left part of the screen) and above the Run and jump buttons (bottom right). On a TV,
-	-- keep in from the bottom edge.
+	-- On a touch screen, sit along the bottom in the middle of the free space: right of the
+	-- thumbstick (the left part of the screen) and left of the Run and jump buttons (bottom
+	-- right, which are bigger on a tablet, like in client/Run). On a TV, keep in from the
+	-- bottom edge.
 	local function place()
-		list.Position = if Ui.CONSOLE
-			then UDim2.fromScale(0.5, 1 - Config.UI.TV_SAFE)
-			elseif UserInputService.TouchEnabled then UDim2.new(0.6, 0, 1, -100)
-			else UDim2.new(0.5, 0, 1, -24)
+		if Ui.CONSOLE then
+			list.Position = UDim2.fromScale(0.5, 1 - Config.UI.TV_SAFE)
+		elseif UserInputService.TouchEnabled then
+			local wide = gui.AbsoluteSize.X
+			local camera = Workspace.CurrentCamera
+			local view = if camera then camera.ViewportSize else gui.AbsoluteSize
+			local phone = math.min(view.X, view.Y) <= 500
+			local left = wide * Config.UI.THUMBSTICK
+			local right = wide - (if phone then Config.UI.RUN_CLEAR_PHONE else Config.UI.RUN_CLEAR_TABLET)
+			list.Position = UDim2.new(0, (left + right) / 2, 1, -Config.UI.PROMPT_BOTTOM)
+			list.Size = UDim2.fromOffset(math.max(0, right - left), 200)
+		else
+			list.Position = UDim2.new(0.5, 0, 1, -24)
+			list.Size = UDim2.fromOffset(420, 200)
+		end
 	end
 	place()
 	UserInputService:GetPropertyChangedSignal("TouchEnabled"):Connect(place)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 
 	local shown: { [ProximityPrompt]: GuiObject } = {}
 	local holding: { [ProximityPrompt]: { RBXScriptConnection } } = {}
@@ -68,6 +84,9 @@ function Prompts.start()
 		-- On a touch screen, just the action ("Make this my home"), so the button stays short and
 		-- clear of the thumbstick on the left.
 		local touch = inputType == Enum.ProximityPromptInputType.Touch
+		-- smaller on a phone or tablet, so it fits beside the thumbstick and Run
+		local tall = if touch then Config.UI.PROMPT_HEIGHT else 54
+		local inner = tall - 14 -- the key, or the space where it would be
 		local function wordsFor(): string
 			return if prompt.ObjectText ~= "" and not touch
 				then `{prompt.ActionText}  ·  {prompt.ObjectText}`
@@ -78,7 +97,7 @@ function Prompts.start()
 			Text = "",
 			AutoButtonColor = false,
 			Selectable = false, -- a controller presses the button shown on it instead
-			Size = UDim2.fromOffset(0, 54),
+			Size = UDim2.fromOffset(0, tall),
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundColor3 = Color3.new(1, 1, 1), -- the colours come from `fill` below
 			LayoutOrder = if prompt.KeyboardKeyCode == Enum.KeyCode.E then 2 else 1,
@@ -86,7 +105,7 @@ function Prompts.start()
 		}, {
 			Ui.round(),
 			Ui.stroke(3),
-			Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 20) }),
+			Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, if touch then 14 else 20) }),
 			Ui.new("UIListLayout", {
 				FillDirection = Enum.FillDirection.Horizontal,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -148,7 +167,7 @@ function Prompts.start()
 			Ui.round().Parent = badge
 			Ui.stroke(2.5).Parent = badge
 		else
-			Ui.new("Frame", { Size = UDim2.fromOffset(4, 40), BackgroundTransparency = 1, Parent = button })
+			Ui.new("Frame", { Size = UDim2.fromOffset(4, inner), BackgroundTransparency = 1, Parent = button })
 		end
 		-- "hold" by the key, for buttons that need holding (tapping one holds it for you)
 		if prompt.HoldDuration > 0 and not touch then
@@ -165,16 +184,29 @@ function Prompts.start()
 		end
 		local label = Ui.text({
 			Text = wordsFor(),
-			TextSize = if touch then 18 else 22,
-			Size = UDim2.fromOffset(0, 40),
+			TextSize = if touch then Config.UI.PROMPT_TEXT else 22,
+			Size = UDim2.fromOffset(0, inner),
 			AutomaticSize = Enum.AutomaticSize.X,
 			TextWrapped = false,
 			LayoutOrder = 3,
 			Parent = button,
 		})
+		-- On a phone, long words shrink a little until the button fits the space between the
+		-- thumbstick and Run.
+		local function shrink()
+			if touch and button.AbsoluteSize.X > list.AbsoluteSize.X and label.TextSize > Config.UI.PROMPT_MIN_TEXT then
+				label.TextSize -= 1
+			end
+		end
+		table.insert(holding[prompt], button:GetPropertyChangedSignal("AbsoluteSize"):Connect(shrink))
+		shrink()
 		-- the words can change while it's showing (a garden bed counting down)
 		local function rewrite()
 			label.Text = wordsFor()
+			if touch then
+				label.TextSize = Config.UI.PROMPT_TEXT
+				shrink()
+			end
 		end
 		table.insert(holding[prompt], prompt:GetPropertyChangedSignal("ActionText"):Connect(rewrite))
 		table.insert(holding[prompt], prompt:GetPropertyChangedSignal("ObjectText"):Connect(rewrite))
@@ -187,7 +219,6 @@ function Prompts.start()
 			end)
 		end)
 		shown[prompt] = button
-		gui:SetAttribute("Showing", #list:GetChildren() - 1) -- (not counting the layout)
 	end)
 
 	ProximityPromptService.PromptHidden:Connect(function(prompt)
@@ -195,7 +226,6 @@ function Prompts.start()
 		if button then
 			button:Destroy()
 			shown[prompt] = nil
-			gui:SetAttribute("Showing", #list:GetChildren() - 1)
 		end
 		local connections = holding[prompt]
 		if connections then

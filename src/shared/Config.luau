@@ -124,6 +124,12 @@ Config.GARDEN = {
 	-- each player's screen thinks it's this many seconds earlier than the server, so a bed
 	-- never says "Water" or "Harvest" a moment before the server agrees
 	CLIENT_LAG = 1,
+	-- the little sign over a bed ("Needs water", "Ready!"): how high it floats over the bed
+	-- (studs), and how far away it can be seen (studs). It shows through things, so your animal
+	-- never hides it, and it goes while you're at that bed (its button says the same).
+	SIGN_HEIGHT = 7,
+	SIGN_DISTANCE = 70,
+	SIGN_SIZE = Vector2.new(120, 30), -- pixels (the goal's pin sits just above it)
 	STAGES = 3, -- a crop is ready at stage 3 (each stage before needs watering)
 	ORDER = { "sunflower", "carrot", "strawberry", "pumpkin" },
 	-- each stage takes `stage` seconds once watered; `count` plants fill a bed
@@ -435,6 +441,22 @@ Config.UI = {
 	-- On a TV, the edges of the picture can be cut off, so the HUD and the buttons at the
 	-- bottom keep this far in from the edges (0.05 is 5% of the screen).
 	TV_SAFE = 0.05,
+	-- The game's buttons ("Talk", "Water"...) on a phone or tablet sit along the bottom, in the
+	-- space between Roblox's thumbstick and the Run and jump buttons (client/Prompts):
+	PROMPT_HEIGHT = 44, -- how tall each one is (pixels)
+	-- the size of their words, and the smallest they may shrink to so a long one fits the space
+	PROMPT_TEXT = 17,
+	PROMPT_MIN_TEXT = 14,
+	PROMPT_BOTTOM = 12, -- how far up from the bottom edge (pixels)
+	THUMBSTICK = 0.4, -- the left part of the screen Roblox keeps for the thumbstick (0.4 is 40%)
+	-- how much of the right side (pixels) to keep clear for Run and jump (client/Run): on a
+	-- phone (the shorter side 500 pixels or less), and on a tablet
+	RUN_CLEAR_PHONE = 190,
+	RUN_CLEAR_TABLET = 270,
+	-- The goal's pin goes once you're this close (studs) to where it points: you've arrived,
+	-- and it would only cover what you came to see.
+	GOAL_PIN_ARRIVED = 25,
+	GOAL_PIN_GAP = 12, -- pixels between a garden bed's sign and the goal's pin above it
 }
 
 ---------------------------------------------------------------- players

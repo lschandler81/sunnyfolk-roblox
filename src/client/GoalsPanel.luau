@@ -1,7 +1,8 @@
 -- The goals on the player's screen (the list is in shared/Goals; the server keeps score):
 --   * a card under the Goals button saying which goal you're on, and how far you've got
 --   * a yellow arrow at your feet and a pin over the place to go, pointing the way (they only
---     point: they never move you)
+--     point: they never move you). The pin goes once you've arrived, and for the Garden goal
+--     it points at the bed that needs you, just above that bed's own sign.
 --   * "Well done!" when you finish one (Hud.announce: it waits until any open screen has closed
 --     and the last message has gone, so it's always seen)
 --   * the Goals screen (from the HUD's Goals button): every goal, ticked off, and your
@@ -19,6 +20,7 @@ local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
 local GoalList = require(Shared.Goals)
 local Controls = require(script.Parent.Controls)
+local Garden = require(script.Parent.Garden)
 local Hud = require(script.Parent.Hud)
 local Ui = require(script.Parent.Ui)
 
@@ -30,9 +32,18 @@ local RESIDENT_TAG = "SunnyfolkResident" -- server/Residents tags each resident 
 local FIND_SECONDS = 0.25 -- how often to look again for where to point
 local NEAR = 10 -- studs: closer than this, the arrow at your feet goes (the pin's enough)
 -- How high (studs) the pin floats over what it points at: just above a coin, over a
--- resident's name tag, and in between for doors, plots and places.
-local PIN_HEIGHT = { coin = 3.5, talk = 9 }
+-- resident's name tag, level with a garden bed's sign, and in between for doors, plots and
+-- places.
+local PIN_HEIGHT = { coin = 3.5, talk = 9, harvest = Config.GARDEN.SIGN_HEIGHT }
 local PIN_HEIGHT_OTHER = 6
+-- Over a garden bed, the pin is lifted (in pixels, so at any distance) to sit just above the
+-- bed's sign (client/Garden): half the sign, a gap and half the pin, as a part of the pin's
+-- height.
+local PIN_SIZE = Vector2.new(48, 62)
+local PIN_LIFT = {
+	harvest = (Config.GARDEN.SIGN_SIZE.Y / 2 + Config.UI.GOAL_PIN_GAP + PIN_SIZE.Y / 2) / PIN_SIZE.Y,
+}
+local PIN_BOB = 0.08 -- how far it bobs up and down, as a part of its height
 
 local GoalsPanel = {}
 
@@ -134,7 +145,7 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 	elseif goal.kind == "visit" then
 		return goal.at
 	elseif goal.kind == "harvest" then
-		return Config.gardenFrame().Position
+		return Garden.bedThatNeedsYou(from)
 	end
 	return nil
 end
@@ -181,7 +192,7 @@ local function makePin(): (Part, BillboardGui)
 	-- an invisible spot with a yellow map pin over it that shows through walls
 	local spot = part({ Name = "GoalPin", Size = Vector3.new(1, 1, 1), Transparency = 1 })
 	local pin = Ui.new("BillboardGui", {
-		Size = UDim2.fromOffset(48, 62),
+		Size = UDim2.fromOffset(PIN_SIZE.X, PIN_SIZE.Y),
 		StudsOffsetWorldSpace = Vector3.new(0, 9, 0),
 		AlwaysOnTop = true,
 		LightInfluence = 0,
@@ -257,21 +268,13 @@ function GoalsPanel.start(corner: Frame)
 	words.RichText = true
 	local hint = line(3, 14, Ui.colors.teal)
 
-	-- The game's buttons ("Talk", "Hat Shop"...), from client/Prompts, which says how many
-	-- are showing. On a phone they're right where the card is, so it steps aside for them.
-	local prompts = player:WaitForChild("PlayerGui"):WaitForChild("Prompts", 10)
-	local function buttonsShowing(): boolean
-		local count = prompts and prompts:GetAttribute("Showing")
-		return typeof(count) == "number" and count > 0
-	end
-
 	local function refresh()
 		local step = currentStep()
 		local goal = step and LIST[step]
-		-- On a phone (a short screen): one short line, and out of the way while there's a button
-		-- to press. Elsewhere: the goal number, what to do and a hint.
+		-- On a phone (a short screen): one short line. Elsewhere: the goal number, what to do
+		-- and a hint.
 		local small = Ui.shortScreen()
-		card.Visible = goal ~= nil and not (small and buttonsShowing())
+		card.Visible = goal ~= nil
 		if goal then
 			number.Visible = not small
 			hint.Visible = not small
@@ -285,9 +288,6 @@ function GoalsPanel.start(corner: Frame)
 	end
 	for _, attribute in { "Goal", "GoalCount", "GoalMet" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
-	end
-	if prompts then
-		prompts:GetAttributeChangedSignal("Showing"):Connect(refresh)
 	end
 	local camera = Workspace.CurrentCamera
 	if camera then
@@ -337,13 +337,19 @@ function GoalsPanel.start(corner: Frame)
 			spot.Parent = nil
 			return
 		end
-		spot.Position = target
-		local height = PIN_HEIGHT[goal.kind] or PIN_HEIGHT_OTHER
-		pin.StudsOffsetWorldSpace = Vector3.new(0, height + math.sin(now * 3) * 0.6, 0)
-		spot.Parent = Workspace
-
 		local feet = root.Position - Vector3.new(0, Builder.ROOT_HEIGHT - 0.2, 0)
 		local flat = Vector3.new(target.X - feet.X, 0, target.Z - feet.Z)
+
+		-- the pin, until you've arrived
+		if flat.Magnitude < Config.UI.GOAL_PIN_ARRIVED then
+			spot.Parent = nil
+		else
+			spot.Position = target
+			pin.StudsOffsetWorldSpace = Vector3.new(0, PIN_HEIGHT[goal.kind] or PIN_HEIGHT_OTHER, 0)
+			pin.SizeOffset = Vector2.new(0, (PIN_LIFT[goal.kind] or 0) + math.sin(now * 3) * PIN_BOB)
+			spot.Parent = Workspace
+		end
+
 		if flat.Magnitude < NEAR then
 			arrow.Parent = nil
 			return

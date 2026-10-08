@@ -2,9 +2,10 @@
 -- server/places/Garden):
 --   * your six beds: the soil (darker once watered) and whatever's growing, drawn from your
 --     own save (the Garden attribute), so other players see their own beds, not yours
---   * a button at each bed saying what to do next ("Plant seeds", "Water the Carrots",
---     "Carrots growing... 4:32", "Harvest the Carrots"), and a little sign over it when it
---     needs water or is ready
+--   * a button at each bed saying what to do next, in a word or two ("Plant seeds", "Water",
+--     "Growing · 4:32", "Harvest", with the crop's name beside it on a computer), and a little
+--     sign high over the bed when it needs water or is ready (hidden while you're at that bed,
+--     since its button says the same)
 --   * the seed card, to choose what to plant
 --   * a ribbon across the Garden road's arch until you've enough sunshine, which you can't
 --     walk through (the server still refuses to garden for anyone without it)
@@ -78,6 +79,30 @@ end
 local function hasSun(): boolean
 	local sun = player:GetAttribute("Sun")
 	return typeof(sun) == "number" and sun >= G.SUN
+end
+
+-- Where the Garden goal points: the bed that needs you (ready to harvest first, then needing
+-- water, then empty for planting), the nearest of those; or, if every bed is growing, the one
+-- that's ready soonest. The middle of the bed, on the ground.
+function Garden.bedThatNeedsYou(from: Vector3): Vector3
+	local now = Workspace:GetServerTimeNow() - G.CLIENT_LAG
+	local garden = myGarden()
+	local best, bestScore = 1, math.huge
+	for i = 1, #G.BEDS do
+		local plot = garden[i]
+		local stage, thirsty, readyAt = Config.gardenState(plot, now)
+		local spot = Config.gardenBed(i).Position
+		local need = if not (plot and plot.crop) then 2
+			elseif stage >= G.STAGES then 0
+			elseif thirsty then 1
+			else 3
+		-- what it needs comes first; then the nearest (or, if growing, the soonest ready)
+		local score = need * 1e6 + (if need == 3 then (readyAt or now) - now else (spot - from).Magnitude)
+		if score < bestScore then
+			best, bestScore = i, score
+		end
+	end
+	return Config.gardenBed(best).Position
 end
 
 ---------------------------------------------------------------- drawing a bed
@@ -368,9 +393,10 @@ function Garden.start()
 		})
 		prompt:SetAttribute("Bed", i)
 		local billboard = Ui.new("BillboardGui", {
-			Size = UDim2.fromOffset(120, 30),
-			StudsOffsetWorldSpace = Vector3.new(0, 4, 0),
-			MaxDistance = 70,
+			Size = UDim2.fromOffset(G.SIGN_SIZE.X, G.SIGN_SIZE.Y),
+			StudsOffsetWorldSpace = Vector3.new(0, G.SIGN_HEIGHT - 2, 0), -- (the spot is 2 up)
+			MaxDistance = G.SIGN_DISTANCE,
+			AlwaysOnTop = true, -- so your animal never hides it
 			LightInfluence = 0,
 			Adornee = spot,
 			Parent = spot,
@@ -385,6 +411,13 @@ function Garden.start()
 		Ui.round().Parent = badge
 		Ui.stroke(2.5).Parent = badge
 		beds[i] = { model = model, prompt = prompt, badge = badge, shownAs = "" }
+		-- while its button is showing, you're at this bed: the sign steps aside
+		prompt.PromptShown:Connect(function()
+			billboard.Enabled = false
+		end)
+		prompt.PromptHidden:Connect(function()
+			billboard.Enabled = true
+		end)
 	end
 
 	-- every half a second: how each bed is doing, by the server's clock
@@ -403,17 +436,18 @@ function Garden.start()
 				drawBed(bed.model, i, crop, stage, watered)
 			end
 			local name = if crop then G.CROPS[crop].name else ""
+			-- a word or two (a phone shows just these); a computer adds the crop's name
 			local prompt = bed.prompt
 			prompt.Enabled = open
-			prompt.ObjectText = ""
+			prompt.ObjectText = name
 			if not crop then
 				prompt.ActionText = "Plant seeds"
 			elseif stage >= G.STAGES then
-				prompt.ActionText = `Harvest the {name}`
+				prompt.ActionText = "Harvest"
 			elseif thirsty then
-				prompt.ActionText = `Water the {name}`
+				prompt.ActionText = "Water"
 			else
-				prompt.ActionText = `{name} growing… {clock((readyAt or now) - now)}`
+				prompt.ActionText = `Growing · {clock((readyAt or now) - now)}`
 			end
 			local badge = bed.badge
 			badge.Visible = open and crop ~= nil and (thirsty or stage >= G.STAGES)

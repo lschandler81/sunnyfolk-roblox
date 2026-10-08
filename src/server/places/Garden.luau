@@ -1,7 +1,7 @@
 -- Fern's Garden, at the end of the Garden road (Config.GARDEN), from the web game's garden.
 --
 --   * Garden.build() makes the place itself, once, when the town is built: a clearing with
---     Fern's shed, six bed edges, a well, a scarecrow, trees, lamps and flowers. The soil and
+--     Fern's shed, six bed edges, a stone well, a scarecrow, trees, lamps and flowers. The soil and
 --     whatever's growing are drawn by each player's own screen (client/Garden), from their own
 --     save, so everyone has their own six beds and the server makes nothing per player.
 --   * Garden.start() checks every plant, water and harvest (the GardenAction remote). Crops
@@ -37,30 +37,94 @@ local function at(x: number, z: number, turn: number?): CFrame
 	return Config.gardenFrame() * CFrame.new(x * S, 0, z * S) * CFrame.Angles(0, turn or 0, 0)
 end
 
+-- The well, like the web game's: a ring of chunky stones round the water, two posts holding a
+-- little gabled roof, and a rope and bucket hanging from a crank. One clear cylinder is what
+-- you bump into; the rest you'd walk through, so it costs physics nothing.
 local function well(base: CFrame)
-	Build.cylinder(1.0 * S, 0.7 * S, base * CFrame.new(0, 0.35 * S, 0), C.stone)
-	Build.cylinder(0.8 * S, 0.1 * S, base * CFrame.new(0, 0.66 * S, 0), C.water, DECOR)
-	Build.cylinder(1.1 * S, 0.16 * S, base * CFrame.new(0, 0.78 * S, 0), C.stoneDark)
-	for _, side in { -1, 1 } do
-		Build.block(Vector3.new(0.16, 1.95, 0.16) * S, base * CFrame.new(side * 1.0 * S, 1.72 * S, 0), C.woodDark)
-		-- the roof: two slabs meeting at the top
-		Build.block(Vector3.new(1.55, 0.1, 1.3) * S, base * CFrame.new(side * 0.68 * S, 3.05 * S, 0) * CFrame.Angles(0, 0, -side * 0.47), C.coral)
+	local function u(x: number, y: number, z: number): CFrame
+		return base * CFrame.new(x * S, y * S, z * S)
 	end
-	Build.cylinder(0.06 * S, 2.15 * S, base * CFrame.new(0, 2.1 * S, 0) * CFrame.Angles(0, 0, math.pi / 2), C.wood, DECOR)
-	Build.cylinder(0.2 * S, 0.3 * S, base * CFrame.new(0, 1.35 * S, 0), C.skyBlue, DECOR) -- the bucket
+	Build.cylinder(1.2 * S, 0.9 * S, u(0, 0.45, 0), C.stone, { Transparency = 1, CastShadow = false })
+	Build.cylinder(0.86 * S, 0.62 * S, u(0, 0.31, 0), C.water, DECOR)
+	-- two rows of ten stones, the top row set half a stone round
+	for row = 0, 1 do
+		for i = 0, 9 do
+			local a = (i + row * 0.5) / 10 * math.pi * 2
+			local tint = if (i * 7 + row * 3) % 3 == 0 then C.stoneDark else C.stone
+			local stone = u(math.sin(a) * 0.97, 0.2 + row * 0.34, math.cos(a) * 0.97) * CFrame.Angles(0, a, 0)
+			Build.blob(Vector3.new(0.64, 0.38, 0.36) * S, stone, tint, DECOR)
+		end
+	end
+	-- the posts, the axle with its drum, and the crank's arm and handle on the right
+	for _, side in { -1, 1 } do
+		Build.block(Vector3.new(0.16, 2.12, 0.16) * S, u(side * 1.0, 1.8, 0), C.woodDark, DECOR)
+	end
+	local across = CFrame.Angles(0, 0, math.pi / 2) -- a cylinder lying along x
+	Build.cylinder(0.06 * S, 2.25 * S, u(0, 2.1, 0) * across, C.wood, DECOR)
+	Build.cylinder(0.12 * S, 0.3 * S, u(0, 2.1, 0) * across, C.wood, DECOR)
+	Build.block(Vector3.new(0.08, 0.36, 0.08) * S, u(1.16, 1.96, 0), C.woodDark, DECOR)
+	Build.cylinder(0.04 * S, 0.22 * S, u(1.24, 1.8, 0) * across, C.woodDark, DECOR)
+	-- the rope, the bucket, and its handle: two little bars meeting over the middle
+	Build.cylinder(0.025 * S, 0.62 * S, u(0, 1.74, 0), Color3.fromHex("#d9c08f"), DECOR)
+	Build.cylinder(0.19 * S, 0.3 * S, u(0, 1.3, 0), Color3.fromHex("#5a8fae"), DECOR)
+	for _, side in { -1, 1 } do
+		Build.block(Vector3.new(0.03, 0.22, 0.03) * S, u(side * 0.09, 1.52, 0) * CFrame.Angles(0, 0, side * 0.95), C.woodDark, DECOR)
+	end
+	-- the gabled roof resting on the posts, with a ridge along the top and a trim at each eave
+	local run, rise = 1.35, 0.68
+	local length, tilt = math.sqrt(run * run + rise * rise) + 0.12, math.atan2(rise, run)
+	for _, side in { -1, 1 } do
+		Build.block(Vector3.new(length, 0.1, 1.3) * S, u(side * run / 2, 2.72 + rise / 2, 0) * CFrame.Angles(0, 0, -side * tilt), C.coral, DECOR)
+		Build.block(Vector3.new(0.06, 0.06, 1.3) * S, u(side * 1.4, 2.66, 0), Color3.fromHex("#c95a43"), DECOR)
+	end
+	Build.cylinder(0.08 * S, 1.4 * S, u(0, 2.72 + rise + 0.04, 0) * CFrame.Angles(math.pi / 2, 0, 0), Color3.fromHex("#c95a43"), DECOR)
 end
 
+-- A friendly capybara scarecrow, facing -Z: a shirt with dungarees over it, straw poking out
+-- of its sleeves, rosy cheeks and a proper straw hat. Only its post is solid.
 local function scarecrow(base: CFrame)
-	Build.cylinder(0.09 * S, 2.4 * S, base * CFrame.new(0, 1.2 * S, 0), C.woodDark)
-	Build.cylinder(0.05 * S, 2.0 * S, base * CFrame.new(0, 1.6 * S, 0) * CFrame.Angles(0, 0, math.pi / 2), C.woodDark, DECOR)
-	Build.blob(Vector3.new(0.9, 0.9, 0.6) * S, base * CFrame.new(0, 1.55 * S, 0), Color3.fromHex("#6f9fc8"), DECOR)
-	Build.blob(Vector3.new(0.7, 0.55, 0.85) * S, base * CFrame.new(0, 2.3 * S, -0.1 * S), Color3.fromHex("#c98b52"), DECOR)
-	Build.blob(Vector3.new(0.55, 0.42, 0.4) * S, base * CFrame.new(0, 2.24 * S, -0.42 * S), Color3.fromHex("#e8c49a"), DECOR)
-	Build.cylinder(0.75 * S, 0.05 * S, base * CFrame.new(0, 2.62 * S, 0), Color3.fromHex("#f2d48a"), DECOR)
-	Build.blob(Vector3.new(0.5, 0.3, 0.5) * S, base * CFrame.new(0, 2.75 * S, 0), Color3.fromHex("#f2d48a"), DECOR)
-	for _, side in { -1, 1 } do
-		Build.ball(0.1 * S, base * CFrame.new(side * 0.3 * S, 2.42 * S, -0.27 * S), C.ink, DECOR)
+	local function u(x: number, y: number, z: number): CFrame
+		return base * CFrame.new(x * S, y * S, z * S)
 	end
+	local STRAW = Color3.fromHex("#f2d48a")
+	local STRAW_DARK = Color3.fromHex("#e0b85c")
+	local SHIRT = Color3.fromHex("#f08f6e")
+	local DUNGAREES = Color3.fromHex("#6f9fc8")
+	local FUR = Color3.fromHex("#c98b52")
+	-- the post and the pole its arms hang on
+	Build.cylinder(0.09 * S, 2.4 * S, u(0, 1.2, 0), C.woodDark)
+	Build.cylinder(0.05 * S, 2.0 * S, u(0, 1.6, 0) * CFrame.Angles(0, 0, math.pi / 2), C.woodDark, DECOR)
+	-- the shirt and its sleeves, then the dungarees: trousers, a bib with two buttons, and straps
+	Build.blob(Vector3.new(0.85, 0.85, 0.6) * S, u(0, 1.6, 0), SHIRT, DECOR)
+	for _, side in { -1, 1 } do
+		Build.blob(Vector3.new(0.55, 0.3, 0.3) * S, u(side * 0.55, 1.6, 0), SHIRT, DECOR)
+	end
+	Build.blob(Vector3.new(0.92, 0.55, 0.64) * S, u(0, 1.38, 0), DUNGAREES, DECOR)
+	Build.block(Vector3.new(0.4, 0.3, 0.05) * S, u(0, 1.7, -0.29), DUNGAREES, DECOR)
+	for _, side in { -1, 1 } do
+		Build.block(Vector3.new(0.07, 0.24, 0.04) * S, u(side * 0.15, 1.92, -0.22) * CFrame.Angles(0.75, 0, 0), DUNGAREES, DECOR)
+		Build.ball(0.07 * S, u(side * 0.13, 1.8, -0.32), C.yellow, DECOR)
+	end
+	-- straw tufts poking out at each hand, fanned out
+	for _, side in { -1, 1 } do
+		for k = -1, 1 do
+			Build.blob(Vector3.new(0.34, 0.07, 0.07) * S, u(side * 0.95, 1.6 + k * 0.05, k * 0.04) * CFrame.Angles(0, 0, side * k * 0.45), if k == 0 then STRAW else STRAW_DARK, DECOR)
+		end
+	end
+	-- the head: fur, a snout with a little nose, eyes, ears and rosy cheeks
+	Build.blob(Vector3.new(0.7, 0.55, 0.85) * S, u(0, 2.3, -0.1), FUR, DECOR)
+	Build.blob(Vector3.new(0.55, 0.42, 0.4) * S, u(0, 2.24, -0.42), Color3.fromHex("#e8c49a"), DECOR)
+	Build.blob(Vector3.new(0.16, 0.07, 0.05) * S, u(0, 2.34, -0.6), Color3.fromHex("#6b4a36"), DECOR)
+	for _, side in { -1, 1 } do
+		Build.ball(0.11 * S, u(side * 0.3, 2.42, -0.27), C.ink, DECOR)
+		Build.blob(Vector3.new(0.14, 0.12, 0.08) * S, u(side * 0.26, 2.48, 0.05), FUR:Lerp(C.ink, 0.15), DECOR)
+		Build.blob(Vector3.new(0.06, 0.1, 0.13) * S, u(side * 0.29, 2.28, -0.34), Color3.fromHex("#f4a6a0"), DECOR)
+	end
+	-- the straw hat, tipped a little: a wide brim, a round crown and a coral band
+	local hat = u(0, 2.6, -0.05) * CFrame.Angles(-0.1, 0, 0.1)
+	Build.cylinder(0.72 * S, 0.05 * S, hat, STRAW, DECOR)
+	Build.cylinder(0.3 * S, 0.3 * S, hat * CFrame.new(0, 0.17 * S, 0), STRAW, DECOR)
+	Build.cylinder(0.31 * S, 0.08 * S, hat * CFrame.new(0, 0.07 * S, 0), C.coral, DECOR)
 end
 
 -- Builds the Garden. Call it while the town is being built (it goes in the town's folder).

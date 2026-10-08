@@ -1,6 +1,6 @@
 -- Builds a pet (a puppy, kitten or duckling) from a few simple parts, like the web game's
 -- pet.js, with no meshes: a round body and head, ears or wings, a snout or beak, eyes, legs,
--- a tail, a collar and maybe something on its head. About 15 parts.
+-- a tail, a collar and maybe something on its head. About 15 to 20 parts.
 --
 -- A pet is built facing -Z with its feet on the origin. Nothing in it collides, casts a
 -- shadow or is seen by raycasts, so it costs physics nothing. Its parts are only ever moved
@@ -81,6 +81,9 @@ function PetBuilder.build(look: Look): Pet
 	local function cylinder(group: string, r: number, h: number, cf: CFrame, c: Color3): BasePart
 		return add(group, Build.cylinder(r * S, h * S, cf, c, PROPS))
 	end
+	local function blockPart(group: string, size: Vector3, cf: CFrame, c: Color3): BasePart
+		return add(group, Build.block(size * S, cf, c, PROPS))
+	end
 
 	local pivots: { [string]: CFrame } = { body = CFrame.identity }
 	local head: BasePart
@@ -94,17 +97,28 @@ function PetBuilder.build(look: Look): Pet
 			end
 			ball("head", 0.09, h * at(0.06, 0.27, 0.02), Color3.fromHex("#d9604a"))
 		elseif id == "flower" then
-			blob("head", Vector3.new(0.2, 0.06, 0.2), h * at(-0.08, 0.28, 0), C.white)
-			ball("head", 0.09, h * at(-0.08, 0.31, 0), C.yellow)
+			-- five white petals round a yellow middle
+			for i = 0, 4 do
+				local a = i / 5 * math.pi * 2
+				ball("head", 0.1, h * at(-0.08 + math.sin(a) * 0.06, 0.28, math.cos(a) * 0.06), C.white)
+			end
+			ball("head", 0.09, h * at(-0.08, 0.3, 0), C.yellow)
 		elseif id == "party" then
-			cylinder("head", 0.09, 0.12, h * at(0.03, 0.31, 0), C.coral)
-			cylinder("head", 0.05, 0.12, h * at(0.03, 0.42, 0), C.coral)
-			ball("head", 0.09, h * at(0.03, 0.5, 0), C.yellow)
+			-- a cone in coral and white stripes, each narrower than the last, tipped a little,
+			-- with a yellow pompom on top
+			local cone = h * at(0.03, 0.27, 0) * CFrame.Angles(0, 0, -0.15)
+			for i = 0, 3 do
+				cylinder("head", 0.1 - i * 0.022, 0.065, cone * at(0, 0.033 + i * 0.062, 0), if i % 2 == 0 then C.coral else C.white)
+			end
+			ball("head", 0.09, cone * at(0, 0.27, 0), C.yellow)
 		elseif id == "crown" then
+			-- a gold band with five points standing up round it: each a little square turned on
+			-- its corner, its bottom half hidden in the band
 			cylinder("head", 0.1, 0.07, h * at(0, 0.29, 0), GOLD)
-			for i = 0, 2 do
-				local a = i / 3 * math.pi * 2
-				ball("head", 0.06, h * at(math.sin(a) * 0.08, 0.35, math.cos(a) * 0.08), GOLD)
+			for i = 0, 4 do
+				local a = i / 5 * math.pi * 2
+				local point = h * at(math.sin(a) * 0.082, 0.325, math.cos(a) * 0.082) * CFrame.Angles(0, -a, 0) * CFrame.Angles(0, 0, math.pi / 4)
+				blockPart("head", Vector3.new(0.075, 0.075, 0.025), point, GOLD)
 			end
 		end
 	end

@@ -1,6 +1,6 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
 -- coins, talking, the shops, "My things", homes, the goals, the daily present and request
--- board, pets, the Garden, and the animals' animation.
+-- board, pets, the Garden and its Garden Book, and the animals' animation.
 
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
@@ -32,6 +32,7 @@ local Prompts = require(script.Parent.Prompts)
 local Run = require(script.Parent.Run)
 local Talk = require(script.Parent.Talk)
 local Wardrobe = require(script.Parent.Wardrobe)
+local GardenBook = require(script.Parent.GardenBook)
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -72,6 +73,7 @@ Talk.start(function(shopId)
 end)
 Pets.start()
 Garden.start()
+GardenBook.start()
 Homes.start(Hud.toast)
 DailyPanel.start()
 
@@ -116,7 +118,7 @@ end
 
 local function chooseAnimal()
 	if HatShop.isOpen() or HomeDesigner.isOpen() or GoalsPanel.isOpen() or DailyPanel.isOpen() or PetShop.isOpen()
-		or Garden.isOpen() or Wardrobe.isOpen() then
+		or Garden.isOpen() or Wardrobe.isOpen() or GardenBook.isOpen() then
 		return
 	end
 	Hud.show(false)
@@ -141,7 +143,9 @@ end
 if not player:GetAttribute("Loaded") then
 	player:GetAttributeChangedSignal("Loaded"):Wait()
 end
-Hud.create(chooseAnimal, GoalsPanel.open, Wardrobe.open)
+Hud.create(GoalsPanel.open, function()
+	Wardrobe.open(chooseAnimal)
+end, GardenBook.open)
 local corner = Hud.corner()
 if corner then
 	GoalsPanel.start(corner)

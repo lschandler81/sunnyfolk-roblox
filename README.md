@@ -11,7 +11,7 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
   the roads (with a duck pond by Puddles' house), meadows full of trees and flowers, and gates
   on the roads to the places that come next.
 - **Choose your animal**: a capybara, bunny or guinea pig, its colours and a scarf. Change
-  any time with the **Change animal** button.
+  any time from **My things** (the **Change animal** button there).
 - **Walk around**: the animals waddle, breathe, look around and blink, just like in the web game.
 - **Three residents**: Clover the bunny (by her Hat Shop), Puddles the duck and Pebble the
   penguin. Walk up and press **Talk** to see what they say in a speech bubble. The first
@@ -80,7 +80,7 @@ src/server/             → ServerScriptService.Sunnyfolk
 src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Main.client.luau        starts everything on each player's computer
   Chooser.luau            the welcome screen (pick your animal)
-  Hud.luau                your coins, and the Goals and Change animal buttons
+  Hud.luau                your coins, and the Goals, My things and Garden Book buttons
   GoalsPanel.luau         the goal you're on, the arrow pointing the way, and the Goals screen
   Pets.luau               everyone's pets, walked along behind their owners on your screen
   PetShop.luau            the Pet Shop screen

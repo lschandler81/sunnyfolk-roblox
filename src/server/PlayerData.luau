@@ -1,10 +1,10 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
--- clothes, their pet, their home, their garden, the goals they've done (with the sunshine
--- they've earned), their daily present and today's requests.
+-- clothes, their pet, their home, their garden and Garden Book, the goals they've done (with
+-- the sunshine they've earned), their daily present and today's requests.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
--- HomeDesign, Garden, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests), which the game's
+-- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests), which the game's
 -- screens read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
@@ -34,11 +34,11 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 8 -- the save version this code writes (see migrate)
+local VERSION = 9 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
 	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden",
-	"goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests",
+	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -71,6 +71,9 @@ export type Data = {
 	-- clock, os.time), or nil while it waits for water. See Config.gardenState. `quick` is their
 	-- very first crop, whose stages take Config.GARDEN.FIRST_STAGE.
 	garden: { Bed },
+	-- the Garden Book: how many of each crop they've picked (Config.GARDEN.ORDER), and whether
+	-- they've had their first pick. Its stickers come from these (Config.bookStickers).
+	gardenBook: { picked: { [string]: number }, first: boolean },
 	goalsDone: { string }, -- the ids of the goals they've done (see shared/Goals)
 	adventure: string?, -- the Adventure they've chosen to do next, if any
 	goalMet: { string }, -- for a "say hello" goal, who they've said hello to so far
@@ -95,6 +98,12 @@ type Profile = {
 }
 
 local PlayerData = {}
+
+-- What a player has unlocked for their house (Houses.allowed): the sunflower garden, once
+-- their Garden Book is full.
+function PlayerData.unlocks(data: Data): Houses.Unlocks
+	return { gardenBook = Config.bookFull(data.gardenBook) }
+end
 
 local store: DataStore? = nil
 local profiles: { [Player]: Profile } = {}
@@ -125,6 +134,7 @@ local function blank(): Data
 		petGear = {},
 		home = nil,
 		garden = emptyGarden(),
+		gardenBook = { picked = {}, first = false },
 		goalsDone = {},
 		adventure = nil,
 		goalMet = {},
@@ -206,6 +216,14 @@ local function migrate(saved: any): any
 		saved.requests = nil
 		version = 8
 	end
+	if version < 9 then
+		-- Version 9 added the Garden Book. Nobody's picks were counted before, so it starts
+		-- empty, except that anyone who'd already picked something (they'd done the "harvest"
+		-- goal) has the first-pick sticker.
+		local done = if typeof(saved.goalsDone) == "table" then saved.goalsDone else {}
+		saved.gardenBook = { picked = {}, first = table.find(done, "harvest") ~= nil }
+		version = 9
+	end
 	saved.version = version
 	return saved
 end
@@ -285,8 +303,21 @@ local function tidy(saved: any): Data
 			scarf = math.clamp(count(look.scarf) or 1, 1, #Looks.scarves()),
 		}
 	end
+	-- the Garden Book: a count for each crop there is, and the first pick (which any count means)
+	local book = saved.gardenBook
+	if typeof(book) == "table" then
+		for _, crop in Config.GARDEN.ORDER do
+			local picked = typeof(book.picked) == "table" and count(book.picked[crop]) or 0
+			if picked > 0 then
+				data.gardenBook.picked[crop] = picked
+				data.gardenBook.first = true
+			end
+		end
+		data.gardenBook.first = data.gardenBook.first or book.first == true
+	end
 	local home = saved.home
-	local design = typeof(home) == "table" and Houses.check(home.design)
+	-- (a garden from a full Garden Book stays only while the book is full, which it always is)
+	local design = typeof(home) == "table" and Houses.check(home.design, PlayerData.unlocks(data))
 	if design then
 		local plot = math.clamp(count(home.plot) or 1, 1, Config.HOME.plots)
 		data.home = { design = design, plot = plot }
@@ -363,6 +394,7 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Pet", if data.pet then HttpService:JSONEncode(data.pet) else nil)
 	player:SetAttribute("PetGear", table.concat(data.petGear, ","))
 	player:SetAttribute("Garden", HttpService:JSONEncode(data.garden))
+	player:SetAttribute("GardenBook", HttpService:JSONEncode(data.gardenBook))
 	player:SetAttribute("Look", if data.look then HttpService:JSONEncode(data.look) else nil)
 	player:SetAttribute("HomeDesign", if data.home then HttpService:JSONEncode(data.home.design) else nil)
 	local goal = GoalList.current(data.goalsDone, data.adventure)

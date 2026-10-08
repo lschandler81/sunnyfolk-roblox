@@ -1,7 +1,8 @@
 -- The screen for designing your house: pick its shape, colours, garden and whether it has a
 -- sign with your name, and see it change as you go. Opens when you move into a free plot,
 -- or from "Change my home" at your own house. With a controller, the ring starts on the
--- build button, and B is "Not now".
+-- build button, and B is "Not now". Choices you have to unlock (the sunflower garden, for a
+-- full Garden Book) only show once you have; the server checks that too.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -10,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Build = require(Shared.Build)
+local Config = require(Shared.Config)
 local Houses = require(Shared.Houses)
 local Controls = require(script.Parent.Controls)
 local Ui = require(script.Parent.Ui)
@@ -21,6 +23,19 @@ local HomeDesigner = {}
 
 local screen: ScreenGui? = nil
 
+-- What you've unlocked for your house (as the server works it out, PlayerData.unlocks).
+local function myUnlocks(): Houses.Unlocks
+	local book = nil
+	local saved = player:GetAttribute("GardenBook")
+	if typeof(saved) == "string" then
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(saved)
+		end)
+		book = if ok then decoded else nil
+	end
+	return { gardenBook = Config.bookFull(book) }
+end
+
 -- The design they saved last time, or the starting one.
 local function savedDesign(): Houses.Design
 	local saved = player:GetAttribute("HomeDesign")
@@ -28,7 +43,7 @@ local function savedDesign(): Houses.Design
 		local ok, design = pcall(function()
 			return HttpService:JSONDecode(saved)
 		end)
-		local checked = ok and Houses.check(design)
+		local checked = ok and Houses.check(design, myUnlocks())
 		if checked then
 			return checked
 		end
@@ -153,6 +168,9 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 	-- a row of word buttons, one of which is picked
 	local function words(name: string, order: number, options: { { label: string, pick: () -> (), picked: () -> boolean } })
 		local holder = row(name, order)
+		-- (four choices are a tight fit, so their buttons have slimmer sides and smaller words)
+		local side = if #options > 3 then 6 else 8
+		local size = if #options > 3 then 14 else 15
 		for _, option in options do
 			local button = Ui.button(option.label, Ui.colors.cream, function()
 				option.pick()
@@ -160,10 +178,10 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 			end, {
 				Size = UDim2.fromOffset(0, Ui.TOUCH),
 				AutomaticSize = Enum.AutomaticSize.X,
-				TextSize = 15,
+				TextSize = size,
 				Parent = holder,
 			})
-			Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = button })
+			Ui.new("UIPadding", { PaddingLeft = UDim.new(0, side), PaddingRight = UDim.new(0, side), Parent = button })
 			table.insert(updaters, function()
 				button.BackgroundColor3 = if option.picked() then Ui.colors.yellow else Ui.colors.cream
 			end)
@@ -211,7 +229,11 @@ function HomeDesigner.open(plotIndex: number?, onDone: (string) -> ())
 	swatches("Roof", 3, Houses.ROOFS, "roof")
 	swatches("Door", 4, Houses.DOORS, "door")
 	local gardens = {}
+	local unlocks = myUnlocks()
 	for _, option in Houses.GARDENS do
+		if not Houses.allowed(option, unlocks) then
+			continue
+		end
 		table.insert(gardens, {
 			label = option.name,
 			pick = function()

@@ -1,5 +1,6 @@
--- What's always on screen while you play: a row along the top right (the Goals and "Change
--- animal" buttons, and your coins in the corner), room under it for the goal you're on
+-- What's always on screen while you play: a row along the top right (the Goals and "My
+-- things" buttons, the Garden Book's round button, and your coins in the corner), room under
+-- it for the goal you're on
 -- (client/GoalsPanel), a nudge to find a home once the goals are done, and friendly pop-up
 -- messages.
 -- With a controller, D-pad right puts the ring on the buttons here (A presses, B goes back
@@ -29,7 +30,7 @@ local toastHome: Instance? = nil -- the HUD's screen, where the message sits on 
 local toastPadding: UIPadding? = nil
 local toastUntil = 0
 
-function Hud.create(onChangeAnimal: () -> (), onGoals: () -> (), onMyThings: () -> ())
+function Hud.create(onGoals: () -> (), onMyThings: () -> (), onBook: () -> ())
 	local gui = Ui.screen("Hud", 5)
 	-- Roblox's own buttons are only at the top left, so the HUD can sit right up in the top
 	-- right corner, level with them (still clear of a phone's notch and rounded corners).
@@ -52,8 +53,8 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> (), onMyThings: () 
 		}),
 	})
 
-	-- one row along the top: the Goals, "My things" and "Change animal" buttons, then your
-	-- coins in the corner
+	-- one row along the top: the Goals and "My things" buttons and the Garden Book's round
+	-- button, then your coins in the corner
 	local top = Ui.new("Frame", {
 		Size = UDim2.fromOffset(0, Ui.TOUCH),
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -127,8 +128,9 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> (), onMyThings: () 
 		end
 	end
 
-	-- the Goals, "My things" and "Change animal" buttons, along the top beside the coins
-	-- (each just wide enough for its words, so the row stays clear of Roblox's buttons)
+	-- the Goals and "My things" buttons, along the top beside the coins (each just wide enough
+	-- for its words, so the row stays clear of Roblox's buttons). "Change animal" is inside
+	-- My things.
 	local buttons = top
 	local goals = Ui.button("Goals", Ui.colors.yellow, function()
 		ringOff()
@@ -148,31 +150,47 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> (), onMyThings: () 
 		LayoutOrder = 2,
 		Parent = buttons,
 	})
-	local changeAnimal = Ui.button("Change animal", Ui.colors.cream, function()
+	-- the Garden Book: a round button with a little green book on it (a sunflower on its
+	-- cover), so it needs no words. It shows once the Garden is open.
+	local bookButton = Ui.button("", Ui.colors.cream, function()
 		ringOff()
-		onChangeAnimal()
+		onBook()
 	end, {
-		Size = UDim2.fromOffset(150, Ui.TOUCH),
-		TextSize = 17,
+		Size = UDim2.fromOffset(Ui.TOUCH, Ui.TOUCH),
 		LayoutOrder = 3,
+		Visible = false,
 		Parent = buttons,
 	})
-	-- on a narrow screen, a shorter word, so the row stays clear of Roblox's buttons (the
-	-- buttons stay full height for small fingers). The HUD is drawn bigger on taller screens
-	-- and TVs (its UIScale), so the space is measured in HUD-sized pixels.
-	local hudScale = corner:FindFirstChildOfClass("UIScale")
-	local function fitRow()
-		local scale = if hudScale then hudScale.Scale else 1
-		local room = gui.AbsoluteSize.X / scale
-		local narrow = room > 0 and room < Config.UI.HUD_NARROW
-		changeAnimal.Text = if narrow then "Animal" else "Change animal"
-		changeAnimal.Size = UDim2.fromOffset(if narrow then 96 else 150, Ui.TOUCH)
+	local round = bookButton:FindFirstChildOfClass("UICorner")
+	if round then
+		round.CornerRadius = UDim.new(1, 0)
 	end
-	fitRow()
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitRow)
-	if hudScale then
-		hudScale:GetPropertyChangedSignal("Scale"):Connect(fitRow)
+	local cover = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(22, 26),
+		BackgroundColor3 = Ui.colors.leaf,
+		Parent = bookButton,
+	}, { Ui.corner(4), Ui.stroke(2) })
+	Ui.new("Frame", { -- the pages, peeping out down the side
+		Position = UDim2.new(1, -5, 0, 3),
+		Size = UDim2.new(0, 3, 1, -6),
+		BackgroundColor3 = Ui.colors.paper,
+		BorderSizePixel = 0,
+		Parent = cover,
+	})
+	Ui.new("Frame", { -- the sunflower on the cover
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.42, 0.5),
+		Size = UDim2.fromOffset(11, 11),
+		BackgroundColor3 = Ui.colors.yellow,
+		Parent = cover,
+	}, { Ui.round(), Ui.stroke(1.5, Color3.fromHex("#7a4a26")) })
+	local function showBook()
+		bookButton.Visible = GoalList.gardenOpen(GoalList.fromAttribute(player:GetAttribute("GoalsDone")))
 	end
+	player:GetAttributeChangedSignal("GoalsDone"):Connect(showBook)
+	showBook()
 	-- with a controller, the D-pad picture beside them says how to get there
 	local padHint = Ui.new("ImageLabel", {
 		AnchorPoint = Vector2.new(1, 0.5),

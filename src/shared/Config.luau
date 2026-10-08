@@ -152,6 +152,32 @@ Config.GARDEN = {
 	},
 }
 
+-- The Garden Book (client/GardenBook): a sticker for your first pick, and one for each crop
+-- the first time you pick it. The server counts every pick (server/places/Garden). Filling
+-- the book unlocks the sunflower front garden for your home (Houses.GARDENS).
+Config.GARDEN_BOOK = { "first", "sunflower", "carrot", "strawberry", "pumpkin" }
+
+-- Which stickers a Garden Book (as saved: { picked = { crop = count }, first = true }) has.
+function Config.bookStickers(book: any): { [string]: boolean }
+	local picked = if typeof(book) == "table" and typeof(book.picked) == "table" then book.picked else {}
+	local got = { first = typeof(book) == "table" and book.first == true }
+	for _, crop in Config.GARDEN.ORDER do
+		got[crop] = typeof(picked[crop]) == "number" and picked[crop] > 0
+	end
+	return got
+end
+
+-- Is every sticker in the book?
+function Config.bookFull(book: any): boolean
+	local got = Config.bookStickers(book)
+	for _, id in Config.GARDEN_BOOK do
+		if not got[id] then
+			return false
+		end
+	end
+	return true
+end
+
 -- The Garden's middle, on the ground, with +Z pointing back along the road to town.
 function Config.gardenFrame(): CFrame
 	local G = Config.GARDEN
@@ -490,10 +516,6 @@ Config.UI = {
 	MESSAGE_SECONDS = 3,
 	MESSAGE_LETTER = 0.07,
 	MESSAGE_MAX = 10,
-	-- A screen narrower than this has "Animal" on the HUD's "Change animal" button, so the row
-	-- of buttons stays clear of Roblox's own buttons on the left. (In HUD-sized pixels: on a
-	-- taller screen or a TV, where the HUD is drawn bigger, it counts as that much narrower.)
-	HUD_NARROW = 700,
 	-- How far the picture of you turns (degrees) to show something worn on your back (the shops
 	-- and "My things"): three-quarters round, so you see your face too.
 	SHOW_BACK_TURN = 150,

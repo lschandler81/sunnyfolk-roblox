@@ -1,5 +1,6 @@
--- "My things": everything you own, to wear from anywhere in town, opened from the HUD's
--- "My things" button. Your hats, then your clothes by where they go (round your neck, on your
+-- "My things": you and everything you own, opened from the HUD's "My things" button. Its
+-- "Change animal" button closes it and opens the welcome screen to pick your animal again.
+-- Your hats, then your clothes by where they go (round your neck, on your
 -- body, on your back). Tap a thing to put it on, and tap it again to take it off. The
 -- picture of you turns round to show a backpack. It asks the server with the same Wear remote
 -- as the shops (server/HatShop checks you own it, and how often you ask), so nothing new is
@@ -31,7 +32,8 @@ function Wardrobe.isOpen(): boolean
 	return screen ~= nil
 end
 
-function Wardrobe.open()
+-- `changeAnimal()` opens the welcome screen (once this has closed).
+function Wardrobe.open(changeAnimal: () -> ())
 	if screen or Ui.openScreens > 0 then
 		return -- not on top of another screen
 	end
@@ -79,6 +81,16 @@ function Wardrobe.open()
 		Position = UDim2.new(1, -8, 0, 8),
 		Size = UDim2.fromOffset(84, Ui.TOUCH),
 		TextSize = 20,
+		Parent = card,
+	})
+	local animalButton = Ui.button("Change animal", Ui.colors.yellow, function()
+		close()
+		changeAnimal()
+	end, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -100, 0, 8),
+		Size = UDim2.fromOffset(150, Ui.TOUCH),
+		TextSize = 17,
 		Parent = card,
 	})
 	local note = Ui.text({
@@ -224,7 +236,7 @@ function Wardrobe.open()
 	end
 	refresh()
 
-	Ui.controller(gui, card, first or closeButton, close)
+	Ui.controller(gui, card, first or animalButton, close)
 end
 
 return Wardrobe

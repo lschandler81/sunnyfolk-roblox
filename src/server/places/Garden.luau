@@ -1,7 +1,8 @@
 -- Fern's Garden, at the end of the Garden road (Config.GARDEN), from the web game's garden.
 --
 --   * Garden.build() makes the place itself, once, when the town is built: a clearing with
---     Fern's shed, six bed edges, a stone well, a scarecrow, trees, lamps and flowers. The soil and
+--     Fern's shed (with a "Garden Book" button at its door, client/GardenBook), six bed edges,
+--     a stone well, a scarecrow, trees, lamps and flowers. The soil and
 --     whatever's growing are drawn by each player's own screen (client/Garden), from their own
 --     save, so everyone has their own six beds and the server makes nothing per player.
 --   * Garden.start() checks every plant, water and harvest (the GardenAction remote). Crops
@@ -11,6 +12,9 @@
 --     first seeds" is their goal is their quick first crop: each stage takes
 --     Config.GARDEN.FIRST_STAGE, so the whole plant, water, grow, pick loop fits in their
 --     first couple of minutes.
+--
+-- Every harvest is counted in the player's Garden Book (their stickers come from the counts,
+-- Config.bookStickers); their screen sees the change and celebrates a new sticker.
 --
 -- GardenAction(what, bed, crop): what is "plant" (with a crop id), "water" or "harvest"; bed
 -- is 1 to 6. Returns (true, coins) for a harvest, (true, seconds it'll grow) for watering,
@@ -168,6 +172,18 @@ function Garden.build()
 		chimney = false,
 		yard = false,
 	})
+	-- the Garden Book's button, at the shed door (the shed's front faces the way in, +Z)
+	local door = Build.block(Vector3.new(3, 3, 1), at(-11, -15.5 + 2.9) * CFrame.new(0, 1.6, 0), C.wood,
+		{ Name = "GardenBookSpot", Transparency = 1, CanCollide = false, CanQuery = false })
+	local book = Instance.new("ProximityPrompt")
+	book.Name = "GardenBook"
+	book.ActionText = "Garden Book"
+	book.ObjectText = "Fern's shed"
+	book.HoldDuration = 0
+	book.MaxActivationDistance = 12
+	book.RequiresLineOfSight = false
+	book.Style = Enum.ProximityPromptStyle.Custom -- shown at the bottom of the screen (client/Prompts)
+	book.Parent = door
 	well(at(11, -14))
 	scarecrow(at(12.5, 9, -0.5))
 
@@ -255,6 +271,9 @@ local function action(player: Player, what: any, bed: any, crop: any): (boolean,
 			d.garden[bed] = { crop = nil, stage = 0, readyAt = nil }
 			d.coins += info.coins
 			balance = d.coins
+			-- counted in the Garden Book
+			d.gardenBook.picked[plot.crop] = (d.gardenBook.picked[plot.crop] or 0) + 1
+			d.gardenBook.first = true
 		end)
 		if not balance then
 			return false, "Something went wrong. Please try again."

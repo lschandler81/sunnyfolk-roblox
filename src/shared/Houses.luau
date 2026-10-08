@@ -16,7 +16,8 @@ local block, cylinder, disc, ball, blob = Build.block, Build.cylinder, Build.dis
 
 local Houses = {}
 
-export type Option = { id: string, name: string, color: string? }
+-- `needs`: something the player must have unlocked first (see Houses.check).
+export type Option = { id: string, name: string, color: string?, needs: string? }
 export type Design = {
 	shape: string,
 	wall: string,
@@ -55,9 +56,19 @@ Houses.DOORS = {
 
 Houses.GARDENS = {
 	{ id = "flowers", name = "Flowers" },
-	{ id = "veg", name = "Vegetables" },
-	{ id = "pond", name = "Little pond" },
+	{ id = "veg", name = "Veggies" },
+	{ id = "pond", name = "Pond" },
+	-- for filling the Garden Book (Config.bookFull)
+	{ id = "sunflowers", name = "Sunflowers", needs = "gardenBook" },
 } :: { Option }
+
+-- What a player has unlocked, for choices with `needs` (like { gardenBook = true }).
+export type Unlocks = { [string]: boolean }
+
+-- Can a player with `unlocks` have this choice?
+function Houses.allowed(option: Option, unlocks: Unlocks?): boolean
+	return option.needs == nil or (unlocks ~= nil and unlocks[option.needs] == true)
+end
 
 Houses.DEFAULT = { shape = "cottage", wall = "cream", roof = "teal", door = "coral", garden = "flowers", sign = true } :: Design
 
@@ -71,8 +82,9 @@ local function find(list: { Option }, id: any): Option?
 end
 Houses.find = find
 
--- A tidy copy of a design, or nil if anything in it isn't one of the choices.
-function Houses.check(design: any): Design?
+-- A tidy copy of a design, or nil if anything in it isn't one of the choices, or is one the
+-- player hasn't unlocked (`unlocks`, see Houses.allowed).
+function Houses.check(design: any, unlocks: Unlocks?): Design?
 	if typeof(design) ~= "table" then
 		return nil
 	end
@@ -84,8 +96,9 @@ function Houses.check(design: any): Design?
 		garden = design.garden,
 		sign = design.sign == true,
 	}
+	local garden = find(Houses.GARDENS, checked.garden)
 	if find(Houses.SHAPES, checked.shape) and find(Houses.WALLS, checked.wall) and find(Houses.ROOFS, checked.roof)
-		and find(Houses.DOORS, checked.door) and find(Houses.GARDENS, checked.garden)
+		and find(Houses.DOORS, checked.door) and garden and Houses.allowed(garden, unlocks)
 	then
 		return checked
 	end
@@ -136,11 +149,29 @@ end
 
 ---------------------------------------------------------------- gardens
 
+-- A sunflower, its face turned to the front (+Z) and tipped up a little: a stalk, two leaves,
+-- yellow petals round a brown middle. `h` is its height (web units).
+local function sunflower(at: CFrame, h: number)
+	cylinder(0.05 * S, h * S, at * CFrame.new(0, h / 2 * S, 0), C.leafDark, DECOR)
+	for _, side in { -1, 1 } do
+		blob(Vector3.new(0.4, 0.06, 0.22) * S, at * CFrame.new(side * 0.2 * S, h * 0.45 * S, 0) * CFrame.Angles(0, 0, side * 0.4), C.leaf, DECOR)
+	end
+	local face = at * CFrame.new(0, h * S, 0.04 * S) * CFrame.Angles(-0.35, 0, 0)
+	disc(0.42 * S, 0.06 * S, face, C.yellow, DECOR)
+	disc(0.2 * S, 0.1 * S, face * CFrame.new(0, 0, 0.02 * S), Color3.fromHex("#7a4a26"), DECOR)
+end
+
 -- Two beds either side of the path to the door.
 local function garden(kind: string, at: CFrame)
 	for _, side in { -1, 1 } do
 		local bed = at * CFrame.new(side * 1.8 * S, 0, 5.2 * S)
-		if kind == "flowers" then
+		if kind == "sunflowers" then
+			-- a row of tall sunflowers in each bed, the middle one tallest
+			block(Vector3.new(1.6, 0.2, 3.0) * S, bed * CFrame.new(0, 0.1 * S, 0), C.soil)
+			for row = -1, 1 do
+				sunflower(bed * CFrame.new(0, 0.2 * S, row * 0.95 * S), if row == 0 then 2.3 else 1.9)
+			end
+		elseif kind == "flowers" then
 			Build.planter(bed * CFrame.Angles(0, math.pi / 2, 0), 3.0, 1.5)
 		elseif kind == "veg" then
 			block(Vector3.new(1.6, 0.2, 3.0) * S, bed * CFrame.new(0, 0.1 * S, 0), C.soil)

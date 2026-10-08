@@ -167,8 +167,10 @@ function Homes.start(plotFrames: { CFrame })
 		if os.clock() - (lastBuilt[player] or 0) < 2 then
 			return false, "Just a moment!"
 		end
-		local checked = Houses.check(design)
-		if not (checked and PlayerData.get(player)) then
+		local data = PlayerData.get(player)
+		-- (only choices they've unlocked, like the sunflower garden for a full Garden Book)
+		local checked = data and Houses.check(design, PlayerData.unlocks(data))
+		if not (checked and data) then
 			return false, "Something went wrong. Please try again."
 		end
 		local index = plotOf[player]

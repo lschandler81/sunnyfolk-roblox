@@ -283,6 +283,14 @@ local function plant(crop: string, stage: number, at: CFrame, n: number)
 	end
 end
 
+-- One ripe plant of `crop` on its own, standing at the origin, for the Garden Book's stickers.
+function Garden.ripeModel(crop: string): Model
+	local model = Instance.new("Model")
+	Build.into(model)
+	plant(crop, G.STAGES, CFrame.identity, 1)
+	return model
+end
+
 -- Draws bed `i` afresh: its soil and what's growing in it.
 local function drawBed(model: Model, i: number, crop: string?, stage: number, watered: boolean)
 	model:ClearAllChildren()

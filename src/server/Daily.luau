@@ -2,7 +2,9 @@
 --
 --   * The present: the first time a player is here on a new day (by the server's clock, in
 --     UTC), they get the next day's present of seven: coins, and on day 7 a hat too. Missing a
---     day doesn't start them again.
+--     day doesn't start them again. A new player's very first present waits until they've
+--     finished the First Story (shared/Goals), so it's a reward for that rather than one more
+--     thing on their first screen.
 --   * The request board: three requests a day, the same for everyone, picked by the day's
 --     number (Config.requestsFor). The server watches for each one itself (through
 --     Goals.onEvent, and a once-a-second check for "visit" requests) and pays its coins once.
@@ -22,6 +24,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
+local GoalList = require(Shared.Goals)
 local Looks = require(Shared.Looks)
 local Analytics = require(script.Parent.Analytics)
 local Goals = require(script.Parent.Goals)
@@ -77,7 +80,9 @@ local function newDay(player: Player)
 	local present: { day: number, coins: number, hat: string? }? = nil
 	local round, balance = 0, 0
 	PlayerData.update(player, function(data)
-		if today > data.daily.last then
+		-- (only new players: old saves from before presents existed have no streak either)
+		local waiting = data.newStory and data.daily.streak == 0 and not GoalList.storyDone(data.goalsDone)
+		if today > data.daily.last and not waiting then
 			local day = data.daily.streak % #Config.DAILY.COINS + 1
 			if day == 1 then
 				data.daily.start = today
@@ -170,6 +175,7 @@ end
 function Daily.start()
 	PlayerData.onLoaded(newDay)
 	Goals.onEvent(heard)
+	Goals.onStoryDone(newDay) -- a new player's first present
 
 	-- A new day starting while people play.
 	task.spawn(function()
@@ -178,6 +184,7 @@ function Daily.start()
 			for _, player in Players:GetPlayers() do
 				local data = PlayerData.get(player)
 				if data and (Daily.today() > data.daily.last or Daily.today() > data.requests.day) then
+					-- (for someone whose first present is waiting, this only starts new requests)
 					newDay(player)
 				end
 			end

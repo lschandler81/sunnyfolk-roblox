@@ -1,6 +1,8 @@
 -- Talking to the residents: press Talk (E, or tap) and they say something in a speech
 -- bubble, nodding along. The first time each visit they say hello to you by name and wave.
--- Also puts a name tag over every animal (other than you).
+-- On a phone on its side, what they say shows in a card at the top left instead (Ui.messages),
+-- clear of the HUD and the buttons.
+-- Also puts a name tag over every animal (other than you), just above its ears or hat.
 --
 -- Their lines are in assets/characters/sunnyfolk.json. Only the person talking sees the
 -- bubble, so nobody's chat gets in anyone else's way.
@@ -22,12 +24,21 @@ local player = Players.LocalPlayer
 
 local Talk = {}
 
-local TAG_HEIGHT = 5 -- studs above the middle of the animal (clear of tall hats)
+local TAG_HEIGHT = 5 -- studs above the middle of the animal, at least
+local TAG_GAP = 1 -- studs between the top of the animal (ears, hat) and its name tag
 local WALK_AWAY = 24 -- the bubble goes when you're this far away
 
 ---------------------------------------------------------------- name tags
 
 local tags: { [Model]: BillboardGui } = {}
+
+-- How high over its middle (studs) an animal's name tag and speech bubble go: just above
+-- the top of it, so a bunny's ears or a tall hat never poke through.
+local function tagHeight(model: Model, root: BasePart): number
+	local box, size = model:GetBoundingBox()
+	local top = box.Position.Y + size.Y / 2 - root.Position.Y
+	return math.max(TAG_HEIGHT, top + TAG_GAP)
+end
 
 local function addTag(model: Model)
 	if tags[model] then
@@ -42,7 +53,7 @@ local function addTag(model: Model)
 	local tag = Ui.new("BillboardGui", {
 		Name = "NameTag",
 		Adornee = root,
-		StudsOffsetWorldSpace = Vector3.new(0, TAG_HEIGHT, 0),
+		StudsOffsetWorldSpace = Vector3.new(0, tagHeight(model, root :: BasePart), 0),
 		Size = UDim2.fromOffset(200, 34),
 		MaxDistance = 70,
 		LightInfluence = 0,
@@ -70,11 +81,24 @@ local function addTag(model: Model)
 		}),
 	})
 	tags[model] = tag
+	-- a hat put on (or taken off) later changes how tall it is: lift the tag again once the
+	-- hat's parts have arrived
+	local function lift()
+		if tag.Parent then
+			tag.StudsOffsetWorldSpace = Vector3.new(0, tagHeight(model, root :: BasePart), 0)
+		end
+	end
+	model.ChildAdded:Connect(function()
+		task.delay(0.5, lift)
+	end)
+	model.ChildRemoved:Connect(function()
+		task.delay(0.5, lift)
+	end)
 end
 
 ---------------------------------------------------------------- speech bubbles
 
-local bubble: BillboardGui? = nil
+local bubble: Instance? = nil -- the bubble over their head, or the card on a phone
 local speaker: Model? = nil
 local bubbleEnds = 0
 local lineNumber: { [string]: number } = {}
@@ -97,12 +121,12 @@ local function say(model: Model, who: string, text: string)
 	if not root then
 		return
 	end
-	-- smaller on a phone, so it doesn't cover the buttons
+	-- On a phone on its side, a card at the top left (under Roblox's buttons, left of the HUD)
 	local small = Ui.shortScreen()
 	local card = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(if small then 230 else 300, 0),
+		Size = UDim2.fromOffset(300, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = Ui.colors.paper,
 		ZIndex = 2,
@@ -118,7 +142,7 @@ local function say(model: Model, who: string, text: string)
 		Ui.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }),
 		Ui.text({
 			Text = who,
-			TextSize = if small then 15 else 17,
+			TextSize = if small then 16 else 17,
 			TextColor3 = Ui.colors.coral,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Size = UDim2.new(1, 0, 0, 20),
@@ -144,16 +168,29 @@ local function say(model: Model, who: string, text: string)
 		BackgroundColor3 = Ui.colors.paper,
 		ZIndex = 1,
 	}, { Ui.stroke(3) })
-	bubble = Ui.new("BillboardGui", {
-		Name = "SpeechBubble",
-		Adornee = root,
-		StudsOffsetWorldSpace = Vector3.new(0, TAG_HEIGHT - 0.4, 0),
-		Size = if small then UDim2.fromOffset(250, 210) else UDim2.fromOffset(320, 260),
-		SizeOffset = Vector2.new(0, 0.5),
-		AlwaysOnTop = true,
-		LightInfluence = 0,
-		Parent = player:WaitForChild("PlayerGui"),
-	}, { tail, card })
+	if small then
+		-- (first in the column, above any big message)
+		card.AnchorPoint = Vector2.zero
+		card.Position = UDim2.new()
+		card.Size = UDim2.fromScale(1, 0)
+		card.LayoutOrder = 1
+		card.Parent = Ui.messages()
+		tail:Destroy()
+		bubble = card
+	else
+		bubble = Ui.new("BillboardGui", {
+			Name = "SpeechBubble",
+			Adornee = root,
+			-- (the name tag's height, measured before any wave or nod)
+			StudsOffsetWorldSpace = Vector3.new(0, (if tags[model] then tags[model].StudsOffsetWorldSpace.Y
+				else tagHeight(model, root :: BasePart)) - 0.4, 0),
+			Size = UDim2.fromOffset(320, 260),
+			SizeOffset = Vector2.new(0, 0.5),
+			AlwaysOnTop = true,
+			LightInfluence = 0,
+			Parent = player:WaitForChild("PlayerGui"),
+		}, { tail, card })
+	end
 	speaker = model
 	if tags[model] then
 		tags[model].Enabled = false

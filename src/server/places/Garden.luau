@@ -6,16 +6,23 @@
 --     save, so everyone has their own six beds and the server makes nothing per player.
 --   * Garden.start() checks every plant, water and harvest (the GardenAction remote). Crops
 --     grow by the server's clock (os.time), so they carry on while the player's away; each
---     stage needs watering first. Only players with Config.GARDEN.SUN sunshine may garden.
+--     stage needs watering first. The Garden opens once a player has said hello to Clover
+--     (the First Story's first goal, shared/Goals). Whatever they plant while "Plant your
+--     first seeds" is their goal is their quick first crop: each stage takes
+--     Config.GARDEN.FIRST_STAGE, so the whole plant, water, grow, pick loop fits in their
+--     first couple of minutes.
 --
 -- GardenAction(what, bed, crop): what is "plant" (with a crop id), "water" or "harvest"; bed
--- is 1 to 6. Returns (true, coins) or (false, "a kind message").
+-- is 1 to 6. Returns (true, coins) for a harvest, (true, seconds it'll grow) for watering,
+-- (true, 0) for planting, or (false, "a kind message").
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Build = require(Shared.Build)
 local Config = require(Shared.Config)
+local GoalList = require(Shared.Goals)
 local Analytics = require(script.Parent.Parent.Analytics)
 local Goals = require(script.Parent.Parent.Goals)
 local PlayerData = require(script.Parent.Parent.PlayerData)
@@ -27,6 +34,7 @@ local G = Config.GARDEN
 local C = Build.C
 local S = Config.STUDS
 local DECOR = Build.DECOR
+local FAST_TEST = G.STUDIO_FAST and RunService:IsStudio() -- every crop quick, for testing
 
 local Garden = {}
 
@@ -199,8 +207,8 @@ local function action(player: Player, what: any, bed: any, crop: any): (boolean,
 	if not data then
 		return false, "Just a moment!"
 	end
-	if data.sun < G.SUN then
-		return false, `The Garden opens with {G.SUN} sunshine.`
+	if not GoalList.gardenOpen(data.goalsDone) then
+		return false, "Say hello to Clover first!"
 	end
 	if typeof(bed) ~= "number" or bed ~= bed or bed % 1 ~= 0 or bed < 1 or bed > #G.BEDS then
 		return false, "Something went wrong. Please try again."
@@ -221,19 +229,22 @@ local function action(player: Player, what: any, bed: any, crop: any): (boolean,
 			return false, "Something's already growing there."
 		end
 		PlayerData.update(player, function(d)
-			d.garden[bed] = { crop = crop, stage = 0, readyAt = nil }
+			-- their very first crop, planted while that's their goal, grows fast
+			local quick = not table.find(d.goalsDone, "plant")
+			d.garden[bed] = { crop = crop, stage = 0, readyAt = nil, quick = if quick then true else nil }
 		end)
+		Goals.event(player, "plant", crop)
 		return true, 0
 	elseif what == "water" then
 		if not thirsty then
 			return false, "It doesn't need water just now."
 		end
-		local info = G.CROPS[plot.crop]
+		local grow = if plot.quick or FAST_TEST then G.FIRST_STAGE else G.CROPS[plot.crop].stage
 		PlayerData.update(player, function(d)
 			-- (the stage it's reached, now watered and growing on)
-			d.garden[bed] = { crop = plot.crop, stage = stage, readyAt = now + info.stage }
+			d.garden[bed] = { crop = plot.crop, stage = stage, readyAt = now + grow, quick = plot.quick }
 		end)
-		return true, 0
+		return true, grow
 	elseif what == "harvest" then
 		if not plot.crop or stage < G.STAGES then
 			return false, "It isn't ready yet."

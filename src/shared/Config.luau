@@ -109,20 +109,20 @@ end
 ---------------------------------------------------------------- the Garden
 
 -- Fern's Garden, at the end of the Garden road (see server/places/Garden and client/Garden),
--- from the web game's garden. Its gate opens for anyone with enough sunshine. Everyone has
--- their own six beds in it: plant seeds (free), water each stage, and it grows by the
--- server's clock, even while you're away; then harvest for coins. Distances are web units.
+-- from the web game's garden. Its gate opens once you've said hello to Clover (the First
+-- Story, shared/Goals). Everyone has their own six beds in it: plant seeds (free), water each
+-- stage, and it grows by the server's clock, even while you're away; then harvest for coins.
+-- Distances are web units.
 Config.GARDEN = {
 	angle = 144, -- which way from the fountain
 	dist = 94, -- from the fountain to its middle
 	radius = 24, -- its hedge, which joins the town's
-	SUN = 6, -- sunshine needed to go in
 	-- the beds: x across, z towards the way in (from the middle), and their size
 	BEDS = { { -7, -4.6 }, { 0, -4.6 }, { 7, -4.6 }, { -7, 4 }, { 0, 4 }, { 7, 4 } },
 	BED_W = 4.8,
 	BED_D = 3.7,
 	REACH = 20, -- studs: how close to a bed you must be to plant, water or harvest it
-	-- the ribbon across the way in, until you've enough sunshine: wide enough to cover the whole
+	-- the ribbon across the way in, until you've said hello to Clover: wide enough to cover the whole
 	-- gap where the town's hedge and the Garden's meet (that gap is about 17 wide)
 	GATE_WIDTH = 24,
 	-- each player's screen thinks it's this many seconds earlier than the server, so a bed
@@ -130,11 +130,18 @@ Config.GARDEN = {
 	CLIENT_LAG = 1,
 	-- the little sign over a bed ("Needs water", "Ready!"): how high it floats over the bed
 	-- (studs), and how far away it can be seen (studs). It shows through things, so your animal
-	-- never hides it, and it goes while you're at that bed (its button says the same).
+	-- never hides it, and it goes while you're at that bed (its button says the same). While a
+	-- crop grows there's no button, and the sign counts down instead ("Growing · 0:17").
 	SIGN_HEIGHT = 7,
 	SIGN_DISTANCE = 70,
-	SIGN_SIZE = Vector2.new(120, 30), -- pixels (the goal's pin sits just above it)
+	SIGN_SIZE = Vector2.new(170, 30), -- pixels (the goal's pin sits just above it)
 	STAGES = 3, -- a crop is ready at stage 3 (each stage before needs watering)
+	-- a player's very first crop (planted during the First Story) takes this long a stage
+	-- (seconds), whichever crop it is; every crop after uses its own time below
+	FIRST_STAGE = 20,
+	-- Studio only: turn this on (true) to make every crop grow at FIRST_STAGE speed, to check
+	-- how each one looks at every stage. It does nothing outside Studio.
+	STUDIO_FAST = false,
 	ORDER = { "sunflower", "carrot", "strawberry", "pumpkin" },
 	-- each stage takes `stage` seconds once watered; `count` plants fill a bed
 	CROPS = {
@@ -247,7 +254,8 @@ Config.DAILY = {
 }
 
 -- The request board on the lawn by the fountain: three requests a day, the same for everyone,
--- picked by the day's number. Each pays coins once.
+-- picked by the day's number. Each pays coins once. (A library request comes back once the
+-- library has something to do: Step 22.)
 Config.REQUEST_BOARD = { angle = 198, dist = 20.5 } -- where the board stands
 Config.REQUESTS_PER_DAY = 3
 Config.REQUESTS = {
@@ -258,7 +266,6 @@ Config.REQUESTS = {
 	{ id = "hat", kind = "hat", coins = 8, text = "Buy a hat at Clover's" },
 	{ id = "homepond", kind = "visit", pond = 1, coins = 5, text = "Visit Home Pond" },
 	{ id = "lilypond", kind = "visit", pond = 2, coins = 5, text = "Visit Lily Pond" },
-	{ id = "library", kind = "visit", at = Config.polar(Config.LIBRARY.angle, Config.LIBRARY.dist - 5), coins = 5, text = "Visit the library" },
 	{ id = "gazebo", kind = "visit", at = Config.polar(Config.GAZEBO.angle, Config.GAZEBO.dist), coins = 5, text = "Visit the gazebo" },
 }
 Config.REQUEST_VISIT_RADIUS = 6 -- web units: how close to a place counts as visiting it
@@ -398,6 +405,7 @@ Config.REMOTE_LIMITS = {
 	StudioNextDay = { calls = 2, seconds = 2 }, -- Studio only (server/Daily)
 	Pet = { calls = 6, seconds = 2 }, -- adopting, changing and dressing your pet (server/Pets)
 	Garden = { calls = 8, seconds = 2 }, -- planting, watering and harvesting (server/places/Garden)
+	ChooseAdventure = { calls = 4, seconds = 2 }, -- choosing an Adventure on the Goals screen (server/Goals)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.
@@ -468,6 +476,20 @@ Config.UI = {
 	-- phone, and on a tablet
 	RUN_CLEAR_PHONE = 190,
 	RUN_CLEAR_TABLET = 270,
+	-- On a short screen (a phone on its side), what a resident says and the big messages
+	-- ("Well done!") show at the top left, under Roblox's buttons, one under the other, clear
+	-- of the HUD, your animal and the buttons (Ui.messages): how far down from the top and in
+	-- from the left (pixels), and how wide at most (a part of the screen's width, and pixels).
+	-- Elsewhere a resident's words float over their head and messages sit in the middle.
+	MESSAGE_TOP = 64,
+	MESSAGE_LEFT = 12,
+	MESSAGE_WIDTH = 0.42,
+	MESSAGE_MAX_WIDTH = 360,
+	-- How long a big message stays (seconds): this long, plus a little for each letter, so a
+	-- young reader has time for a long one; never longer than MESSAGE_MAX.
+	MESSAGE_SECONDS = 3,
+	MESSAGE_LETTER = 0.07,
+	MESSAGE_MAX = 10,
 	-- The goal's pin goes once you're this close (studs) to where it points: you've arrived,
 	-- and it would only cover what you came to see.
 	GOAL_PIN_ARRIVED = 25,

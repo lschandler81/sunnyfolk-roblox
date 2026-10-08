@@ -316,6 +316,36 @@ function Ui.controller(gui: ScreenGui, card: GuiObject, first: GuiObject, back: 
 	task.defer(putRing)
 end
 
+-- The message area on a phone on its side: a column at the top left, under Roblox's buttons
+-- (Config.UI.MESSAGE_...). What a resident says (client/Talk) and the big messages
+-- (client/Hud) go in it, one under the other, so they never cover each other.
+local messageColumn: Frame? = nil
+function Ui.messages(): Frame
+	if messageColumn and messageColumn.Parent then
+		return messageColumn
+	end
+	local gui = Ui.screen("Messages", 4) -- under the HUD and the buttons, if ever they meet
+	local column = Ui.new("Frame", {
+		Position = UDim2.fromOffset(Config.UI.MESSAGE_LEFT, Config.UI.MESSAGE_TOP),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Parent = gui,
+	}, {
+		Ui.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local function fit()
+		local across = gui.AbsoluteSize.X
+		if across <= 0 and workspace.CurrentCamera then
+			across = workspace.CurrentCamera.ViewportSize.X
+		end
+		column.Size = UDim2.fromOffset(math.min(across * Config.UI.MESSAGE_WIDTH, Config.UI.MESSAGE_MAX_WIDTH), 0)
+	end
+	fit()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	messageColumn = column
+	return column
+end
+
 -- A ViewportFrame with a camera, for showing a 3D model in a screen.
 function Ui.viewport(props: { [string]: any }): (ViewportFrame, Camera)
 	local camera = Ui.new("Camera", { FieldOfView = 30 })

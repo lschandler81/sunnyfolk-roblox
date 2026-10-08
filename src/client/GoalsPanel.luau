@@ -1,13 +1,16 @@
--- The goals on the player's screen (the list is in shared/Goals; the server keeps score):
---   * a card under the Goals button saying which goal you're on, and how far you've got
+-- The goals on the player's screen (the lists are in shared/Goals; the server keeps score):
+--   * a card under the Goals button with one "now" thing (the goal you're on and a hint) and,
+--     when something's planted, one gentle "later" line ("Your sunflowers are growing")
 --   * a yellow arrow at your feet and a pin over the place to go, pointing the way (they only
---     point: they never move you). The pin goes once you've arrived, and for the Garden goal
+--     point: they never move you). The pin goes once you've arrived, and for the Garden goals
 --     it points at the bed that needs you, just above that bed's own sign.
 --   * "Well done!" when you finish one (Hud.announce: it waits until any open screen has closed
 --     and the last message has gone, so it's always seen)
---   * the Goals screen (from the HUD's Goals button): every goal, ticked off, and your
---     sunshine
--- Everything here only shows what the server says; it never changes progress.
+--   * the Goals screen (from the HUD's Goals button): the First Story, ticked off, and once
+--     that's done, the Adventures as big picture cards to choose from, and your sunshine. It
+--     opens by itself when the First Story is done.
+-- Everything here only shows what the server says. The one thing it asks for is which
+-- Adventure to do next (ChooseAdventure); the server checks that.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -16,9 +19,13 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
+local Build = require(Shared.Build)
 local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
 local GoalList = require(Shared.Goals)
+local Houses = require(Shared.Houses)
+local Looks = require(Shared.Looks)
+local PetBuilder = require(Shared.PetBuilder)
 local Controls = require(script.Parent.Controls)
 local Garden = require(script.Parent.Garden)
 local Hud = require(script.Parent.Hud)
@@ -27,31 +34,36 @@ local Ui = require(script.Parent.Ui)
 local Remotes = Shared:WaitForChild("Remotes")
 local player = Players.LocalPlayer
 
-local LIST = GoalList.LIST
+local STORY = GoalList.STORY
+local S = Config.STUDS
 local RESIDENT_TAG = "SunnyfolkResident" -- server/Residents tags each resident with this
 local FIND_SECONDS = 0.25 -- how often to look again for where to point
 local NEAR = 10 -- studs: closer than this, the arrow at your feet goes (the pin's enough)
 -- How high (studs) the pin floats over what it points at: just above a coin, over a
 -- resident's name tag, level with a garden bed's sign, and in between for doors, plots and
 -- places.
-local PIN_HEIGHT = { coin = 3.5, talk = 9, harvest = Config.GARDEN.SIGN_HEIGHT }
+local PIN_HEIGHT = { talk = 9, plant = Config.GARDEN.SIGN_HEIGHT, harvest = Config.GARDEN.SIGN_HEIGHT }
 local PIN_HEIGHT_OTHER = 6
 -- Over a garden bed, the pin is lifted (in pixels, so at any distance) to sit just above the
 -- bed's sign (client/Garden): half the sign, a gap and half the pin, as a part of the pin's
 -- height.
 local PIN_SIZE = Vector2.new(48, 62)
-local PIN_LIFT = {
-	harvest = (Config.GARDEN.SIGN_SIZE.Y / 2 + Config.UI.GOAL_PIN_GAP + PIN_SIZE.Y / 2) / PIN_SIZE.Y,
-}
+local OVER_SIGN = (Config.GARDEN.SIGN_SIZE.Y / 2 + Config.UI.GOAL_PIN_GAP + PIN_SIZE.Y / 2) / PIN_SIZE.Y
+local PIN_LIFT = { plant = OVER_SIGN, harvest = OVER_SIGN }
 local PIN_BOB = 0.08 -- how far it bobs up and down, as a part of its height
 
 local GoalsPanel = {}
 
 local screen: ScreenGui? = nil
 
-local function currentStep(): number?
-	local goal = player:GetAttribute("Goal")
-	return if typeof(goal) == "number" then goal else nil
+-- The goal you're on, or nil (choosing an Adventure, or all done).
+local function currentGoal(): GoalList.Goal?
+	local id = player:GetAttribute("Goal")
+	return if typeof(id) == "string" then GoalList.BY_ID[id] else nil
+end
+
+local function goalsDone(): { string }
+	return GoalList.fromAttribute(player:GetAttribute("GoalsDone"))
 end
 
 local function met(): { string }
@@ -59,12 +71,9 @@ local function met(): { string }
 	return if typeof(list) == "string" and list ~= "" then string.split(list, ",") else {}
 end
 
--- "(3/10)" for a goal you count up, or "" for the rest.
+-- "(1/2)" for saying hello to more than one, or "" for the rest.
 local function progress(goal: GoalList.Goal): string
-	if goal.kind == "coin" then
-		local got = player:GetAttribute("GoalCount")
-		return ` ({math.min(goal.need or 1, if typeof(got) == "number" then got else 0)}/{goal.need})`
-	elseif goal.kind == "talk" and goal.who and #goal.who > 1 then
+	if goal.kind == "talk" and goal.who and #goal.who > 1 then
 		return ` ({GoalList.metCount(goal, met())}/{#goal.who})`
 	end
 	return ""
@@ -109,15 +118,6 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 			end
 		end
 		return nearestTo(from, spots)
-	elseif goal.kind == "coin" then
-		local folder = Workspace:FindFirstChild("MyCoins")
-		local spots = {}
-		for _, coin in if folder then folder:GetChildren() else {} do
-			if coin:IsA("Model") then
-				table.insert(spots, coin:GetPivot().Position)
-			end
-		end
-		return nearestTo(from, spots)
 	elseif goal.kind == "shop" or goal.kind == "hat" or goal.kind == "pet" then
 		-- the shop's door: the goal's own shop, the Pet Shop for a pet, or else the Hat Shop
 		local shopId = goal.shop or (if goal.kind == "pet" then "pets" else "hats")
@@ -144,7 +144,7 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 		return nearestTo(from, spots)
 	elseif goal.kind == "visit" then
 		return goal.at
-	elseif goal.kind == "harvest" then
+	elseif goal.kind == "plant" or goal.kind == "harvest" then
 		return Garden.bedThatNeedsYou(from)
 	end
 	return nil
@@ -267,26 +267,38 @@ function GoalsPanel.start(corner: Frame)
 	local words = line(2, 16, Ui.colors.ink)
 	words.RichText = true
 	local hint = line(3, 14, Ui.colors.teal)
+	local later = line(4, 14, Ui.colors.leaf)
 
 	local function refresh()
-		local step = currentStep()
-		local goal = step and LIST[step]
-		-- On a phone (a short screen): one short line. Elsewhere: the goal number, what to do
-		-- and a hint.
+		local goal = currentGoal()
+		local done = goalsDone()
+		local choosing = goal == nil and GoalList.storyDone(done) and not GoalList.allDone(done)
+		-- On a phone (a short screen): one short line. Elsewhere: where you are, what to do, a
+		-- hint, and the "later" line about your garden.
 		local small = Ui.shortScreen()
-		card.Visible = goal ~= nil
+		card.Visible = goal ~= nil or choosing
+		number.Visible = not small
+		hint.Visible = not small
 		if goal then
-			number.Visible = not small
-			hint.Visible = not small
-			number.Text = `Goal {step} of {#LIST}`
+			local step = GoalList.storyStep(goal.id)
+			number.Text = if step then `First Story · {step} of {#STORY}` else "Your adventure"
 			local coral = Ui.colors.coral:ToHex()
-			words.Text = if small
-				then `<font color="#{coral}">{step}/{#LIST}</font>  {goal.text}{progress(goal)}`
+			words.Text = if small and step
+				then `<font color="#{coral}">{step}/{#STORY}</font>  {goal.text}{progress(goal)}`
 				else goal.text .. progress(goal)
 			hint.Text = goal.hint
+		elseif choosing then
+			number.Text = "Adventures"
+			words.Text = "Choose your next adventure"
+			hint.Text = "Press Goals to pick one"
 		end
+		-- (not while the goal is about the garden already)
+		local gardenGoal = goal ~= nil and (goal.kind == "plant" or goal.kind == "harvest")
+		local text = if gardenGoal or small then nil else Garden.laterLine()
+		later.Text = text or ""
+		later.Visible = text ~= nil
 	end
-	for _, attribute in { "Goal", "GoalCount", "GoalMet" } do
+	for _, attribute in { "Goal", "GoalsDone", "GoalMet", "Garden" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end
 	local camera = Workspace.CurrentCamera
@@ -294,18 +306,33 @@ function GoalsPanel.start(corner: Frame)
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(refresh)
 	end
 	refresh()
+	-- crops grow by the clock, so look again now and then
+	task.spawn(function()
+		while card.Parent do
+			task.wait(1)
+			refresh()
+		end
+	end)
 
 	-- "Well done!" (in turn: see Hud.announce)
-	Remotes.GoalDone.OnClientEvent:Connect(function(_id, coins, sun, finished, bonus)
+	Remotes.GoalDone.OnClientEvent:Connect(function(id, coins, sun, storyDone, finished, bonus)
 		if typeof(coins) ~= "number" or typeof(sun) ~= "number" then
 			return
 		end
 		Hud.announce("Well done!", `+{coins} coins and {sun} sunshine`)
-		if finished and bonus == true then
+		local goal = if typeof(id) == "string" then GoalList.BY_ID[id] else nil
+		if goal and goal.next then
+			Hud.announce(goal.next.title, goal.next.small)
+		end
+		if storyDone == true then
+			Hud.announce("First Story done!", "Now choose your next adventure.")
+			Hud.inTurn(GoalsPanel.open)
+		end
+		if finished == true and bonus == true then
 			local extra = GoalList.FINISH
-			Hud.announce("All goals done!", `+{extra.coins} coins and {extra.sun} sunshine. Now go and explore!`)
-		elseif finished then
-			Hud.announce("All goals done!", "Now go and explore!")
+			Hud.announce("All adventures done!", `+{extra.coins} coins and {extra.sun} sunshine. Now go and explore!`)
+		elseif finished == true then
+			Hud.announce("All adventures done!", "Now go and explore!")
 		end
 	end)
 
@@ -318,8 +345,7 @@ function GoalsPanel.start(corner: Frame)
 	RunService.RenderStepped:Connect(function()
 		local character = player.Character
 		local root = character and character.PrimaryPart
-		local step = currentStep()
-		local goal = step and LIST[step]
+		local goal = currentGoal()
 		local showing = goal ~= nil and root ~= nil and hud ~= nil and hud.Enabled and Ui.openScreens == 0
 			and screen == nil
 		if not showing or not root or not goal then
@@ -363,6 +389,69 @@ end
 
 ---------------------------------------------------------------- the Goals screen
 
+-- Points a picture's camera at a model so all of it fits, looking from `from`.
+local function aim(camera: Camera, model: Model, from: Vector3)
+	local size = model:GetExtentsSize()
+	local biggest = math.max(size.X, size.Y, size.Z)
+	local centre = model:GetBoundingBox().Position
+	camera.CFrame = CFrame.lookAt(centre + from.Unit * (biggest * 2.1 + 1), centre)
+end
+
+-- A little gazebo for its card, like the one in town (server/Town) with fewer parts.
+local function littleGazebo(): Model
+	local model = Instance.new("Model")
+	Build.into(model)
+	local C = Build.C
+	Build.cylinder(4.6 * S, 0.2 * S, CFrame.new(0, 0.1 * S, 0), C.stone)
+	Build.cylinder(4.2 * S, 0.25 * S, CFrame.new(0, 0.325 * S, 0), C.cream)
+	for i = 0, 7 do
+		local a = math.rad(22.5 + i * 45)
+		Build.cylinder(0.14 * S, 3.0 * S, CFrame.Angles(0, a, 0) * CFrame.new(0, 1.95 * S, 3.7 * S), C.white)
+	end
+	for _, t in { { 4.6, 0.3, 3.6, C.coral }, { 3.6, 0.45, 3.95, C.cream }, { 2.5, 0.45, 4.35, C.coral }, { 1.3, 0.45, 4.75, C.cream } } do
+		Build.cylinder(t[1] * S, t[2] * S, CFrame.new(0, t[3] * S, 0), t[4])
+	end
+	Build.ball(0.7 * S, CFrame.new(0, 5.15 * S, 0), C.yellow)
+	return model
+end
+
+-- The picture on an Adventure's card, and which way its camera looks at it.
+local function adventurePicture(id: string): (Model?, Vector3)
+	if id == "home" then
+		local model = Instance.new("Model")
+		Build.into(model)
+		Houses.build(Houses.DEFAULT, CFrame.identity, nil)
+		return model, Vector3.new(0.45, 0.5, 1)
+	elseif id == "friends" then
+		local model = Instance.new("Model")
+		for i, who in { "puddles", "pebble" } do
+			local resident = Looks.resident(who)
+			if resident then
+				local animal = Builder.build(Looks.residentLook(resident), { viewport = true })
+				animal:PivotTo(CFrame.new((i - 1.5) * 3.2, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, (1.5 - i) * 0.5, 0))
+				animal.Parent = model
+			end
+		end
+		return model, Vector3.new(0.15, 0.25, -1)
+	elseif id == "pet" then
+		return PetBuilder.build({ kind = "puppy", color = 1 }).model, Vector3.new(0.6, 0.35, -1)
+	elseif id == "clothes" then
+		-- a backpack, if the shop has one, or else the first thing it sells
+		local items = Looks.shopClothes()
+		local item = items[1]
+		for _, each in items do
+			if each.slot == "back" then
+				item = each
+				break
+			end
+		end
+		return if item then Builder.clothesModel("capybara", item.id) else nil, Vector3.new(0.6, 0.3, -1)
+	elseif id == "gazebo" then
+		return littleGazebo(), Vector3.new(0.4, 0.55, -1)
+	end
+	return nil, Vector3.new(0, 0, -1)
+end
+
 function GoalsPanel.isOpen(): boolean
 	return screen ~= nil
 end
@@ -390,14 +479,16 @@ function GoalsPanel.open()
 		Controls.set(true, "goals")
 	end
 
-	local step = currentStep() or 1
+	local done = goalsDone()
+	local now = currentGoal()
+	local storyDone = GoalList.storyDone(done)
 	Ui.text({
-		Text = if GoalList.done(step) then "All goals done!" else "Your goals",
+		Text = if GoalList.allDone(done) then "All done!" elseif storyDone then "Adventures" else "Your First Story",
 		TextSize = 22,
 		TextColor3 = Ui.colors.coral,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(16, 8),
-		Size = UDim2.fromOffset(200, Ui.TOUCH),
+		Size = UDim2.fromOffset(240, Ui.TOUCH),
 		Parent = card,
 	})
 	local closeButton = Ui.button("Close", Ui.colors.cream, close, {
@@ -444,54 +535,118 @@ function GoalsPanel.open()
 		Parent = sunPill,
 	})
 
-	-- the goals, in two columns of four
-	local list = Ui.new("Frame", {
-		Position = UDim2.fromOffset(14, 60),
-		Size = UDim2.fromOffset(592, 222),
-		BackgroundTransparency = 1,
-		Parent = card,
-	}, {
-		Ui.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(290, 50),
-			CellPadding = UDim2.fromOffset(12, 6),
-			FillDirection = Enum.FillDirection.Vertical,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
-	for i, goal in LIST do
-		local done = i < step
-		local now = i == step
+	local first: GuiObject = closeButton
+	if not storyDone then
+		-- the First Story: four rows, ticked off as you go
+		local list = Ui.new("Frame", {
+			Position = UDim2.fromOffset(14, 62),
+			Size = UDim2.fromOffset(592, 216),
+			BackgroundTransparency = 1,
+			Parent = card,
+		}, {
+			Ui.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		for i, goal in STORY do
+			local isDone = table.find(done, goal.id) ~= nil
+			local isNow = now ~= nil and now.id == goal.id
+			local row = Ui.new("Frame", {
+				Size = UDim2.fromOffset(592, 48),
+				BackgroundColor3 = if isNow then Ui.colors.yellowLight else Ui.colors.paper,
+				BackgroundTransparency = if isNow then 0 else 1,
+				LayoutOrder = i,
+				Parent = list,
+			}, { Ui.corner(12) })
+			local badge = Ui.new("Frame", {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 6, 0.5, 0),
+				Size = UDim2.fromOffset(36, 36),
+				BackgroundColor3 = if isDone then Ui.colors.teal elseif isNow then Ui.colors.yellow else Ui.colors.cream,
+				Parent = row,
+			}, { Ui.round(), Ui.stroke(2.5, if isDone or isNow then Ui.colors.ink else Ui.colors.grey) })
+			Ui.text({
+				Text = tostring(i),
+				TextSize = 18,
+				TextColor3 = if isDone then Ui.colors.paper elseif isNow then Ui.colors.ink else Ui.colors.grey,
+				Size = UDim2.fromScale(1, 1),
+				Parent = badge,
+			})
+			Ui.text({
+				Text = if isDone then `{goal.text} · done!` elseif isNow then `{goal.text}{progress(goal)} · {goal.hint}` else goal.text,
+				TextSize = 16,
+				TextColor3 = if isDone then Ui.colors.teal elseif isNow then Ui.colors.ink else Ui.colors.grey,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Position = UDim2.fromOffset(52, 0),
+				Size = UDim2.new(1, -58, 1, 0),
+				Parent = row,
+			})
+		end
+	else
+		-- the Adventures: a row of big picture cards. Tap one to do it next.
 		local row = Ui.new("Frame", {
-			BackgroundColor3 = if now then Ui.colors.yellowLight else Ui.colors.paper,
-			BackgroundTransparency = if now then 0 else 1,
-			LayoutOrder = i,
-			Parent = list,
-		}, { Ui.corner(12) })
-		local badge = Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 6, 0.5, 0),
-			Size = UDim2.fromOffset(36, 36),
-			BackgroundColor3 = if done then Ui.colors.teal elseif now then Ui.colors.yellow else Ui.colors.cream,
-			Parent = row,
-		}, { Ui.round(), Ui.stroke(2.5, if done or now then Ui.colors.ink else Ui.colors.grey) })
-		Ui.text({
-			Text = tostring(i),
-			TextSize = 18,
-			TextColor3 = if done then Ui.colors.paper elseif now then Ui.colors.ink else Ui.colors.grey,
-			Size = UDim2.fromScale(1, 1),
-			Parent = badge,
+			Position = UDim2.fromOffset(14, 62),
+			Size = UDim2.fromOffset(592, 216),
+			BackgroundTransparency = 1,
+			Parent = card,
+		}, {
+			Ui.new("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				Padding = UDim.new(0, 8),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+			}),
 		})
-		Ui.text({
-			Text = if done then `{goal.text} · done!` elseif now then goal.text .. progress(goal) else goal.text,
-			TextSize = 15,
-			TextColor3 = if done then Ui.colors.teal elseif now then Ui.colors.ink else Ui.colors.grey,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Position = UDim2.fromOffset(50, 0),
-			Size = UDim2.new(1, -54, 1, 0),
-			Parent = row,
-		})
+		local chosen: GuiObject? = nil
+		local firstOpen: GuiObject? = nil
+		for i, goal in GoalList.ADVENTURES do
+			local isDone = table.find(done, goal.id) ~= nil
+			local isNow = now ~= nil and now.id == goal.id
+			local size = UDim2.fromOffset(112, 216)
+			local tile: GuiObject
+			if isDone then
+				tile = Ui.new("Frame", { Size = size, BackgroundColor3 = Ui.colors.paper, LayoutOrder = i, Parent = row },
+					{ Ui.corner(16), Ui.stroke(3, Ui.colors.grey) })
+			else
+				tile = Ui.button("", if isNow then Ui.colors.yellowLight else Ui.colors.cream, function()
+					Remotes.ChooseAdventure:FireServer(goal.id)
+					close()
+				end, { Size = size, LayoutOrder = i, Parent = row })
+				firstOpen = firstOpen or tile
+				if isNow then
+					chosen = tile
+				end
+			end
+			local stage = Ui.new("Frame", {
+				Position = UDim2.fromOffset(6, 6),
+				Size = UDim2.fromOffset(100, 104),
+				BackgroundColor3 = Ui.colors.mint,
+				Parent = tile,
+			}, { Ui.corner(12) })
+			local view, camera = Ui.viewport({ Size = UDim2.fromScale(1, 1), Parent = stage })
+			-- (a model that can't be built leaves the picture empty, never the whole screen)
+			local ok, model, from = pcall(adventurePicture, goal.id)
+			if ok and model then
+				model.Parent = view
+				aim(camera, model, from)
+			end
+			Ui.text({
+				Text = goal.short or goal.text,
+				TextSize = 16,
+				TextColor3 = if isDone then Ui.colors.grey else Ui.colors.ink,
+				Position = UDim2.fromOffset(4, 114),
+				Size = UDim2.new(1, -8, 0, 52),
+				Parent = tile,
+			})
+			Ui.text({
+				Text = if isDone then "Done!" elseif isNow then "Doing now" else `+{goal.coins} coins`,
+				TextSize = 15,
+				TextColor3 = if isDone then Ui.colors.teal elseif isNow then Ui.colors.coral else Ui.colors.teal,
+				Position = UDim2.fromOffset(4, 170),
+				Size = UDim2.new(1, -8, 0, 40),
+				Parent = tile,
+			})
+		end
+		first = chosen or firstOpen or closeButton
 	end
-	Ui.controller(gui, card, closeButton, close)
+	Ui.controller(gui, card, first, close)
 end
 
 return GoalsPanel

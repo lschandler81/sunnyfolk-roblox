@@ -1,9 +1,10 @@
--- The goals that lead a new player round town (the list is in shared/Goals). The server
--- watches for each one itself: other scripts tell it when a player talks to someone, picks up
--- a coin, opens the Hat Shop, buys a hat or makes a home, and it checks where players are for
--- "visit" goals. Nothing a player's computer says can finish a goal. Each goal pays its coins
--- and sunshine once, progress is saved in PlayerData, and the player's screen is told so it
--- can say "Well done!".
+-- The goals: the First Story, then the Adventures a player chooses (the lists are in
+-- shared/Goals). The server watches for each one itself: other scripts tell it when a player
+-- talks to someone, opens a shop, buys a hat, makes a home, adopts a pet, or plants and picks
+-- in the Garden, and it checks where players are for "visit" goals. Nothing a player's computer
+-- says can finish a goal; all it can do is choose which Adventure to do next (ChooseAdventure).
+-- Each goal pays its coins and sunshine once, the ids of finished goals are saved in
+-- PlayerData, and the player's screen is told so it can say "Well done!".
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,11 +14,11 @@ local Config = require(Shared.Config)
 local GoalList = require(Shared.Goals)
 local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
+local RemoteGuard = require(script.Parent.RemoteGuard)
 
 local Remotes = Shared:WaitForChild("Remotes")
 
 local S = Config.STUDS
-local LIST = GoalList.LIST
 local CHECK_SECONDS = 1 -- how often "visit" goals look where players are
 local NEXT_SECONDS = 3.5 -- a pause before a goal that's already done ticks itself, so messages don't overlap
 
@@ -25,21 +26,30 @@ local Goals = {}
 
 local settle: (Player) -> ()
 
--- Pays for the goal they're on and moves them to the next one.
-local function complete(player: Player)
-	local goal: GoalList.Goal? = nil
-	local finished, bonus, balance = false, false, 0
+-- Those who want to know when a player finishes the First Story (server/Daily).
+local storyListeners: { (Player) -> () } = {}
+
+-- Pays for `goal` and marks it done, if it's still the goal they're on.
+local function complete(player: Player, goal: GoalList.Goal)
+	local paid, storyNow, finished, bonus, balance, newStory = false, false, false, false, 0, false
 	PlayerData.update(player, function(data)
-		goal = LIST[data.goal]
-		if not goal then
+		local now = GoalList.current(data.goalsDone, data.adventure)
+		if not now or now.id ~= goal.id then
 			return
 		end
+		paid = true
 		data.coins += goal.coins
 		data.sun += goal.sun
-		data.goal += 1
-		data.goalCount = 0
-		data.goalMet = {}
-		if GoalList.done(data.goal) then
+		table.insert(data.goalsDone, goal.id)
+		-- (only after a "say hello" goal, so hellos for an Adventure put aside aren't lost)
+		if goal.kind == "talk" then
+			data.goalMet = {}
+		end
+		if data.adventure == goal.id then
+			data.adventure = nil
+		end
+		storyNow = GoalList.storyStep(goal.id) ~= nil and GoalList.storyDone(data.goalsDone)
+		if GoalList.allDone(data.goalsDone) then
 			finished = true
 			-- the bonus only once, even if more goals are added after someone's finished
 			if not data.goalsFinished then
@@ -50,32 +60,45 @@ local function complete(player: Player)
 			end
 		end
 		balance = data.coins
+		newStory = data.newStory
 	end)
-	if not goal then
+	if not paid then
 		return
 	end
-	local done = goal :: GoalList.Goal
 	if bonus then
-		Analytics.coinsEarned(player, done.coins, balance - GoalList.FINISH.coins, `goal:{done.id}`)
+		Analytics.coinsEarned(player, goal.coins, balance - GoalList.FINISH.coins, `goal:{goal.id}`)
 		Analytics.coinsEarned(player, GoalList.FINISH.coins, balance, "goal:finish")
 	else
-		Analytics.coinsEarned(player, done.coins, balance, `goal:{done.id}`)
+		Analytics.coinsEarned(player, goal.coins, balance, `goal:{goal.id}`)
 	end
-	Remotes.GoalDone:FireClient(player, done.id, done.coins, done.sun, finished, bonus)
+	local step = GoalList.storyStep(goal.id)
+	if step and newStory then
+		Analytics.storyStep(player, step)
+	end
+	Remotes.GoalDone:FireClient(player, goal.id, goal.coins, goal.sun, storyNow, finished, bonus)
+	if storyNow then
+		for _, listener in storyListeners do
+			task.spawn(listener, player)
+		end
+	end
 	task.delay(NEXT_SECONDS, settle, player)
 end
 
--- Ticks the goal they're on if they've already done it (they had a hat, or a home, before
--- they got to that goal).
+-- Ticks the goal they're on if they've already done it (they had a hat, a home, a pet or
+-- something planted before they got to that goal).
 settle = function(player: Player)
 	local data = PlayerData.get(player)
-	local goal = data and LIST[data.goal]
+	local goal = data and GoalList.current(data.goalsDone, data.adventure)
 	if not (data and goal and player.Parent) then
 		return
 	end
+	local planted = false
+	for _, bed in data.garden do
+		planted = planted or bed.crop ~= nil
+	end
 	if (goal.kind == "hat" and #data.hats > 0) or (goal.kind == "home" and data.home ~= nil)
-		or (goal.kind == "pet" and data.pet ~= nil) then
-		complete(player)
+		or (goal.kind == "pet" and data.pet ~= nil) or (goal.kind == "plant" and planted) then
+		complete(player, goal)
 	end
 end
 
@@ -87,14 +110,20 @@ function Goals.onEvent(callback: (Player, string, string?) -> ())
 	table.insert(listeners, callback)
 end
 
+-- Runs `callback(player)` when a player finishes the First Story.
+function Goals.onStoryDone(callback: (Player) -> ())
+	table.insert(storyListeners, callback)
+end
+
 -- Something happened that might finish a goal (or a request). `kind` is one of the kinds in
--- shared/Goals; `what` says which resident, for "talk".
+-- shared/Goals (or "coin", which only requests use); `what` says which resident for "talk",
+-- and which shop for "shop".
 function Goals.event(player: Player, kind: string, what: string?)
 	for _, listener in listeners do
 		listener(player, kind, what)
 	end
 	local data = PlayerData.get(player)
-	local goal = data and LIST[data.goal]
+	local goal = data and GoalList.current(data.goalsDone, data.adventure)
 	if not (data and goal and goal.kind == kind) then
 		return
 	end
@@ -109,29 +138,49 @@ function Goals.event(player: Player, kind: string, what: string?)
 			met = GoalList.metCount(goal, d.goalMet)
 		end)
 		if met >= #who then
-			complete(player)
+			complete(player, goal)
 		end
 	elseif kind == "shop" then
 		if goal.shop == nil or goal.shop == what then
-			complete(player)
-		end
-	elseif kind == "coin" then
-		local got = 0
-		PlayerData.update(player, function(d)
-			d.goalCount += 1
-			got = d.goalCount
-		end)
-		if got >= (goal.need or 1) then
-			complete(player)
+			complete(player, goal)
 		end
 	else
-		complete(player)
+		complete(player, goal)
 	end
 end
 
 function Goals.start()
 	-- GoalDone only goes from the server to players; anything a player sends on it is ignored.
 	Remotes.GoalDone.OnServerEvent:Connect(function() end)
+
+	-- Choosing the next Adventure on the Goals screen. Only once the First Story is done, and
+	-- only one that's real and not done yet.
+	Remotes.ChooseAdventure.OnServerEvent:Connect(function(player, id)
+		if not RemoteGuard.allow(player, "ChooseAdventure") then
+			return
+		end
+		local data = PlayerData.get(player)
+		if typeof(id) ~= "string" or not data or not GoalList.isAdventure(id) then
+			return
+		end
+		if not GoalList.storyDone(data.goalsDone) or table.find(data.goalsDone, id) or data.adventure == id then
+			return
+		end
+		local firstChoice = false
+		PlayerData.update(player, function(d)
+			-- the first Adventure they ever choose (not a change of mind) is the funnel's last step
+			firstChoice = d.newStory and d.adventure == nil
+			for _, goal in GoalList.ADVENTURES do
+				firstChoice = firstChoice and not table.find(d.goalsDone, goal.id)
+			end
+			d.adventure = id
+		end)
+		if firstChoice then
+			Analytics.storyStep(player, #GoalList.STORY + 1)
+		end
+		-- a home or pet they already have ticks it straight away
+		task.delay(0.5, settle, player)
+	end)
 
 	-- A returning player may already have done the goal they're on.
 	PlayerData.onLoaded(function(player)
@@ -144,7 +193,7 @@ function Goals.start()
 			task.wait(CHECK_SECONDS)
 			for _, player in Players:GetPlayers() do
 				local data = PlayerData.get(player)
-				local goal = data and LIST[data.goal]
+				local goal = data and GoalList.current(data.goalsDone, data.adventure)
 				local root = player.Character and player.Character.PrimaryPart
 				if goal and goal.kind == "visit" and goal.at and root then
 					local gap = root.Position - goal.at

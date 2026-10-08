@@ -3,9 +3,9 @@
 -- talking to (where they'd cover them up). Each one shows its key (E, F, or a picture of the
 -- controller button: an Xbox letter or a PlayStation shape) and can also be tapped or clicked.
 -- On a TV they're bigger and keep in from the bottom edge. On a phone or tablet they're
--- smaller and sit along the bottom, between the thumbstick and the Run and jump buttons, so
--- they never cover your animal. A button that has to be held (like "Make this my home") says
--- "hold" by its key, and fills up with yellow while held.
+-- smaller, side by side in one row along the bottom, between the thumbstick and the Run and
+-- jump buttons, so they never cover your animal. A button that has to be held (like "Make
+-- this my home") says "hold" by its key, and fills up with yellow while held.
 --
 -- It handles every ProximityPrompt whose Style is Custom; the game's prompts all are.
 
@@ -43,7 +43,17 @@ function Prompts.start()
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
+	local layout = list:FindFirstChildOfClass("UIListLayout") :: UIListLayout
 	Ui.consoleSize(list)
+
+	-- A phone: a phone-sized touch screen, or any screen as short as a phone on its side. Its
+	-- buttons are always the small kind, even if the last thing pressed was a key (Studio's
+	-- phone emulator counts the mouse as a keyboard).
+	local function phoneSized(): boolean
+		local camera = Workspace.CurrentCamera
+		local view = if camera then camera.ViewportSize else gui.AbsoluteSize
+		return Ui.shortScreen() or (UserInputService.TouchEnabled and math.min(view.X, view.Y) <= Config.UI.PHONE_SIZE)
+	end
 	-- On a touch screen, sit along the bottom in the middle of the free space: right of the
 	-- thumbstick (the left part of the screen) and left of the Run and jump buttons (bottom
 	-- right, which are bigger on a tablet, like in client/Run). On a TV, keep in from the
@@ -52,6 +62,9 @@ function Prompts.start()
 		if Ui.CONSOLE then
 			list.Position = UDim2.fromScale(0.5, 1 - Config.UI.TV_SAFE)
 		elseif UserInputService.TouchEnabled then
+			-- side by side, onto a second row only if they don't fit
+			layout.FillDirection = Enum.FillDirection.Horizontal
+			layout.Wraps = true
 			local wide = gui.AbsoluteSize.X
 			local camera = Workspace.CurrentCamera
 			local view = if camera then camera.ViewportSize else gui.AbsoluteSize
@@ -61,6 +74,8 @@ function Prompts.start()
 			list.Position = UDim2.new(0, (left + right) / 2, 1, -Config.UI.PROMPT_BOTTOM)
 			list.Size = UDim2.fromOffset(math.max(0, right - left), 200)
 		else
+			layout.FillDirection = Enum.FillDirection.Vertical
+			layout.Wraps = false
 			list.Position = UDim2.new(0.5, 0, 1, -24)
 			list.Size = UDim2.fromOffset(420, 200)
 		end
@@ -82,8 +97,13 @@ function Prompts.start()
 			elseif inputType == Enum.ProximityPromptInputType.Touch then nil
 			else UserInputService:GetStringForKeyCode(prompt.KeyboardKeyCode)
 		-- On a touch screen, just the action ("Make this my home"), so the button stays short and
-		-- clear of the thumbstick on the left.
-		local touch = inputType == Enum.ProximityPromptInputType.Touch
+		-- clear of the thumbstick on the left. (A phone with a controller keeps the button
+		-- pictures.)
+		local gamepad = inputType == Enum.ProximityPromptInputType.Gamepad
+		local touch = inputType == Enum.ProximityPromptInputType.Touch or (phoneSized() and not gamepad)
+		if touch then
+			key = nil
+		end
 		-- smaller on a phone or tablet, so it fits beside the thumbstick and Run
 		local tall = if touch then Config.UI.PROMPT_HEIGHT else 54
 		local inner = tall - 14 -- the key, or the space where it would be

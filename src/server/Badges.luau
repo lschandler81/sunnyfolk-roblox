@@ -48,12 +48,12 @@ local EARNED: { [string]: (PlayerData.Data) -> boolean } = {
 	end,
 	allGoals = function(data)
 		-- (goalsFinished: they finished the goals there were then, even if more came since)
-		return data.goalsFinished or GoalList.done(data.goal)
+		return data.goalsFinished or GoalList.allDone(data.goalsDone)
 	end,
 }
 
 -- The attributes whose changes might mean a new badge.
-local WATCH = { "Look", "OwnedHats", "HomeDesign", "Coins", "DailyStreak", "Goal" }
+local WATCH = { "Look", "OwnedHats", "HomeDesign", "Coins", "DailyStreak", "GoalsDone" }
 
 local Badges = {}
 

@@ -11,6 +11,9 @@
 --     requests and harvests) and spent (in the shops). Coin pickups are added up for each
 --     player and logged together about once a minute (Config.ANALYTICS), and when they leave,
 --     so a busy server doesn't send one event per coin. Each reward is still one event.
+--   * A "FirstStory" funnel follows new players through the First Story (shared/Goals):
+--     1 met Clover, 2 planted, 3 picked, 4 bought a hat, 5 chose an Adventure. Each step is
+--     logged once, and only for players who started the story after it came in (Step 16).
 --   * A "DailyPresent" funnel counts each day of the seven a player comes back for, and a
 --     custom event is logged for each request finished.
 --
@@ -33,6 +36,7 @@ Analytics.FIRST_HAT = 4
 Analytics.FIRST_HOME = 5
 
 local STEP_NAMES = { "Joined", "Chose an animal", "First coin", "First hat bought", "First home" }
+local STORY_NAMES = { "Met Clover", "Planted", "Picked", "Bought a hat", "Chose an adventure" }
 local CURRENCY = "Coins"
 
 local IN_STUDIO = RunService:IsStudio()
@@ -114,6 +118,16 @@ function Analytics.coinPickedUp(player: Player, balance: number)
 			logPickups(player)
 		end
 	end)
+end
+
+-- Step `step` of the First Story funnel (see the top of this file). Each player goes through
+-- it once, so their UserId names their trip through it.
+function Analytics.storyStep(player: Player, step: number)
+	local name = STORY_NAMES[step] or `Step {step}`
+	pcall(function()
+		AnalyticsService:LogFunnelStepEvent(player, "FirstStory", `story-{player.UserId}`, step, name)
+	end)
+	note(`{player.Name} First Story step {step}: {name}`)
 end
 
 -- A daily present: day `day` (1 to 7) of a round of seven that began on day number `round`.

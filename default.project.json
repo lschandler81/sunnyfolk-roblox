@@ -21,7 +21,8 @@
           "RequestDone": { "$className": "RemoteEvent" },
           "StudioNextDay": { "$className": "RemoteEvent" },
           "PetAction": { "$className": "RemoteFunction" },
-          "GardenAction": { "$className": "RemoteFunction" }
+          "GardenAction": { "$className": "RemoteFunction" },
+          "ChooseAdventure": { "$className": "RemoteEvent" }
         }
       },
       "SunnyfolkModels": {

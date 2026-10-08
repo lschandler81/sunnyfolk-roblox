@@ -25,6 +25,8 @@ local screen: ScreenGui? = nil
 local cornerFrame: Frame? = nil
 local toastLabel: TextLabel? = nil
 local toastScale: UIScale? = nil
+local toastHome: Instance? = nil -- the HUD's screen, where the message sits on bigger screens
+local toastPadding: UIPadding? = nil
 local toastUntil = 0
 
 function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
@@ -219,15 +221,15 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 		}),
 	})
 	local function updateHint()
-		local goal = player:GetAttribute("Goal")
-		local goalsDone = typeof(goal) == "number" and GoalList.done(goal)
+		local goalsDone = GoalList.allDone(GoalList.fromAttribute(player:GetAttribute("GoalsDone")))
 		hint.Visible = goalsDone and player:GetAttribute("HomePlot") == nil
 	end
 	player:GetAttributeChangedSignal("HomePlot"):Connect(updateHint)
-	player:GetAttributeChangedSignal("Goal"):Connect(updateHint)
+	player:GetAttributeChangedSignal("GoalsDone"):Connect(updateHint)
 	updateHint()
 
 	-- big friendly messages ("Welcome home!")
+	toastHome = gui
 	toastScale = Ui.new("UIScale")
 	toastLabel = Ui.text({
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -242,7 +244,7 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 		Visible = false,
 		Parent = gui,
 	})
-	local toastPadding = Ui.new("UIPadding", {
+	toastPadding = Ui.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 28),
 		PaddingRight = UDim.new(0, 28),
 		PaddingTop = UDim.new(0, 16),
@@ -252,7 +254,7 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 		child.Parent = toastLabel
 	end
 	-- bigger on a TV (its UIScale is used for the pop-in, so the sizes change instead)
-	if Ui.CONSOLE and toastLabel then
+	if Ui.CONSOLE and toastLabel and toastPadding then
 		toastLabel.TextSize = math.round(30 * Config.UI.CONSOLE_SCALE)
 		toastPadding.PaddingTop = UDim.new(0, math.round(16 * Config.UI.CONSOLE_SCALE))
 		toastPadding.PaddingBottom = UDim.new(0, math.round(16 * Config.UI.CONSOLE_SCALE))
@@ -272,19 +274,48 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 	end
 end
 
--- Shows a big friendly message for a few seconds, with a smaller line under it if `small` is
--- given. (Only the game's own words go here: it's shown as rich text.)
+-- Shows a big friendly message, with a smaller line under it if `small` is given. It stays
+-- longer the more there is to read (Config.UI.MESSAGE_...). On a phone on its side it sits at
+-- the top left (Ui.messages), clear of your animal; elsewhere in the middle of the screen.
+-- (Only the game's own words go here: it's shown as rich text.)
 function Hud.toast(text: string, small: string?)
 	local label, scale = toastLabel, toastScale
 	if not (label and scale) then
 		return
 	end
+	local phone = Ui.shortScreen() and not Ui.CONSOLE
+	-- (slimmer sides on a phone, so the words have room in the narrow column)
+	local side = if phone then 14 else 28
+	if toastPadding then
+		toastPadding.PaddingLeft = UDim.new(0, side)
+		toastPadding.PaddingRight = UDim.new(0, side)
+	end
+	if phone then
+		label.AnchorPoint = Vector2.zero
+		label.Position = UDim2.new()
+		label.Size = UDim2.fromScale(1, 0)
+		label.AutomaticSize = Enum.AutomaticSize.Y
+		label.TextWrapped = true
+		label.TextSize = 20
+		label.LayoutOrder = 2 -- under anything a resident is saying
+		label.Parent = Ui.messages()
+	else
+		label.AnchorPoint = Vector2.new(0.5, 0.5)
+		label.Position = UDim2.fromScale(0.5, 0.42)
+		label.Size = UDim2.fromOffset(0, 0)
+		label.AutomaticSize = Enum.AutomaticSize.XY
+		label.TextWrapped = false
+		label.TextSize = if Ui.CONSOLE then math.round(30 * Config.UI.CONSOLE_SCALE) else 30
+		label.Parent = toastHome
+	end
 	label.Text = if small then `{text}\n<font size="{math.round(label.TextSize * 0.65)}">{small}</font>` else text
 	label.Visible = true
 	scale.Scale = 0.6
 	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	toastUntil = os.clock() + 3
-	task.delay(3, function()
+	local letters = utf8.len(text .. (small or "")) or #text
+	local seconds = math.min(Config.UI.MESSAGE_SECONDS + letters * Config.UI.MESSAGE_LETTER, Config.UI.MESSAGE_MAX)
+	toastUntil = os.clock() + seconds
+	task.delay(seconds, function()
 		if os.clock() >= toastUntil then
 			label.Visible = false
 		end
@@ -342,6 +373,12 @@ end
 function Hud.show(visible: boolean)
 	if screen then
 		screen.Enabled = visible
+	end
+	-- a message showing goes too, so it doesn't pop back up afterwards (on a phone it sits
+	-- outside the HUD's screen)
+	if not visible and toastLabel then
+		toastLabel.Visible = false
+		toastUntil = 0
 	end
 end
 

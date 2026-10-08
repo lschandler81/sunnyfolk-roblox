@@ -3,23 +3,27 @@
 --   * your six beds: the soil (darker once watered) and whatever's growing, drawn from your
 --     own save (the Garden attribute), so other players see their own beds, not yours
 --   * a button at each bed saying what to do next, in a word or two ("Plant seeds", "Water",
---     "Growing · 4:32", "Harvest", with the crop's name beside it on a computer), and a little
---     sign high over the bed when it needs water or is ready (hidden while you're at that bed,
---     since its button says the same)
+--     "Harvest", with the crop's name beside it on a computer), and a little sign high over
+--     the bed when it needs water or is ready (hidden while you're at that bed, since its
+--     button says the same). While a crop grows there's nothing to do, so there's no button,
+--     and the sign counts down instead ("Growing · 4:32").
 --   * the seed card, to choose what to plant
---   * a ribbon across the Garden road's arch until you've enough sunshine, which you can't
---     walk through (the server still refuses to garden for anyone without it)
+--   * a ribbon across the Garden road's arch until you've said hello to Clover, which you
+--     can't walk through (the server still refuses to garden for anyone who hasn't)
+--   * the "later" line on the goal card ("Your sunflowers are growing"), for GoalsPanel
 -- Crops grow by the server's clock: Workspace:GetServerTimeNow() matches its os.time().
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Build = require(Shared.Build)
 local Config = require(Shared.Config)
+local GoalList = require(Shared.Goals)
 local Controls = require(script.Parent.Controls)
 local Hud = require(script.Parent.Hud)
 local Ui = require(script.Parent.Ui)
@@ -40,9 +44,12 @@ local Garden = {}
 
 local screen: ScreenGui? = nil
 
--- "2 min", "1½ hours"...
+-- "20 seconds", "2 min", "1½ hours"...
 local function howLong(seconds: number): string
-	if seconds < 60 * 60 then
+	if seconds < 60 then
+		local whole = math.max(1, math.round(seconds))
+		return if whole == 1 then "1 second" else `{whole} seconds`
+	elseif seconds < 60 * 60 then
 		return `{math.max(1, math.round(seconds / 60))} min`
 	end
 	local hours = seconds / 3600
@@ -76,9 +83,46 @@ local function myGarden(): { any }
 	return {}
 end
 
-local function hasSun(): boolean
-	local sun = player:GetAttribute("Sun")
-	return typeof(sun) == "number" and sun >= G.SUN
+local function goalsDone(): { string }
+	return GoalList.fromAttribute(player:GetAttribute("GoalsDone"))
+end
+
+local function isOpen(): boolean
+	return GoalList.gardenOpen(goalsDone())
+end
+
+-- Whether what you plant now grows fast: your quick first crop (as the server decides it),
+-- or any crop while Config.GARDEN.STUDIO_FAST is on in Studio.
+local function firstCrop(): boolean
+	return not table.find(goalsDone(), "plant") or (G.STUDIO_FAST and RunService:IsStudio())
+end
+
+-- A gentle line about your garden for the goal card: a crop that's ready, then one that needs
+-- water, then one that's growing ("Your sunflowers are growing"). Nil if nothing's planted.
+function Garden.laterLine(): string?
+	local now = Workspace:GetServerTimeNow() - G.CLIENT_LAG
+	local best, bestNeed = nil, math.huge
+	for _, plot in myGarden() do
+		local info = plot and plot.crop and G.CROPS[plot.crop]
+		if info then
+			local stage, thirsty = Config.gardenState(plot, now)
+			local need = if stage >= G.STAGES then 1 elseif thirsty then 2 else 3
+			if need < bestNeed then
+				best, bestNeed = info, need
+			end
+		end
+	end
+	if not best then
+		return nil
+	end
+	local one = best.count == 1 -- "Your giant pumpkin is growing"
+	local name = string.lower(best.name)
+	if bestNeed == 1 then
+		return `Your {name} {if one then "is" else "are"} ready to pick!`
+	elseif bestNeed == 2 then
+		return `Your {name} {if one then "needs" else "need"} water`
+	end
+	return `Your {name} {if one then "is" else "are"} growing`
 end
 
 -- Where the Garden goal points: the bed that needs you (ready to harvest first, then needing
@@ -153,31 +197,89 @@ local function plant(crop: string, stage: number, at: CFrame, n: number)
 			Build.ball(0.2 * S, u(0, h + 0.05, 0), C.leaf, PROPS)
 		end
 	elseif crop == "carrot" then
-		for i = 0, 2 do
-			Build.blob(Vector3.new(0.07, 0.4, 0.07) * S, u((i - 1) * 0.07, 0.2 + (if ripe then 0.1 else 0), 0) * CFrame.Angles(0, 0, (i - 1) * 0.35), if i == 1 then C.leafLight else C.leaf, PROPS)
-		end
+		-- feathery fronds on thin stalks, leaning out; when ripe, the carrot's orange top shows
+		-- above the soil
+		local random = Random.new(n)
+		local spin = random:NextNumber(0, math.pi * 2)
+		local tall = if ripe then 0.38 else 0.26
+		local base = if ripe then 0.12 else 0.04
 		if ripe then
-			Build.blob(Vector3.new(0.22, 0.22, 0.22) * S, u(0, 0.04, 0), ORANGE, PROPS)
+			Build.blob(Vector3.new(0.26, 0.22, 0.26) * S, u(0, 0.04, 0), ORANGE, PROPS)
+			Build.blob(Vector3.new(0.2, 0.06, 0.2) * S, u(0, 0.14, 0), ORANGE:Lerp(C.leafDark, 0.35), PROPS)
+		end
+		for i = 0, 4 do
+			local a = spin + i / 5 * math.pi * 2
+			local lean = u(0, base, 0) * CFrame.Angles(0, -a, 0) * CFrame.Angles(0, 0, -0.38)
+			Build.cylinder(0.014 * S, tall * S, lean * CFrame.new(0, tall / 2 * S, 0), C.leafDark, PROPS)
+			Build.blob(Vector3.new(0.15, 0.26, 0.05) * S, lean * CFrame.new(0, (tall + 0.1) * S, 0),
+				if i % 2 == 0 then C.leaf else C.leafLight, PROPS)
 		end
 	elseif crop == "strawberry" then
-		Build.blob(Vector3.new(0.7, 0.35, 0.6) * S, u(0, 0.15, 0), C.leaf, PROPS)
+		-- a rosette of leaves round a darker middle; while growing, white flowers and a little
+		-- green berry; when ripe, plump red berries with green tops resting on the leaves
 		local random = Random.new(n)
-		for _ = 1, 3 do
-			local x, z = random:NextNumber(-0.25, 0.25), random:NextNumber(-0.2, 0.2)
-			if ripe then
-				Build.blob(Vector3.new(0.14, 0.17, 0.14) * S, u(x, 0.22, z), Color3.fromHex("#e8484a"), PROPS)
-			else
-				Build.ball(0.1 * S, u(x, 0.33, z), C.white, PROPS)
+		local spin = random:NextNumber(0, math.pi * 2)
+		Build.blob(Vector3.new(0.24, 0.2, 0.24) * S, u(0, 0.1, 0), C.leafDark, PROPS)
+		for i = 0, 5 do
+			local a = spin + i / 6 * math.pi * 2
+			local leaf = u(0, 0, 0) * CFrame.Angles(0, -a, 0) * CFrame.new(0.2 * S, 0.13 * S, 0) * CFrame.Angles(0, 0, 0.3)
+			Build.blob(Vector3.new(0.36, 0.06, 0.26) * S, leaf, if i % 2 == 0 then C.leaf else C.leafLight, PROPS)
+		end
+		if ripe then
+			local RED = Color3.fromHex("#e8484a")
+			for i = 0, 2 do
+				local a = spin + 0.5 + i / 3 * math.pi * 2
+				-- (just past the ends of the leaves, so the whole berry shows)
+				local at = u(0, 0, 0) * CFrame.Angles(0, -a, 0) * CFrame.new(0.42 * S, 0, 0)
+				-- a strawberry: wide at the top, coming to a round point, with a leafy cap and stalk
+				Build.blob(Vector3.new(0.24, 0.24, 0.24) * S, at * CFrame.new(0, 0.17 * S, 0), RED, PROPS)
+				Build.blob(Vector3.new(0.14, 0.14, 0.14) * S, at * CFrame.new(0, 0.06 * S, 0), RED, PROPS)
+				Build.blob(Vector3.new(0.2, 0.05, 0.2) * S, at * CFrame.new(0, 0.29 * S, 0), C.leafDark, PROPS)
+				Build.cylinder(0.015 * S, 0.14 * S, at * CFrame.new(-0.03 * S, 0.36 * S, 0) * CFrame.Angles(0, 0, 0.5), C.leafDark, PROPS)
+			end
+		else
+			for i = 0, 2 do
+				local a = spin + 0.5 + i / 3 * math.pi * 2
+				local at = u(0, 0, 0) * CFrame.Angles(0, -a, 0) * CFrame.new(0.16 * S, 0, 0)
+				Build.cylinder(0.015 * S, 0.3 * S, at * CFrame.new(0, 0.18 * S, 0), C.leafDark, PROPS)
+				if i == 0 then
+					Build.blob(Vector3.new(0.12, 0.14, 0.12) * S, at * CFrame.new(0, 0.3 * S, 0), C.leafLight, PROPS)
+				else
+					Build.blob(Vector3.new(0.18, 0.04, 0.18) * S, at * CFrame.new(0, 0.34 * S, 0), C.white, PROPS)
+					Build.ball(0.07 * S, at * CFrame.new(0, 0.36 * S, 0), C.yellow, PROPS)
+				end
 			end
 		end
 	elseif crop == "pumpkin" then
-		for i = 0, 1 do
-			local a = i * math.pi + 0.4
-			Build.blob(Vector3.new(0.9, 0.07, 0.55) * S, u(math.cos(a) * 0.9, 0.07, math.sin(a) * 0.7) * CFrame.Angles(0, -a, 0), C.leaf, PROPS)
+		-- big leaves and a vine along the soil; while growing, a small green pumpkin and a yellow
+		-- flower; when ripe, a giant ribbed orange pumpkin with a curly stalk
+		for i = 0, 3 do
+			local a = i / 4 * math.pi * 2 + 0.4
+			local leaf = u(0, 0, 0) * CFrame.Angles(0, -a, 0) * CFrame.new(0.95 * S, 0.1 * S, 0) * CFrame.Angles(0, 0, 0.15)
+			Build.blob(Vector3.new(0.95, 0.07, 0.7) * S, leaf, if i % 2 == 0 then C.leaf else C.leafDark, PROPS)
 		end
-		local size = if ripe then 1.4 else 0.6
-		Build.blob(Vector3.new(size, size * 0.8, size) * S, u(0, size * 0.4, 0), if ripe then Color3.fromHex("#f0922e") else Color3.fromHex("#9cc06a"), PROPS)
-		Build.cylinder(0.07 * S, 0.3 * S, u(0, size * 0.8 + 0.1, 0) * CFrame.Angles(0.2, 0, 0.2), C.woodDark, PROPS)
+		local vine = u(0, 0.04, 0) * CFrame.Angles(0, -(0.4 + math.pi / 4), 0)
+		Build.cylinder(0.035 * S, 1.2 * S, vine * CFrame.new(0.6 * S, 0, 0) * CFrame.Angles(0, 0, math.pi / 2), C.leafDark, PROPS)
+		local size = if ripe then 1.25 else 0.45
+		local main = if ripe then Color3.fromHex("#f0922e") else Color3.fromHex("#9cc06a")
+		local rib = if ripe then Color3.fromHex("#dd7a1f") else Color3.fromHex("#86ad55")
+		local y = 0.4 * size
+		-- six bulging ribs round a middle
+		Build.blob(Vector3.new(0.85, 0.76, 0.85) * size * S, u(0, y, 0), main, PROPS)
+		for i = 0, 5 do
+			local a = i / 6 * math.pi * 2
+			local lobe = u(0, y, 0) * CFrame.Angles(0, -a, 0) * CFrame.new(0.28 * size * S, 0, 0)
+			Build.blob(Vector3.new(0.5, 0.8, 0.5) * size * S, lobe, if i % 2 == 0 then main else rib, PROPS)
+		end
+		-- the stalk, with a little curl at the top
+		local top = u(0, 0.8 * size, 0) * CFrame.Angles(0.15, 0, 0.2)
+		Build.cylinder(0.07 * size * S, 0.3 * size * S, top * CFrame.new(0, 0.12 * size * S, 0), C.woodDark, PROPS)
+		Build.cylinder(0.04 * size * S, 0.2 * size * S, top * CFrame.new(0.06 * size * S, 0.3 * size * S, 0) * CFrame.Angles(0, 0, -1.1), C.leafDark, PROPS)
+		if not ripe then
+			local flower = vine * CFrame.new(1.0 * S, 0.12 * S, 0)
+			Build.blob(Vector3.new(0.34, 0.16, 0.34) * S, flower, C.yellow, PROPS)
+			Build.ball(0.1 * S, flower * CFrame.new(0, 0.08 * S, 0), Color3.fromHex("#f0a23a"), PROPS)
+		end
 	end
 end
 
@@ -259,6 +361,7 @@ local function chooseSeeds(bed: number)
 		}),
 	})
 	local first: GuiObject? = nil
+	local quick = firstCrop()
 	for i, id in G.ORDER do
 		local info = G.CROPS[id]
 		local tile = Ui.button("", Ui.colors.cream, function()
@@ -277,7 +380,7 @@ local function chooseSeeds(bed: number)
 		first = first or tile
 		Ui.text({ Text = info.name, TextSize = 17, Position = UDim2.fromOffset(6, 18), Size = UDim2.new(1, -12, 0, 44), Parent = tile })
 		Ui.text({
-			Text = `Ready in {howLong(info.stage * G.STAGES)}`,
+			Text = `Ready in {howLong((if quick then G.FIRST_STAGE else info.stage) * G.STAGES)}`,
 			TextSize = 14,
 			TextColor3 = Ui.colors.teal,
 			Position = UDim2.fromOffset(6, 70),
@@ -355,12 +458,10 @@ function Garden.start()
 	Ui.corner(14).Parent = signText
 	Ui.stroke(2.5).Parent = signText
 	local function gateUpdate()
-		local sun = player:GetAttribute("Sun")
-		local have = if typeof(sun) == "number" then sun else 0
-		signText.Text = `The Garden opens with {G.SUN} sunshine. You have {have}!`
-		barrier.Parent = if hasSun() then nil else Workspace
+		barrier.Parent = if isOpen() then nil else Workspace
 	end
-	player:GetAttributeChangedSignal("Sun"):Connect(gateUpdate)
+	signText.Text = "Fern's Garden opens once you've said hello to Clover."
+	player:GetAttributeChangedSignal("GoalsDone"):Connect(gateUpdate)
 	gateUpdate()
 
 	-- each bed: a model for what's drawn, a button, and a little sign
@@ -403,6 +504,7 @@ function Garden.start()
 		})
 		local badge = Ui.text({
 			TextSize = 16,
+			TextWrapped = false, -- one line, even for "Growing · 8h 59m"
 			BackgroundTransparency = 0,
 			Size = UDim2.fromScale(1, 1),
 			Visible = false,
@@ -424,7 +526,7 @@ function Garden.start()
 	local function look()
 		local now = Workspace:GetServerTimeNow() - G.CLIENT_LAG
 		local garden = myGarden()
-		local open = hasSun()
+		local open = isOpen()
 		for i, bed in beds do
 			local plot = garden[i]
 			local crop = plot and plot.crop
@@ -437,22 +539,26 @@ function Garden.start()
 			end
 			local name = if crop then G.CROPS[crop].name else ""
 			-- a word or two (a phone shows just these); a computer adds the crop's name
+			local ready = crop ~= nil and stage >= G.STAGES
+			local growing = crop ~= nil and not ready and not thirsty
 			local prompt = bed.prompt
-			prompt.Enabled = open
+			prompt.Enabled = open and not growing
 			prompt.ObjectText = name
 			if not crop then
 				prompt.ActionText = "Plant seeds"
-			elseif stage >= G.STAGES then
+			elseif ready then
 				prompt.ActionText = "Harvest"
-			elseif thirsty then
-				prompt.ActionText = "Water"
 			else
-				prompt.ActionText = `Growing · {clock((readyAt or now) - now)}`
+				prompt.ActionText = "Water"
 			end
 			local badge = bed.badge
-			badge.Visible = open and crop ~= nil and (thirsty or stage >= G.STAGES)
-			badge.Text = if stage >= G.STAGES then "Ready!" else "Needs water"
-			badge.BackgroundColor3 = if stage >= G.STAGES then Ui.colors.yellow else Color3.fromHex("#9cd3f0")
+			badge.Visible = open and crop ~= nil
+			badge.Text = if ready then "Ready!"
+				elseif thirsty then "Needs water"
+				else `Growing · {clock((readyAt or now) - now)}`
+			badge.BackgroundColor3 = if ready then Ui.colors.yellow
+				elseif thirsty then Color3.fromHex("#9cd3f0")
+				else Ui.colors.mint
 		end
 	end
 	task.spawn(function()
@@ -489,14 +595,16 @@ function Garden.start()
 				Hud.announce("Oh!", result or "Something went wrong.")
 			end
 		elseif thirsty then
-			local ok, why = Remotes.GardenAction:InvokeServer("water", i)
+			local ok, result = Remotes.GardenAction:InvokeServer("water", i)
 			if ok then
-				Hud.announce("Watered!", `It'll grow for {howLong(info.stage)}.`)
+				local grow = if typeof(result) == "number" and result > 0 then result else info.stage
+				Hud.announce("Watered!", `It'll grow for {howLong(grow)}.`)
 			else
-				Hud.announce("Oh!", why or "Something went wrong.")
+				Hud.announce("Oh!", if typeof(result) == "string" then result else "Something went wrong.")
 			end
 		else
-			Hud.announce("Growing nicely!", `Come back in {howLong(math.max(60, (readyAt or now) - now))}.`)
+			-- (only if it was watered just as the button went: growing beds have no button)
+			Hud.announce("Growing nicely!", `Come back in {howLong((readyAt or now) - now)}.`)
 		end
 		busy = false
 	end)

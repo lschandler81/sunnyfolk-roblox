@@ -27,6 +27,7 @@ Size is a rough guide to how big the Claude Code session is: S is one sitting, M
 | 14b | Garden and pets polish | Claude Code | M |
 | 15 | Clean-up | Claude Code, then you in the dashboard | S |
 | 16 | The first story (plan first) | Claude Code | L |
+| 16b | My things: a wardrobe for what you own | Claude Code | S |
 | 17 | The Garden Book | Claude Code | M |
 | 18 | Emotes | Claude Code | S |
 | 19 | Cafe shift (plan first) | Claude Code | L |
@@ -266,6 +267,16 @@ The save keeps the number of the goal a player is on, so this changes the save: 
 ```
 
 **Done when:** a brand-new player meets Clover, picks their first crop and buys a hat within about five minutes, then chooses their next Adventure; an old save from before this step loads with its goals still done.
+
+### Step 16b: My things
+
+**Why:** to change your hat or clothes today you have to walk back to the Hat Shop or Clothes Shop, even for things you already own. Children like to swap outfits often, wherever they are. The server's Wear remote already lets a player wear anything they own from anywhere, so this is only a new screen. **Files:** `src/client/Wardrobe.luau` (new), `src/client/Hud.luau`, `src/client/Main.client.luau`, `src/client/HatShop.luau`, `src/client/Ui.luau`, `src/shared/Config.luau`.
+
+```text
+Add a "My things" screen, opened from a button on the HUD (next to Goals and Change animal), that shows everything the player owns: their hats, and their clothes by slot (neck, body, back). Tap a thing to put it on, tap it again to take it off, using the existing Wear remote (no new remote, no save change; the server already checks ownership and rate). Show the same turning picture of their animal as the shops, wearing what's on now. If they own nothing yet, say kindly where the Hat Shop and Clothes Shop are, with no pressure wording. Reuse the shop screen's shelf and preview code rather than copying it. 620 by 290 card with Ui.fitToScreen, 44-pixel touch targets, and it works with a controller (A wears, B closes). It can't open on top of another screen.
+```
+
+**Done when:** a player who owns a hat and a backpack can put them on and take them off from anywhere in town, on a phone, a computer and a controller, and other players see the change.
 
 ### Step 17: The Garden Book
 

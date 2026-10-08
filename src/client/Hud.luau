@@ -29,7 +29,7 @@ local toastHome: Instance? = nil -- the HUD's screen, where the message sits on 
 local toastPadding: UIPadding? = nil
 local toastUntil = 0
 
-function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
+function Hud.create(onChangeAnimal: () -> (), onGoals: () -> (), onMyThings: () -> ())
 	local gui = Ui.screen("Hud", 5)
 	-- Roblox's own buttons are only at the top left, so the HUD can sit right up in the top
 	-- right corner, level with them (still clear of a phone's notch and rounded corners).
@@ -41,7 +41,7 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 	local corner = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = if Ui.CONSOLE then UDim2.fromScale(1 - edge, edge) else UDim2.new(1, -16, 0, 12),
-		Size = UDim2.fromOffset(420, 260),
+		Size = UDim2.fromOffset(470, 260), -- (room for the row of buttons and the coins)
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
@@ -52,8 +52,8 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 		}),
 	})
 
-	-- one row along the top: the Goals and "Change animal" buttons, then your coins in the
-	-- corner
+	-- one row along the top: the Goals, "My things" and "Change animal" buttons, then your
+	-- coins in the corner
 	local top = Ui.new("Frame", {
 		Size = UDim2.fromOffset(0, Ui.TOUCH),
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -75,7 +75,7 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 		Size = UDim2.fromOffset(0, Ui.TOUCH),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = Ui.colors.paper,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 		Parent = top,
 	}, {
 		Ui.round(),
@@ -127,26 +127,52 @@ function Hud.create(onChangeAnimal: () -> (), onGoals: () -> ())
 		end
 	end
 
-	-- the Goals and "Change animal" buttons, along the top beside the coins
+	-- the Goals, "My things" and "Change animal" buttons, along the top beside the coins
+	-- (each just wide enough for its words, so the row stays clear of Roblox's buttons)
 	local buttons = top
 	local goals = Ui.button("Goals", Ui.colors.yellow, function()
 		ringOff()
 		onGoals()
 	end, {
-		Size = UDim2.fromOffset(90, Ui.TOUCH),
+		Size = UDim2.fromOffset(84, Ui.TOUCH),
 		TextSize = 17,
 		LayoutOrder = 1,
 		Parent = buttons,
 	})
-	Ui.button("Change animal", Ui.colors.cream, function()
+	Ui.button("My things", Ui.colors.cream, function()
 		ringOff()
-		onChangeAnimal()
+		onMyThings()
 	end, {
-		Size = UDim2.fromOffset(160, Ui.TOUCH),
+		Size = UDim2.fromOffset(112, Ui.TOUCH),
 		TextSize = 17,
 		LayoutOrder = 2,
 		Parent = buttons,
 	})
+	local changeAnimal = Ui.button("Change animal", Ui.colors.cream, function()
+		ringOff()
+		onChangeAnimal()
+	end, {
+		Size = UDim2.fromOffset(150, Ui.TOUCH),
+		TextSize = 17,
+		LayoutOrder = 3,
+		Parent = buttons,
+	})
+	-- on a narrow screen, a shorter word, so the row stays clear of Roblox's buttons (the
+	-- buttons stay full height for small fingers). The HUD is drawn bigger on taller screens
+	-- and TVs (its UIScale), so the space is measured in HUD-sized pixels.
+	local hudScale = corner:FindFirstChildOfClass("UIScale")
+	local function fitRow()
+		local scale = if hudScale then hudScale.Scale else 1
+		local room = gui.AbsoluteSize.X / scale
+		local narrow = room > 0 and room < Config.UI.HUD_NARROW
+		changeAnimal.Text = if narrow then "Animal" else "Change animal"
+		changeAnimal.Size = UDim2.fromOffset(if narrow then 96 else 150, Ui.TOUCH)
+	end
+	fitRow()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitRow)
+	if hudScale then
+		hudScale:GetPropertyChangedSignal("Scale"):Connect(fitRow)
+	end
 	-- with a controller, the D-pad picture beside them says how to get there
 	local padHint = Ui.new("ImageLabel", {
 		AnchorPoint = Vector2.new(1, 0.5),

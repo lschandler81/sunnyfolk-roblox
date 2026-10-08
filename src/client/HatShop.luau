@@ -2,6 +2,10 @@
 -- picture shows you wearing it), then buy it with coins, put it on, or take it off. The
 -- server checks every purchase (server/HatShop). With a controller, the ring starts on what
 -- you're wearing (or the first thing), and B says bye.
+--
+-- The turning picture of you (HatShop.preview) and the things on the shelves
+-- (HatShop.shelf, HatShop.thing, HatShop.mark) are shared with the "My things" screen
+-- (client/Wardrobe).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -10,6 +14,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
+local Config = require(Shared.Config)
 local Looks = require(Shared.Looks)
 local Controls = require(script.Parent.Controls)
 local Ui = require(script.Parent.Ui)
@@ -60,13 +65,16 @@ local SHOPS: { [string]: Shop } = {
 		owned = "OwnedClothes",
 	},
 }
+HatShop.SHOPS = SHOPS
 
 local screen: ScreenGui? = nil
 
+-- A list kept in one of your attributes ("OwnedHats", "Wearing"...).
 local function listAttribute(name: string): { string }
 	local list = player:GetAttribute(name)
 	return if typeof(list) == "string" and list ~= "" then string.split(list, ",") else {}
 end
+HatShop.listAttribute = listAttribute
 
 local function coins(): number
 	return player:GetAttribute("Coins") or 0
@@ -84,6 +92,7 @@ local function myChoice()
 	end
 	return { species = "capybara", coat = "toffee", scarf = 1 }
 end
+HatShop.myChoice = myChoice
 
 -- Points a ViewportFrame's camera at a model so all of it fits.
 local function frame(camera: Camera, model: Model, from: Vector3)
@@ -92,6 +101,141 @@ local function frame(camera: Camera, model: Model, from: Vector3)
 	local centre = model:GetBoundingBox().Position
 	camera.CFrame = CFrame.lookAt(centre + from.Unit * (biggest * 2.3 + 1), centre)
 end
+
+---------------------------------------------------------------- shared with client/Wardrobe
+
+-- The turning picture of you, in a mint box at `position` in `parent`, seen by a camera at
+-- `cameraAt`. preview.show(choice, look, facing) dresses you (only rebuilding when the look
+-- changes) and turns you to `facing` (radians: 0 is the front); preview.stop() when the
+-- screen closes.
+export type Preview = { show: (any, any, number) -> (), stop: () -> () }
+function HatShop.preview(parent: GuiObject, position: UDim2, size: UDim2, cameraAt: CFrame): Preview
+	local stage = Ui.new("Frame", {
+		Position = position,
+		Size = size,
+		BackgroundColor3 = Ui.colors.mint,
+		Parent = parent,
+	}, { Ui.corner(16), Ui.stroke(3) })
+	local view, camera = Ui.viewport({ Size = UDim2.fromScale(1, 1), Parent = stage })
+	camera.CFrame = cameraAt
+	local you: Model? = nil
+	local shownLook = ""
+	-- which way you face: the front, or turned round to show a backpack
+	local facing, turnedTo = 0, 0
+	local turning = RunService.RenderStepped:Connect(function()
+		if you then
+			-- turn smoothly towards the way you should face, swaying gently from side to side
+			turnedTo += (facing - turnedTo) * 0.12
+			you:PivotTo(CFrame.new(0, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, turnedTo + math.sin(os.clock() * 0.8) * 0.5, 0))
+		end
+	end)
+	return {
+		show = function(choice, look, turn: number)
+			facing = turn
+			local key = `{choice.species}/{choice.coat}/{choice.scarf}/{look.hat}/{table.concat(look.clothes or {}, ",")}`
+			if key ~= shownLook then
+				shownLook = key
+				if you then
+					you:Destroy()
+				end
+				you = Builder.build(look, { viewport = true })
+				;(you :: Model).Parent = view
+			end
+		end,
+		stop = function()
+			turning:Disconnect()
+		end,
+	}
+end
+
+-- A cream box of shelves at `position` in `parent`, scrolling up and down. `layout` arranges
+-- what goes in it (a grid, or a list of sections).
+function HatShop.shelf(parent: GuiObject, position: UDim2, size: UDim2, layout: Instance): ScrollingFrame
+	return Ui.new("ScrollingFrame", {
+		Position = position,
+		Size = size,
+		BackgroundColor3 = Ui.colors.cream,
+		ScrollBarThickness = 8,
+		ScrollBarImageColor3 = Ui.colors.ink,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Selectable = false, -- a controller's ring goes straight to the things on the shelves
+		Parent = parent,
+	}, { Ui.corner(16), Ui.stroke(3), Ui.padding(6), layout })
+end
+
+-- The grid of things on a shelf.
+function HatShop.grid(): UIGridLayout
+	return Ui.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(88, 104),
+		CellPadding = UDim2.fromOffset(6, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	})
+end
+
+-- One thing on a shelf (a button): a little picture of `model` seen from `from`, its name, and
+-- a line underneath (`status`: a price beside a coin, "Yours!", "Wearing"...).
+export type Thing = { button: TextButton, status: TextLabel, coin: GuiObject, stroke: UIStroke }
+function HatShop.thing(parent: Instance, order: number, model: Model?, from: Vector3, name: string): Thing
+	local stroke = Ui.stroke(2.5)
+	local button = Ui.new("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = Ui.colors.paper,
+		LayoutOrder = order,
+		Parent = parent,
+	}, { Ui.corner(12), stroke })
+	local thumb, thumbCamera = Ui.viewport({
+		Position = UDim2.fromOffset(14, 2),
+		Size = UDim2.fromOffset(60, 52),
+		Parent = button,
+	})
+	if model then
+		model:PivotTo(CFrame.Angles(0, 0.5, 0))
+		model.Parent = thumb
+		frame(thumbCamera, model, from)
+	end
+	Ui.text({
+		Text = name,
+		TextSize = 13,
+		Position = UDim2.fromOffset(2, 54),
+		Size = UDim2.new(1, -4, 0, 32),
+		Parent = button,
+	})
+	local row = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 86),
+		Size = UDim2.fromOffset(0, 18),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Parent = button,
+	}, {
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 4),
+		}),
+	})
+	local coin = Ui.coin(15, { Parent = row })
+	local status = Ui.text({
+		TextSize = 14,
+		TextWrapped = false, -- so "Wearing" is never cut short
+		Size = UDim2.fromOffset(0, 18),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Parent = row,
+	})
+	return { button = button, status = status, coin = coin, stroke = stroke }
+end
+
+-- Rings a thing on a shelf in coral (the one picked, or the one you're wearing), or not.
+function HatShop.mark(thing: Thing, on: boolean)
+	thing.stroke.Color = if on then Ui.colors.coral else Ui.colors.ink
+	thing.stroke.Thickness = if on then 4.5 else 2.5
+	thing.button.BackgroundColor3 = if on then Ui.colors.yellowLight else Ui.colors.paper
+end
+
+---------------------------------------------------------------- the shop screen
 
 -- Opens a shop: "hats" or "clothes".
 function HatShop.open(shopId: string?)
@@ -135,9 +279,13 @@ function HatShop.open(shopId: string?)
 	Ui.fitToScreen(card, 620, 290)
 
 	local connections: { RBXScriptConnection } = {}
+	local preview: Preview? = nil
 	local function close()
 		for _, c in connections do
 			c:Disconnect()
+		end
+		if preview then
+			preview.stop()
 		end
 		gui:Destroy()
 		screen = nil
@@ -183,24 +331,8 @@ function HatShop.open(shopId: string?)
 	local walletText = Ui.text({ TextSize = 20, Size = UDim2.fromOffset(0, 36), AutomaticSize = Enum.AutomaticSize.X, Parent = wallet })
 
 	-- the try-on picture
-	local stage = Ui.new("Frame", {
-		Position = UDim2.fromOffset(12, 58),
-		Size = UDim2.fromOffset(190, 120),
-		BackgroundColor3 = Ui.colors.mint,
-		Parent = card,
-	}, { Ui.corner(16), Ui.stroke(3) })
-	local view, camera = Ui.viewport({ Size = UDim2.fromScale(1, 1), Parent = stage })
-	camera.CFrame = shop.camera
-	local you: Model? = nil
-	-- which way you face in the picture: the front, or turned round to show a backpack
-	local facing, turnedTo = 0, 0
-	table.insert(connections, RunService.RenderStepped:Connect(function()
-		if you then
-			-- turn smoothly towards the way you should face, swaying gently from side to side
-			turnedTo += (facing - turnedTo) * 0.12
-			you:PivotTo(CFrame.new(0, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, turnedTo + math.sin(os.clock() * 0.8) * 0.5, 0))
-		end
-	end))
+	local tryOn = HatShop.preview(card, UDim2.fromOffset(12, 58), UDim2.fromOffset(190, 120), shop.camera)
+	preview = tryOn
 
 	local hatName = Ui.text({
 		TextSize = 15,
@@ -222,91 +354,23 @@ function HatShop.open(shopId: string?)
 	})
 
 	-- the shelves
-	local shelves = Ui.new("ScrollingFrame", {
-		Position = UDim2.fromOffset(212, 58),
-		Size = UDim2.fromOffset(398, 224),
-		BackgroundColor3 = Ui.colors.cream,
-		ScrollBarThickness = 8,
-		ScrollBarImageColor3 = Ui.colors.ink,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-		Selectable = false, -- a controller's ring goes straight to the things on the shelves
-		Parent = card,
-	}, {
-		Ui.corner(16),
-		Ui.stroke(3),
-		Ui.padding(6),
-		Ui.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(88, 104),
-			CellPadding = UDim2.fromOffset(6, 6),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
+	local shelves = HatShop.shelf(card, UDim2.fromOffset(212, 58), UDim2.fromOffset(398, 224), HatShop.grid())
 
 	local refresh: () -> ()
-	local cards: { [string]: { button: TextButton, price: TextLabel, stroke: UIStroke } } = {}
+	local cards: { [string]: Thing } = {}
+	local prices: { [string]: number } = {}
 
 	for i, hat in items do
-		local stroke = Ui.stroke(2.5)
-		local button = Ui.new("TextButton", {
-			Text = "",
-			AutoButtonColor = false,
-			BackgroundColor3 = Ui.colors.paper,
-			LayoutOrder = i,
-			Parent = shelves,
-		}, { Ui.corner(12), stroke })
-		local thumb, thumbCamera = Ui.viewport({
-			Position = UDim2.fromOffset(14, 2),
-			Size = UDim2.fromOffset(60, 52),
-			Parent = button,
-		})
-		local model = shop.thumb(choice.species, hat.id)
-		if model then
-			model:PivotTo(CFrame.Angles(0, 0.5, 0))
-			model.Parent = thumb
-			frame(thumbCamera, model, shop.thumbFrom)
-		end
-		Ui.text({
-			Text = hat.name,
-			TextSize = 13,
-			Position = UDim2.fromOffset(2, 54),
-			Size = UDim2.new(1, -4, 0, 32),
-			Parent = button,
-		})
-		local priceRow = Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 86),
-			Size = UDim2.fromOffset(0, 18),
-			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundTransparency = 1,
-			Parent = button,
-		}, {
-			Ui.new("UIListLayout", {
-				FillDirection = Enum.FillDirection.Horizontal,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-				Padding = UDim.new(0, 4),
-			}),
-		})
-		local coin = Ui.coin(15, { Parent = priceRow })
-		local price = Ui.text({
-			TextSize = 14,
-			TextWrapped = false, -- so "Wearing" is never cut short
-			Size = UDim2.fromOffset(0, 18),
-			AutomaticSize = Enum.AutomaticSize.X,
-			Parent = priceRow,
-		})
-		price:SetAttribute("Price", hat.price)
-		coin.Name = "Coin"
-		button.Activated:Connect(function()
+		local thing = HatShop.thing(shelves, i, shop.thumb(choice.species, hat.id), shop.thumbFrom, hat.name)
+		prices[hat.id] = hat.price
+		thing.button.Activated:Connect(function()
 			selected = hat.id
 			message = ""
 			refresh()
 		end)
-		cards[hat.id] = { button = button, price = price, stroke = stroke }
+		cards[hat.id] = thing
 	end
 
-	local shownLook = ""
 	refresh = function()
 		local mine = listAttribute(shop.owned)
 		local wearing = if isHats then { player:GetAttribute("Hat") } else listAttribute("Wearing")
@@ -314,16 +378,11 @@ function HatShop.open(shopId: string?)
 
 		for itemId, c in cards do
 			local have = table.find(mine, itemId) ~= nil
-			c.price.Text = if table.find(wearing, itemId) then "Wearing"
+			c.status.Text = if table.find(wearing, itemId) then "Wearing"
 				elseif have then "Yours!"
-				else tostring(c.price:GetAttribute("Price"))
-			local coin = c.price.Parent and c.price.Parent:FindFirstChild("Coin")
-			if coin and coin:IsA("GuiObject") then
-				coin.Visible = not have
-			end
-			c.stroke.Color = if itemId == selected then Ui.colors.coral else Ui.colors.ink
-			c.stroke.Thickness = if itemId == selected then 4.5 else 2.5
-			c.button.BackgroundColor3 = if itemId == selected then Ui.colors.yellowLight else Ui.colors.paper
+				else tostring(prices[itemId])
+			c.coin.Visible = not have
+			HatShop.mark(c, itemId == selected)
 		end
 
 		-- you, trying on the selected thing: a hat on its own, or clothes with the rest of what
@@ -331,12 +390,13 @@ function HatShop.open(shopId: string?)
 		local hatOn = player:GetAttribute("Hat")
 		local clothesOn = listAttribute("Wearing")
 		local look
+		local facing = 0
 		if isHats then
 			look = Looks.playerLook(choice, selected, clothesOn)
 		else
 			local picked = Looks.shopItem(selected)
 			-- show your back for something worn on it (a three-quarter turn, so you see your face too)
-			facing = if picked and picked.slot == "back" then math.rad(150) else 0
+			facing = if picked and picked.slot == "back" then math.rad(Config.UI.SHOW_BACK_TURN) else 0
 			local outfit = {}
 			for _, worn in clothesOn do
 				local item = Looks.shopItem(worn)
@@ -349,15 +409,7 @@ function HatShop.open(shopId: string?)
 			end
 			look = Looks.playerLook(choice, hatOn, outfit)
 		end
-		local lookKey = `{choice.species}/{choice.coat}/{choice.scarf}/{look.hat}/{table.concat(look.clothes, ",")}`
-		if lookKey ~= shownLook then
-			shownLook = lookKey
-			if you then
-				you:Destroy()
-			end
-			you = Builder.build(look, { viewport = true })
-			;(you :: Model).Parent = view
-		end
+		tryOn.show(choice, look, facing)
 
 		local hat = find(selected)
 		hatName.Text = if hat then hat.name else ""
@@ -399,7 +451,7 @@ function HatShop.open(shopId: string?)
 			if not isHats then
 				-- clothes rebuild your animal: wait a moment before the next change
 				busy = true
-				task.delay(1, function()
+				task.delay(Config.CLOTHES_REBUILD_SECONDS, function()
 					busy = false
 				end)
 			end

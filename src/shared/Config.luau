@@ -490,6 +490,13 @@ Config.UI = {
 	MESSAGE_SECONDS = 3,
 	MESSAGE_LETTER = 0.07,
 	MESSAGE_MAX = 10,
+	-- A screen narrower than this has "Animal" on the HUD's "Change animal" button, so the row
+	-- of buttons stays clear of Roblox's own buttons on the left. (In HUD-sized pixels: on a
+	-- taller screen or a TV, where the HUD is drawn bigger, it counts as that much narrower.)
+	HUD_NARROW = 700,
+	-- How far the picture of you turns (degrees) to show something worn on your back (the shops
+	-- and "My things"): three-quarters round, so you see your face too.
+	SHOW_BACK_TURN = 150,
 	-- The goal's pin goes once you're this close (studs) to where it points: you've arrived,
 	-- and it would only cover what you came to see.
 	GOAL_PIN_ARRIVED = 25,

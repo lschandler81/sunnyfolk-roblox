@@ -46,13 +46,15 @@ function Prompts.start()
 	local layout = list:FindFirstChildOfClass("UIListLayout") :: UIListLayout
 	Ui.consoleSize(list)
 
-	-- A phone: a phone-sized touch screen, or any screen as short as a phone on its side. Its
+	-- A phone: a touch screen that's phone-sized, or as short as a phone on its side. Its
 	-- buttons are always the small kind, even if the last thing pressed was a key (Studio's
-	-- phone emulator counts the mouse as a keyboard).
+	-- phone emulator counts the mouse as a keyboard). A computer in a small window isn't one,
+	-- so it keeps its E and F.
 	local function phoneSized(): boolean
 		local camera = Workspace.CurrentCamera
 		local view = if camera then camera.ViewportSize else gui.AbsoluteSize
-		return Ui.shortScreen() or (UserInputService.TouchEnabled and math.min(view.X, view.Y) <= Config.UI.PHONE_SIZE)
+		return UserInputService.TouchEnabled
+			and (Ui.shortScreen() or math.min(view.X, view.Y) <= Config.UI.PHONE_SIZE)
 	end
 	-- On a touch screen, sit along the bottom in the middle of the free space: right of the
 	-- thumbstick (the left part of the screen) and left of the Run and jump buttons (bottom

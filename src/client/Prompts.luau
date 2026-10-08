@@ -55,7 +55,7 @@ function Prompts.start()
 			local wide = gui.AbsoluteSize.X
 			local camera = Workspace.CurrentCamera
 			local view = if camera then camera.ViewportSize else gui.AbsoluteSize
-			local phone = math.min(view.X, view.Y) <= 500
+			local phone = math.min(view.X, view.Y) <= Config.UI.PHONE_SIZE
 			local left = wide * Config.UI.THUMBSTICK
 			local right = wide - (if phone then Config.UI.RUN_CLEAR_PHONE else Config.UI.RUN_CLEAR_TABLET)
 			list.Position = UDim2.new(0, (left + right) / 2, 1, -Config.UI.PROMPT_BOTTOM)

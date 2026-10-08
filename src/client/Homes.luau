@@ -1,5 +1,6 @@
 -- Homes on the player's side: the "Make this my home" button on free plots, and a
--- "Change my home" button at the door of your own house (only you see that one).
+-- "Change my home" button at the door of your own house (only you see that one), and a kind
+-- message when someone else is on your saved plot, so your house is on another one this visit.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -7,6 +8,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Sunnyfolk").Config)
 local HomeDesigner = require(script.Parent.HomeDesigner)
+local Hud = require(script.Parent.Hud)
 
 local player = Players.LocalPlayer
 local S = Config.STUDS
@@ -65,6 +67,27 @@ function Homes.start(say: (string) -> ())
 		Workspace:WaitForChild("HomePlots", 30)
 		updateDoor()
 	end)
+
+	-- Someone's on your saved plot today (server/Homes sets "HomeAway"): say where your house
+	-- is instead, once you're playing. Plots have no numbers on them, so it names the pond.
+	local told = false
+	local function tellIfAway()
+		local index = player:GetAttribute("HomePlot")
+		local saved = player:GetAttribute("HomeAway")
+		if told or typeof(saved) ~= "number" or typeof(index) ~= "number" then
+			return
+		end
+		told = true
+		local pondNumber = math.ceil(index / Config.HOME.plotsPerPond)
+		local pond = Config.HOME.ponds[pondNumber]
+		local name = if pond then pond.name else "the pond"
+		local where = if math.ceil(saved / Config.HOME.plotsPerPond) == pondNumber
+			then `on another plot at {name}`
+			else `at {name}`
+		Hud.announce("Someone's living on your plot today!", `So your house is {where} for this visit.`)
+	end
+	player:GetAttributeChangedSignal("HomeAway"):Connect(tellIfAway)
+	tellIfAway()
 end
 
 return Homes

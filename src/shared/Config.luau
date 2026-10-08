@@ -37,6 +37,10 @@ Config.ROAD_W = 4.4 -- how wide the roads are
 Config.SHOP_DIST = 29 -- to the middle of each shop
 Config.EDGE_R = 72 -- the hedge round the town; nobody walks past it
 
+-- Parts smaller than this (in studs, on their longest side) cast no shadow: flowers, flags,
+-- trims and so on, whose shadows nobody would notice. Keeps phones running smoothly.
+Config.SHADOW_SIZE = 2
+
 -- Where you appear (on the ground, facing the fountain).
 Config.SPAWN = CFrame.lookAt(Config.fromWeb(0, 11), Vector3.zero)
 
@@ -399,6 +403,14 @@ Config.REMOTE_LIMITS = {
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.
 Config.CLOTHES_REBUILD_SECONDS = 1
 
+---------------------------------------------------------------- analytics
+
+Config.ANALYTICS = {
+	-- Coin pickups are added up and sent to Roblox's analytics together, once this many seconds
+	-- after a player's first uncounted pickup (and when they leave), instead of one per coin.
+	PICKUP_SECONDS = 60,
+}
+
 ---------------------------------------------------------------- badges
 
 -- Badges (see server/Badges.luau). Make each one in the Creator Dashboard (Sunnyfolk >
@@ -449,8 +461,11 @@ Config.UI = {
 	PROMPT_MIN_TEXT = 14,
 	PROMPT_BOTTOM = 12, -- how far up from the bottom edge (pixels)
 	THUMBSTICK = 0.4, -- the left part of the screen Roblox keeps for the thumbstick (0.4 is 40%)
+	-- A screen whose shorter side is this many pixels or less is a phone, where Roblox's jump
+	-- button is smaller and lower (client/Run and client/Prompts follow it).
+	PHONE_SIZE = 500,
 	-- how much of the right side (pixels) to keep clear for Run and jump (client/Run): on a
-	-- phone (the shorter side 500 pixels or less), and on a tablet
+	-- phone, and on a tablet
 	RUN_CLEAR_PHONE = 190,
 	RUN_CLEAR_TABLET = 270,
 	-- The goal's pin goes once you're this close (studs) to where it points: you've arrived,

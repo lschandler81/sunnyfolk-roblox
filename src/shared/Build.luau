@@ -62,9 +62,8 @@ Build.random = random
 
 type Props = { [string]: any }
 
--- Parts smaller than this (in studs, on their longest side) cast no shadow: flowers, flags,
--- trims and so on, whose shadows nobody would notice. Keeps phones running smoothly.
-local SHADOW_SIZE = 2
+-- Parts smaller than Config.SHADOW_SIZE cast no shadow (see Config).
+local SHADOW_SIZE = Config.SHADOW_SIZE
 
 local function part(className: string, size: Vector3, cframe: CFrame, color: Color3, props: Props?): BasePart
 	local p = Instance.new(className) :: BasePart

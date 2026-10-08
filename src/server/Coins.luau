@@ -55,7 +55,7 @@ function Coins.start()
 			balance = data.coins
 		end)
 		if balance then
-			Analytics.coinsEarned(player, 1, balance, "pickup")
+			Analytics.coinPickedUp(player, balance)
 			Analytics.step(player, Analytics.FIRST_COIN, firstTime)
 			Goals.event(player, "coin")
 		end

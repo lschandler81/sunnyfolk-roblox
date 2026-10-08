@@ -7,8 +7,10 @@
 --     so the funnel shows new players rather than every visit. One exception: "joined" means
 --     "has never chosen an animal", so someone who leaves before choosing is counted again
 --     next time they join.
---   * Economy events log coins earned (from pickups, and as rewards for goals, daily presents
---     and requests) and spent (on hats).
+--   * Economy events log coins earned (from pickups, and as rewards for goals, daily presents,
+--     requests and harvests) and spent (in the shops). Coin pickups are added up for each
+--     player and logged together about once a minute (Config.ANALYTICS), and when they leave,
+--     so a busy server doesn't send one event per coin. Each reward is still one event.
 --   * A "DailyPresent" funnel counts each day of the seven a player comes back for, and a
 --     custom event is logged for each request finished.
 --
@@ -17,7 +19,10 @@
 
 local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Sunnyfolk").Config)
 
 local Analytics = {}
 
@@ -64,13 +69,51 @@ function Analytics.step(player: Player, step: number, firstTime: boolean)
 	end
 end
 
--- Coins earned. `source` says where from (like "pickup"); `balance` is their coins after.
-function Analytics.coinsEarned(player: Player, amount: number, balance: number, source: string)
+-- Coins picked up but not logged yet, for each player: how many, and their coins after the
+-- last one.
+local pickups: { [Player]: { coins: number, balance: number } } = {}
+
+local function logEarned(player: Player, amount: number, balance: number, source: string)
 	pcall(function()
 		AnalyticsService:LogEconomyEvent(player, Enum.AnalyticsEconomyFlowType.Source, CURRENCY, amount,
 			balance, Enum.AnalyticsEconomyTransactionType.Gameplay.Name, source)
 	end)
 	note(`{player.Name} earned {amount} coin(s) from {source}, now has {balance}`)
+end
+
+-- Logs a player's waiting pickups now. Called before any other coin event for them, so the
+-- balances in the dashboard stay in order.
+local function logPickups(player: Player)
+	local waiting = pickups[player]
+	if waiting then
+		pickups[player] = nil
+		logEarned(player, waiting.coins, waiting.balance, "pickup")
+	end
+end
+
+-- Coins earned. `source` says where from (like "goal:hello"); `balance` is their coins after.
+function Analytics.coinsEarned(player: Player, amount: number, balance: number, source: string)
+	logPickups(player)
+	logEarned(player, amount, balance, source)
+end
+
+-- A coin picked up. These are logged together (see the top of this file). `balance` is their
+-- coins after this one.
+function Analytics.coinPickedUp(player: Player, balance: number)
+	local waiting = pickups[player]
+	if waiting then
+		waiting.coins += 1
+		waiting.balance = balance
+		return
+	end
+	local batch = { coins = 1, balance = balance }
+	pickups[player] = batch
+	task.delay(Config.ANALYTICS.PICKUP_SECONDS, function()
+		-- only if these are still waiting (something else may have logged them already)
+		if pickups[player] == batch then
+			logPickups(player)
+		end
+	end)
 end
 
 -- A daily present: day `day` (1 to 7) of a round of seven that began on day number `round`.
@@ -92,6 +135,7 @@ end
 
 -- Coins spent. `sink` says on what (like "hat:beret"); `balance` is their coins after.
 function Analytics.coinsSpent(player: Player, amount: number, balance: number, sink: string)
+	logPickups(player)
 	pcall(function()
 		AnalyticsService:LogEconomyEvent(player, Enum.AnalyticsEconomyFlowType.Sink, CURRENCY, amount,
 			balance, Enum.AnalyticsEconomyTransactionType.Shop.Name, sink)
@@ -100,7 +144,15 @@ function Analytics.coinsSpent(player: Player, amount: number, balance: number, s
 end
 
 Players.PlayerRemoving:Connect(function(player)
+	logPickups(player)
 	seen[player] = nil
+end)
+
+-- When the server shuts down (or Stop is pressed in Studio), log what's still waiting.
+game:BindToClose(function()
+	for player in pickups do
+		logPickups(player)
+	end
 end)
 
 return Analytics

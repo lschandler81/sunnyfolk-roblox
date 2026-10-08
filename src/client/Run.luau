@@ -66,7 +66,7 @@ function Run.start()
 			return
 		end
 		local view = camera.ViewportSize
-		local small = math.min(view.X, view.Y) <= 500
+		local small = math.min(view.X, view.Y) <= Config.UI.PHONE_SIZE
 		if small then
 			button.Position = UDim2.new(1, -106, 1, -55)
 		else

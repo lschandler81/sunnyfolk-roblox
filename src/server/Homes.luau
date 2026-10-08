@@ -3,6 +3,10 @@
 -- Your design and favourite plot are saved, so next time you move straight back in (to the
 -- same plot if it's free, or the nearest free one). When you leave, your plot is free for
 -- someone else.
+--
+-- If your saved plot is taken when you come back, your house goes on the nearest free plot
+-- just for this visit: your "HomeAway" attribute is set to your saved plot, so your screen can
+-- tell you (client/Homes), and your saved plot stays the same unless you choose a new one.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,6 +31,8 @@ local Homes = {}
 type Plot = { index: number, cframe: CFrame, model: Model, sign: Model, owner: Player? }
 local plots: { Plot } = {}
 local plotOf: { [Player]: number } = {}
+-- Players living away from their saved plot this visit, and that saved plot.
+local awayFrom: { [Player]: number } = {}
 
 -- The "Free plot" sign, with the button to move in.
 local function freeSign(plot: Plot): Model
@@ -145,6 +151,10 @@ function Homes.start(plotFrames: { CFrame })
 		local index = plotFor(home.plot)
 		if index and player.Parent then
 			moveIn(player, index, home.design)
+			if index ~= home.plot and plots[home.plot] then
+				awayFrom[player] = home.plot
+				player:SetAttribute("HomeAway", home.plot)
+			end
 		end
 	end)
 
@@ -162,6 +172,7 @@ function Homes.start(plotFrames: { CFrame })
 			return false, "Something went wrong. Please try again."
 		end
 		local index = plotOf[player]
+		local moving = false
 		if typeof(plotIndex) == "number" and plotIndex ~= index then
 			local plot = plots[plotIndex]
 			if not plot then
@@ -171,16 +182,24 @@ function Homes.start(plotFrames: { CFrame })
 				return false, "Someone's just moved in there! Try another free plot."
 			end
 			index = plotIndex
+			moving = true
 		end
 		if not index then
 			return false, "Find a free plot at Home Pond or Lily Pond first."
 		end
 		lastBuilt[player] = os.clock()
 		moveIn(player, index, checked)
+		-- choosing a new plot makes it your saved one; changing your house on a plot you're
+		-- only borrowing this visit keeps your saved plot
+		if moving then
+			awayFrom[player] = nil
+			player:SetAttribute("HomeAway", nil)
+		end
+		local savedPlot = awayFrom[player] or index
 		local changed, firstTime = false, false
 		PlayerData.update(player, function(data)
 			changed, firstTime = true, data.home == nil
-			data.home = { design = checked, plot = index }
+			data.home = { design = checked, plot = savedPlot }
 		end)
 		if changed then
 			Analytics.step(player, Analytics.FIRST_HOME, firstTime)
@@ -191,6 +210,7 @@ function Homes.start(plotFrames: { CFrame })
 
 	Players.PlayerRemoving:Connect(function(player)
 		lastBuilt[player] = nil
+		awayFrom[player] = nil
 		local index = plotOf[player]
 		if index then
 			release(index)

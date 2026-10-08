@@ -1,6 +1,6 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
 -- clothes, their pet, their home, their garden and Garden Book, the goals they've done (with
--- the sunshine they've earned), their daily present and today's requests.
+-- the sunshine they've earned), their daily present, today's requests and their cafe shifts.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
@@ -34,11 +34,11 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 9 -- the save version this code writes (see migrate)
+local VERSION = 10 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
 	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden",
-	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests",
+	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests", "cafe",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -87,6 +87,9 @@ export type Data = {
 	daily: { last: number, streak: number, start: number },
 	-- today's requests (Config.requestsFor(day)): progress on each, and which are done
 	requests: { day: number, got: { number }, done: { boolean } },
+	-- the Cafe: how many shifts they've finished, and the coins they've earned there since
+	-- `hourStart` (server clock, os.time), which Config.CAFE.COINS_PER_HOUR caps
+	cafe: { shifts: number, hourStart: number, hourCoins: number },
 }
 type Profile = {
 	data: Data,
@@ -143,6 +146,7 @@ local function blank(): Data
 		sun = 0,
 		daily = { last = 0, streak = 0, start = 0 },
 		requests = { day = 0, got = {}, done = {} },
+		cafe = { shifts = 0, hourStart = 0, hourCoins = 0 },
 	}
 end
 
@@ -223,6 +227,11 @@ local function migrate(saved: any): any
 		local done = if typeof(saved.goalsDone) == "table" then saved.goalsDone else {}
 		saved.gardenBook = { picked = {}, first = table.find(done, "harvest") ~= nil }
 		version = 9
+	end
+	if version < 10 then
+		-- Version 10 added the Cafe. Older saves start with no shifts and no cafe coins this
+		-- hour, which tidy() fills in.
+		version = 10
 	end
 	saved.version = version
 	return saved
@@ -366,6 +375,15 @@ local function tidy(saved: any): Data
 			last = count(daily.last) or 0,
 			streak = math.clamp(count(daily.streak) or 0, 0, #Config.DAILY.COINS),
 			start = count(daily.start) or 0,
+		}
+	end
+	local cafe = saved.cafe
+	if typeof(cafe) == "table" then
+		-- (an hour can't start in the future)
+		data.cafe = {
+			shifts = count(cafe.shifts) or 0,
+			hourStart = math.min(count(cafe.hourStart) or 0, os.time()),
+			hourCoins = math.min(count(cafe.hourCoins) or 0, Config.CAFE.COINS_PER_HOUR),
 		}
 	end
 	local requests = saved.requests

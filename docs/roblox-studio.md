@@ -43,7 +43,7 @@ Press **Stop** (Shift+F5) when you're done.
 
 ## 3. Import the characters
 
-You need 13 of the files in `assets/characters`:
+You need 14 of the files in `assets/characters`:
 
 | For | Files |
 |---|---|
@@ -51,8 +51,10 @@ You need 13 of the files in `assets/characters`:
 | Their hats (the Hat Shop) | `capybara-hats.glb`, `bunny-hats.glb`, `guineapig-hats.glb` |
 | Their scarves | `capybara-clothes.glb`, `bunny-clothes.glb`, `guineapig-clothes.glb` |
 | Clover, Puddles and Pebble | `duck.glb`, `duck-clothes.glb`, `penguin.glb`, `penguin-clothes.glb` |
+| Chef Pepper at the Cafe | `guineapig-grumpy.glb` (he stays away until it's imported) |
 
-(Clover is a bunny, so she uses the bunny files.)
+(Clover is a bunny and Biscuit a capybara, so they use those files; Pepper's hat and apron
+come from the guinea pig files.)
 
 For each file:
 

@@ -13,8 +13,8 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 - **Choose your animal**: a capybara, bunny or guinea pig, its colours and a scarf. Change
   any time from **My things** (the **Change animal** button there).
 - **Walk around**: the animals waddle, breathe, look around and blink, just like in the web game.
-- **Three residents**: Clover the bunny (by her Hat Shop), Puddles the duck and Pebble the
-  penguin. Walk up and press **Talk** to see what they say in a speech bubble. The first
+- **Residents**: Clover the bunny (by her Hat Shop), Puddles the duck, Pebble the penguin, and
+  Biscuit the capybara and Chef Pepper at the Cafe. Walk up and press **Talk** to see what they say in a speech bubble. The first
   time each visit, they wave and say hello by name.
 - **Coins** float round the square. Walk into one to pick it up; it comes back a few
   minutes later. Coins are saved between visits.
@@ -30,6 +30,10 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 - **Pets**: adopt a puppy, kitten or duckling at the Pet Shop, pick its colour and a name, and
   dress it in a collar and something for its head. It trots after you everywhere, sits when you
   stop and hops when you jump, and everyone can see it.
+- **Biscuit's Cafe**, at the end of the Cafe road (once you have 4 sunshine): ask Biscuit for a
+  shift, then carry each visitor what their bubble shows, from the counter to their table,
+  and take their dirty plates to the wash-up tub. A friend can join the same shift, and every
+  helper is paid for every order.
 - **Goals**: a new player is led round town by nine little goals (say hello, pick up coins,
   buy a hat, make a home, visit places, adopt a pet), with a yellow arrow pointing the way.
   Each pays coins and sunshine; sunshine will open the gated roads once there's something
@@ -60,6 +64,7 @@ src/shared/             → ReplicatedStorage.Sunnyfolk (used by the server and 
   Houses.luau             the choices for players' houses, and building one from them
   Goals.luau              the goals for new players, and what each one pays
   PetBuilder.luau         builds a pet from simple parts, and poses it
+  CafeFood.luau           the Cafe's cocoa, cake, pancakes and soup, from simple parts
   Looks.luau              easy reading of sunnyfolk.json (coats, scarves, hats, residents)
   Models.luau             finds the imported models in ReplicatedStorage.SunnyfolkModels
   MeshLayout.luau         where every mesh sits (made by the tool above)
@@ -70,7 +75,8 @@ src/server/             → ServerScriptService.Sunnyfolk
   Town.luau               builds the town square
   PlayerData.luau         saves coins, your animal and your hats (DataStore)
   Avatars.luau            gives each player their animal
-  Residents.luau          Clover, Puddles and Pebble: strolling, and facing you when you talk
+  Residents.luau          Clover, Puddles, Pebble, Biscuit and Pepper: strolling, and facing you when you talk
+  places/Cafe.luau        Biscuit's Cafe, and its shifts (checked here)
   Coins.luau              checks each coin picked up
   HatShop.luau            the shops (hats and clothes): checks each thing bought or worn
   Homes.luau              the plots at Home Pond: moving in, building houses, moving back in
@@ -84,6 +90,7 @@ src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   GoalsPanel.luau         the goal you're on, the arrow pointing the way, and the Goals screen
   Pets.luau               everyone's pets, walked along behind their owners on your screen
   PetShop.luau            the Pet Shop screen
+  Cafe.luau               the Cafe's visitors, order bubbles, buttons and shift cards
   Coins.luau              the coins you see, spinning, and picking them up
   Talk.luau               speech bubbles and name tags
   HatShop.luau            the shop screen, for Clover's Hat Shop and the Clothes Shop

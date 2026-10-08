@@ -8,14 +8,15 @@
 --     "has never chosen an animal", so someone who leaves before choosing is counted again
 --     next time they join.
 --   * Economy events log coins earned (from pickups, and as rewards for goals, daily presents,
---     requests and harvests) and spent (in the shops). Coin pickups are added up for each
+--     requests, harvests and Cafe shifts) and spent (in the shops). Coin pickups are added up for each
 --     player and logged together about once a minute (Config.ANALYTICS), and when they leave,
 --     so a busy server doesn't send one event per coin. Each reward is still one event.
 --   * A "FirstStory" funnel follows new players through the First Story (shared/Goals):
 --     1 met Clover, 2 planted, 3 picked, 4 bought a hat, 5 chose an Adventure. Each step is
 --     logged once, and only for players who started the story after it came in (Step 16).
 --   * A "DailyPresent" funnel counts each day of the seven a player comes back for, and a
---     custom event is logged for each request finished.
+--     custom event is logged for each request finished, and for each Cafe shift finished
+--     ("CafeShift", counting a shared shift as "CafeShiftShared" too).
 --
 -- Every call to Roblox is wrapped in pcall, so analytics can never break the game. In Studio
 -- each event is also printed to the Output, so you can watch them while testing.
@@ -145,6 +146,17 @@ function Analytics.requestDone(player: Player, id: string)
 		AnalyticsService:LogCustomEvent(player, `Request:{id}`)
 	end)
 	note(`{player.Name} finished the request "{id}"`)
+end
+
+-- A Cafe shift finished, with `served` orders and `helpers` helpers (counted once per helper).
+function Analytics.cafeShift(player: Player, served: number, helpers: number)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(player, "CafeShift", served)
+		if helpers > 1 then
+			AnalyticsService:LogCustomEvent(player, "CafeShiftShared", served)
+		end
+	end)
+	note(`{player.Name} finished a Cafe shift: {served} orders, {helpers} helper(s)`)
 end
 
 -- Coins spent. `sink` says on what (like "hat:beret"); `balance` is their coins after.

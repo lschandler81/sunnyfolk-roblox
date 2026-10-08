@@ -1,6 +1,7 @@
--- The animals who live in the square (Config.RESIDENTS). Each one strolls about near their
+-- The animals who live in town (Config.RESIDENTS). Each one strolls about near their
 -- home, and stops to face you when you talk to them. What they say is shown by
--- client/Talk; their looks and lines come from assets/characters/sunnyfolk.json.
+-- client/Talk; their looks and lines come from assets/characters/sunnyfolk.json. Clover has
+-- a Hat Shop button and Biscuit a Cafe shift button (client/Cafe), beside their Talk button.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
 local Looks = require(Shared.Looks)
+local Models = require(Shared.Models)
 local Goals = require(script.Parent.Goals)
 
 local S = Config.STUDS
@@ -54,12 +56,19 @@ local function addResident(id: string, folder: Folder)
 		warn(`Sunnyfolk: there's no resident called "{id}" in sunnyfolk.json`)
 		return
 	end
+	-- A resident with a body of their own (Chef Pepper's grumpy guinea pig) stays away until
+	-- that model has been imported, rather than standing there as a round stand-in.
+	local look = Looks.residentLook(info)
+	if look.body ~= info.species and not Models.get(look.body) then
+		print(`Sunnyfolk: {info.name} will come once {look.body}.glb is imported into SunnyfolkModels`)
+		return
+	end
 	local custom = Config.RESIDENT_HOMES[id]
 	local home = if custom then custom.at else Config.fromWeb(info.home.at[1], info.home.at[2])
 	local radius = (if custom then custom.r else info.home.r) * S
 	local at = CFrame.lookAt(home, Vector3.zero) -- facing the fountain
 
-	local model = Builder.build(Looks.residentLook(info), { cframe = at, name = info.name })
+	local model = Builder.build(look, { cframe = at, name = info.name })
 	model:SetAttribute("DisplayName", info.name)
 	model:SetAttribute("ResidentId", id)
 	CollectionService:AddTag(model, Residents.TAG)
@@ -85,6 +94,9 @@ local function addResident(id: string, folder: Folder)
 		shop.Triggered:Connect(function(player)
 			Goals.event(player, "shop", "hats")
 		end)
+	elseif id == "biscuit" then
+		-- opens the Cafe shift card on the player's screen (client/Cafe), which asks the server
+		prompt(feet, "CafeShift", "Cafe shift", "Biscuit's", Enum.KeyCode.F, Enum.KeyCode.ButtonY)
 	end
 
 	model.Parent = folder

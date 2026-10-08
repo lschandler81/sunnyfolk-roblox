@@ -319,8 +319,9 @@ function Hud.create(onGoals: () -> (), onMyThings: () -> (), onBook: () -> ())
 end
 
 -- Shows a big friendly message, with a smaller line under it if `small` is given. It stays
--- longer the more there is to read (Config.UI.MESSAGE_...). On a phone on its side it sits at
--- the top left (Ui.messages), clear of your animal; elsewhere in the middle of the screen.
+-- longer the more there is to read (Config.UI.MESSAGE_...). On a phone on its side, and on a
+-- TV, it sits at the top left (Ui.messages), clear of your animal; elsewhere in the middle of
+-- the screen.
 -- (Only the game's own words go here: it's shown as rich text.)
 function Hud.toast(text: string, small: string?)
 	local label, scale = toastLabel, toastScale
@@ -328,19 +329,20 @@ function Hud.toast(text: string, small: string?)
 		return
 	end
 	local phone = Ui.shortScreen() and not Ui.CONSOLE
+	local top = phone or Ui.CONSOLE
 	-- (slimmer sides on a phone, so the words have room in the narrow column)
 	local side = if phone then 14 else 28
 	if toastPadding then
 		toastPadding.PaddingLeft = UDim.new(0, side)
 		toastPadding.PaddingRight = UDim.new(0, side)
 	end
-	if phone then
+	if top then
 		label.AnchorPoint = Vector2.zero
 		label.Position = UDim2.new()
 		label.Size = UDim2.fromScale(1, 0)
 		label.AutomaticSize = Enum.AutomaticSize.Y
 		label.TextWrapped = true
-		label.TextSize = 20
+		label.TextSize = if Ui.CONSOLE then math.round(30 * Config.UI.CONSOLE_SCALE) else 20
 		label.LayoutOrder = 2 -- under anything a resident is saying
 		label.Parent = Ui.messages()
 	else

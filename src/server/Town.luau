@@ -1,6 +1,7 @@
 -- Builds the town square when the game starts: the grass, the paved plaza, the fountain, the
--- shops, lamps with bunting, benches, flower planters, trees, a signpost, and gates on the
--- roads to places that aren't built yet. It all goes in Workspace.Town.
+-- shops, lamps with bunting, benches, flower planters, trees, a signpost, the places at the
+-- ends of the roads (Home Pond and Lily Pond here; the Garden and the Cafe in server/places),
+-- and gates on the roads to places that aren't built yet. It all goes in Workspace.Town.
 --
 -- Sizes and places follow the web game (src/world/hub.js and props.js). They're written in
 -- web units times S, so they're easy to compare.
@@ -23,7 +24,11 @@ local block, cylinder, ball, blob, label, yawAt = Build.block, Build.cylinder, B
 local flower, lamp, bunting, bench, planter = Build.flower, Build.lamp, Build.bunting, Build.bench, Build.planter
 local bush, tree, house = Build.bush, Build.tree, Build.house
 local random = Build.random
+local Cafe = require(script.Parent.places.Cafe)
 local Garden = require(script.Parent.places.Garden)
+
+-- The places a road carries on into (Config.ROADS `place`), with their settings in Config.
+local PLACES = { garden = Config.GARDEN, cafe = Config.CAFE }
 
 local Town = {}
 
@@ -277,10 +282,11 @@ local function roads()
 			local H = Config.HOME
 			local home = H.ponds[1]
 			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, home.dist - H.ringR), Config.ROAD_W, 0.11)
-		elseif road.place == "garden" then
-			-- this one carries on into the Garden, through an open arch (each player's screen
-			-- puts a ribbon across it until they've enough sunshine: see client/Garden)
-			local G = Config.GARDEN
+		elseif road.place and PLACES[road.place] then
+			-- this one carries on into its place (the Garden, the Cafe), through an open arch (each
+			-- player's screen puts a ribbon across it until they may go in: see client/Garden and
+			-- client/Cafe)
+			local G = PLACES[road.place]
 			footpath(Config.polar(road.angle, Config.PLAZA_R - 0.5), Config.polar(road.angle, G.dist - (G.radius - 6)), Config.ROAD_W, 0.11)
 			gate(yawAt(Config.polar(road.angle, Config.EDGE_R - 0.5), Config.faceIn(road.angle)), road.name, Color3.fromHex(road.color), true)
 		else
@@ -599,7 +605,9 @@ local function edge()
 	for _, info in H.ponds do
 		table.insert(circles, { centre = Config.polar(info.angle, info.dist), r = H.radius })
 	end
-	table.insert(circles, { centre = Config.polar(Config.GARDEN.angle, Config.GARDEN.dist), r = Config.GARDEN.radius })
+	for _, place in { Config.GARDEN, Config.CAFE } do -- (in this order: it picks the bushes)
+		table.insert(circles, { centre = Config.polar(place.angle, place.dist), r = place.radius })
+	end
 	local function inside(spot: Vector3, margin: number): boolean
 		for _, circle in circles do
 			if flat(spot - circle.centre).Magnitude < (circle.r - margin) * S then
@@ -745,6 +753,8 @@ function Town.build(): { doors: { [string]: CFrame }, plots: { CFrame } }
 	streetLamps()
 	lawns()
 	edge()
+	-- (built last, so the trees and flowers scattered round town stay where they were)
+	Cafe.build()
 	sky()
 	folder.Parent = Workspace
 	pcall(Town.count) -- only for Studio; it must never stop the game starting

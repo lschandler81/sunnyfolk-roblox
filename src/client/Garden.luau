@@ -190,9 +190,16 @@ local function plant(crop: string, stage: number, at: CFrame, n: number)
 			Build.blob(Vector3.new(0.4, 0.06, 0.22) * S, u(side * 0.2, h * 0.45, 0) * CFrame.Angles(0, 0, side * 0.4), C.leaf, PROPS)
 		end
 		if ripe then
-			-- its face turned up a little: yellow petals behind a brown middle
-			Build.disc(0.42 * S, 0.06 * S, u(0, h, 0.04) * CFrame.Angles(0.35, 0, 0), C.yellow, PROPS)
-			Build.disc(0.2 * S, 0.1 * S, u(0, h, 0.02) * CFrame.Angles(0.35, 0, 0), Color3.fromHex("#7a4a26"), PROPS)
+			-- its face turned up a little: a ring of twelve yellow petals (over a darker ring, so no
+			-- gaps show between them) round a domed brown middle
+			local face = u(0, h, 0.04) * CFrame.Angles(-0.35, 0, 0) -- (its front looks along +Z)
+			Build.disc(0.27 * S, 0.04 * S, face * CFrame.new(0, 0, -0.03 * S), Color3.fromHex("#e0a52a"), PROPS)
+			for i = 0, 11 do
+				local petal = face * CFrame.Angles(0, 0, i / 12 * math.pi * 2) * CFrame.new(0, 0.3 * S, 0)
+				Build.blob(Vector3.new(0.14, 0.3, 0.05) * S, petal, if i % 2 == 0 then C.yellow else C.yellowLight, PROPS)
+			end
+			Build.blob(Vector3.new(0.34, 0.34, 0.14) * S, face * CFrame.new(0, 0, 0.03 * S), Color3.fromHex("#7a4a26"), PROPS)
+			Build.blob(Vector3.new(0.2, 0.2, 0.1) * S, face * CFrame.new(0, 0, 0.08 * S), Color3.fromHex("#5a3418"), PROPS)
 		else
 			Build.ball(0.2 * S, u(0, h + 0.05, 0), C.leaf, PROPS)
 		end

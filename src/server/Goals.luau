@@ -1,7 +1,7 @@
 -- The goals: the First Story, then the Adventures a player chooses (the lists are in
 -- shared/Goals). The server watches for each one itself: other scripts tell it when a player
--- talks to someone, opens a shop, buys a hat, makes a home, adopts a pet, or plants and picks
--- in the Garden, and it checks where players are for "visit" goals. Nothing a player's computer
+-- talks to someone, opens a shop, buys a hat, makes a home, adopts a pet, plants and picks
+-- in the Garden, or finishes a Cafe shift, and it checks where players are for "visit" goals. Nothing a player's computer
 -- says can finish a goal; all it can do is choose which Adventure to do next (ChooseAdventure).
 -- Each goal pays its coins and sunshine once, the ids of finished goals are saved in
 -- PlayerData, and the player's screen is told so it can say "Well done!".
@@ -84,8 +84,8 @@ local function complete(player: Player, goal: GoalList.Goal)
 	task.delay(NEXT_SECONDS, settle, player)
 end
 
--- Ticks the goal they're on if they've already done it (they had a hat, a home, a pet or
--- something planted before they got to that goal).
+-- Ticks the goal they're on if they've already done it (they had a hat, a home, a pet,
+-- something planted or a Cafe shift finished before they got to that goal).
 settle = function(player: Player)
 	local data = PlayerData.get(player)
 	local goal = data and GoalList.current(data.goalsDone, data.adventure)
@@ -97,7 +97,8 @@ settle = function(player: Player)
 		planted = planted or bed.crop ~= nil
 	end
 	if (goal.kind == "hat" and #data.hats > 0) or (goal.kind == "home" and data.home ~= nil)
-		or (goal.kind == "pet" and data.pet ~= nil) or (goal.kind == "plant" and planted) then
+		or (goal.kind == "pet" and data.pet ~= nil) or (goal.kind == "plant" and planted)
+		or (goal.kind == "cafe" and data.cafe.shifts > 0) then
 		complete(player, goal)
 	end
 end

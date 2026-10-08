@@ -21,6 +21,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Build = require(Shared.Build)
 local Builder = require(Shared.CharacterBuilder)
+local CafeFood = require(Shared.CafeFood)
 local Config = require(Shared.Config)
 local GoalList = require(Shared.Goals)
 local Houses = require(Shared.Houses)
@@ -42,7 +43,7 @@ local NEAR = 10 -- studs: closer than this, the arrow at your feet goes (the pin
 -- How high (studs) the pin floats over what it points at: just above a coin, over a
 -- resident's name tag, level with a garden bed's sign, and in between for doors, plots and
 -- places.
-local PIN_HEIGHT = { talk = 9, plant = Config.GARDEN.SIGN_HEIGHT, harvest = Config.GARDEN.SIGN_HEIGHT }
+local PIN_HEIGHT = { talk = 9, cafe = 9, plant = Config.GARDEN.SIGN_HEIGHT, harvest = Config.GARDEN.SIGN_HEIGHT }
 local PIN_HEIGHT_OTHER = 6
 -- Over a garden bed, the pin is lifted (in pixels, so at any distance) to sit just above the
 -- bed's sign (client/Garden): half the sign, a gap and half the pin, as a part of the pin's
@@ -146,6 +147,9 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 		return goal.at
 	elseif goal.kind == "plant" or goal.kind == "harvest" then
 		return Garden.bedThatNeedsYou(from)
+	elseif goal.kind == "cafe" then
+		-- (not while you're on a shift: you're already there)
+		return if player:GetAttribute("CafeHelper") then nil else residentAt("biscuit")
 	end
 	return nil
 end
@@ -448,6 +452,19 @@ local function adventurePicture(id: string): (Model?, Vector3)
 		return if item then Builder.clothesModel("capybara", item.id) else nil, Vector3.new(0.6, 0.3, -1)
 	elseif id == "gazebo" then
 		return littleGazebo(), Vector3.new(0.4, 0.55, -1)
+	elseif id == "cafe" then
+		-- Biscuit, with a mug of cocoa beside her
+		local model = Instance.new("Model")
+		local biscuit = Looks.resident("biscuit")
+		if biscuit then
+			local animal = Builder.build(Looks.residentLook(biscuit), { viewport = true })
+			animal:PivotTo(CFrame.new(-1.2, Builder.ROOT_HEIGHT, 0) * CFrame.Angles(0, 0.3, 0))
+			animal.Parent = model
+		end
+		local cocoa = CafeFood.model("cocoa", 2)
+		cocoa:PivotTo(CFrame.new(1.8, 0, -0.5))
+		cocoa.Parent = model
+		return model, Vector3.new(0.2, 0.25, -1)
 	end
 	return nil, Vector3.new(0, 0, -1)
 end
@@ -596,10 +613,13 @@ function GoalsPanel.open()
 		})
 		local chosen: GuiObject? = nil
 		local firstOpen: GuiObject? = nil
+		-- each card as wide as the row allows, so they all fit however many there are
+		local count = #GoalList.ADVENTURES
+		local wide = math.floor((592 - (count - 1) * 8) / count)
 		for i, goal in GoalList.ADVENTURES do
 			local isDone = table.find(done, goal.id) ~= nil
 			local isNow = now ~= nil and now.id == goal.id
-			local size = UDim2.fromOffset(112, 216)
+			local size = UDim2.fromOffset(wide, 216)
 			local tile: GuiObject
 			if isDone then
 				tile = Ui.new("Frame", { Size = size, BackgroundColor3 = Ui.colors.paper, LayoutOrder = i, Parent = row },
@@ -616,7 +636,7 @@ function GoalsPanel.open()
 			end
 			local stage = Ui.new("Frame", {
 				Position = UDim2.fromOffset(6, 6),
-				Size = UDim2.fromOffset(100, 104),
+				Size = UDim2.fromOffset(wide - 12, 104),
 				BackgroundColor3 = Ui.colors.mint,
 				Parent = tile,
 			}, { Ui.corner(12) })
@@ -627,14 +647,15 @@ function GoalsPanel.open()
 				model.Parent = view
 				aim(camera, model, from)
 			end
-			Ui.text({
+			local name = Ui.text({
 				Text = goal.short or goal.text,
-				TextSize = 16,
+				TextScaled = true, -- (a long name shrinks a little to fit the narrower cards)
 				TextColor3 = if isDone then Ui.colors.grey else Ui.colors.ink,
 				Position = UDim2.fromOffset(4, 114),
 				Size = UDim2.new(1, -8, 0, 52),
 				Parent = tile,
 			})
+			Ui.new("UITextSizeConstraint", { MaxTextSize = 16, MinTextSize = 12, Parent = name })
 			Ui.text({
 				Text = if isDone then "Done!" elseif isNow then "Doing now" else `+{goal.coins} coins`,
 				TextSize = 15,

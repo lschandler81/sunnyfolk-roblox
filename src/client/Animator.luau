@@ -135,6 +135,11 @@ local function step(rig: Rig, dt: number, time: number)
 	local a = rig
 	local velocity = rig.root.AssemblyLinearVelocity
 	local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude / WALK_SPEED
+	-- an animal moved without physics (a Cafe visitor, client/Cafe) says how fast it's walking
+	local pace = rig.model:GetAttribute("Pace")
+	if typeof(pace) == "number" then
+		speed = pace
+	end
 	local reach = Builder.ROOT_SIZE.Y / 2 + Builder.HIP_HEIGHT + 0.6
 	local grounded = Workspace:Raycast(rig.root.Position, Vector3.new(0, -reach, 0), rig.rayParams) ~= nil
 
@@ -291,6 +296,9 @@ function Animator.emote(model: Model, id: string)
 		rig.sit = true
 	end
 end
+
+-- The speed (studs a second) of a normal walk, for animals that say their own pace.
+Animator.WALK_SPEED = WALK_SPEED
 
 function Animator.start()
 	local function added(instance: Instance)

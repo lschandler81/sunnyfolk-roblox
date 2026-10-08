@@ -1,6 +1,6 @@
 -- Starts the game on the server: builds the town, then looks after players, coins, the Hat
 -- Shop, the residents, players' homes, the goals, the daily present and request board,
--- badges, pets, the Garden and emotes.
+-- badges, pets, the Garden, the Cafe and emotes.
 
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Builder = require(ReplicatedStorage:WaitForChild("Sunnyfolk").CharacterBuilder)
 
 local Avatars = require(script.Parent.Avatars)
+local Cafe = require(script.Parent.places.Cafe)
 local Badges = require(script.Parent.Badges)
 local Coins = require(script.Parent.Coins)
 local Daily = require(script.Parent.Daily)
@@ -41,6 +42,7 @@ Daily.start()
 Badges.start()
 Pets.start()
 Garden.start()
+Cafe.start()
 Emotes.start()
 
 -- In Studio, with Config.WARDROBE_CHECK on, everyone starts in the fitting room instead.

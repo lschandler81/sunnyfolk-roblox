@@ -23,7 +23,9 @@
           "PetAction": { "$className": "RemoteFunction" },
           "GardenAction": { "$className": "RemoteFunction" },
           "ChooseAdventure": { "$className": "RemoteEvent" },
-          "Emote": { "$className": "RemoteEvent" }
+          "Emote": { "$className": "RemoteEvent" },
+          "CafeAction": { "$className": "RemoteFunction" },
+          "CafeNews": { "$className": "RemoteEvent" }
         }
       },
       "SunnyfolkModels": {

@@ -52,10 +52,11 @@ Config.SHOPS = {
 	{ id = "post", angle = 324, label = "Post Office", wall = "#f7e8c8", roof = "#d9b3dc", awning = "#f6c64a", door = "#f07055", sign = "#2f8a7c" },
 }
 
--- The roads out of town. The places at the end aren't built yet, so each road ends at a gate.
+-- The roads out of town. A road with a `place` carries on into it (the Garden, the Cafe); the
+-- others end at a closed gate, for places that aren't built yet.
 Config.ROADS = {
 	{ angle = 0, name = "Kart Track", color = "#f07055" },
-	{ angle = 72, name = "Cafe", color = "#2f8a7c" },
+	{ angle = 72, name = "Cafe", color = "#2f8a7c", place = "cafe" }, -- see Config.CAFE
 	{ angle = 144, name = "Garden", color = "#6fa057", place = "garden" }, -- see Config.GARDEN
 	{ angle = 216, name = "Home Pond", color = "#5a8fae", open = true },
 	{ angle = 288, name = "Art Studio", color = "#b583b9" },
@@ -206,6 +207,99 @@ function Config.gardenState(plot: any, now: number): (number, boolean, number?)
 	end
 	stage = math.min(stage, Config.GARDEN.STAGES)
 	return stage, stage < Config.GARDEN.STAGES and readyAt == nil, readyAt
+end
+
+---------------------------------------------------------------- the Cafe
+
+-- Biscuit's Cafe, at the end of the Cafe road (see server/places/Cafe and client/Cafe), from
+-- the web game's cafe. Ask Biscuit for a shift: visitors sit at the tables, each with a
+-- picture of what they'd like; pick it up at the counter and carry it to their table. When
+-- they've eaten and gone, carry their dirty plates to the wash-up tub, so the table is ready
+-- for the next visitor. Nobody has to read, nothing has a timer, and a slow order just waits.
+-- A friend nearby can join the same shift: the orders are shared, and every helper is paid
+-- for every order. The road's arch has a ribbon across it until you've SUN sunshine (the
+-- First Story gives exactly that).
+-- Distances are web units, like the Garden's.
+Config.CAFE = {
+	angle = 72, -- which way from the fountain
+	dist = 94, -- from the fountain to its middle
+	radius = 24, -- its hedge, which joins the town's
+	SUN = 4, -- sunshine needed to go in
+	GATE_WIDTH = 24, -- the ribbon across the way in (like Config.GARDEN.GATE_WIDTH)
+	-- the counter (x across, z towards the way in, from the middle), and its four stations
+	COUNTER_Z = -8.2,
+	STATIONS = { "cocoa", "cake", "pancakes", "soup" }, -- left to right, as you face the counter
+	STATION_X = { -4.5, -1.5, 1.5, 4.5 },
+	WASH_X = -7.9, -- the wash-up tub, just past the counter's left end, for dirty plates
+	-- the six tables, and the visitors' chairs on the outer side of each
+	TABLES = { { -8, -1 }, { -5, 6.5 }, { -9, 12.5 }, { 8, -1 }, { 5, 6.5 }, { 9, 12.5 } },
+	CHAIR = 1.35, -- from a table's middle to its chair
+	ENTRANCE = 19.5, -- where visitors come in and go out (z)
+	MENU = {
+		cocoa = { name = "Cocoa" },
+		cake = { name = "Yuzu cake" },
+		pancakes = { name = "Pancakes" },
+		soup = { name = "Pumpkin soup" },
+	},
+	-- a shift
+	ORDERS = 8, -- visitors in a shift (about three minutes); it ends once all their plates are washed
+	ORDER_COINS = 2, -- every helper gets this for every order served, whoever served it
+	FINISH_COINS = 6, -- and this for finishing the shift
+	-- the most coins anyone can earn at the cafe in an hour (HOUR seconds), so shifts can't be
+	-- farmed; after that, shifts still work, without coins
+	COINS_PER_HOUR = 60,
+	HOUR = 60 * 60,
+	MAX_HELPERS = 4,
+	-- how many visitors wait at once: with 1 helper, 2 helpers, and 3 or more
+	WAITING = { 2, 3, 4 },
+	FIRST_SECONDS = 1.5, -- after the shift starts, the first visitor comes in
+	NEXT_SECONDS = 3, -- the gap between visitors coming in
+	ARRIVE_SECONDS = 6, -- a visitor's walk from the way in to their chair
+	EAT_SECONDS = 4, -- a visitor eats this long before leaving
+	-- how close (studs) a helper must be: to a station's middle (or the wash-up tub's) to pick
+	-- food up (or wash up), and to a table's middle to serve it or clear its plates (the server
+	-- checks; the buttons show a little closer)
+	PICK_REACH = 12,
+	SERVE_REACH = 16,
+	STATION_BUTTON = 7, -- studs: how close a station's button shows
+	TABLE_BUTTON = 11, -- and a table's
+	LEAVE = 6, -- web units past the hedge: a helper further out than this has left the shift
+	DRAW_DISTANCE = 250, -- studs: visitors are only drawn on your screen this close to the cafe
+	CHECK_SECONDS = 0.5, -- how often the server looks after the shift
+}
+
+-- The Cafe's middle, on the ground, with +Z pointing back along the road to town.
+function Config.cafeFrame(): CFrame
+	local K = Config.CAFE
+	local centre = Config.polar(K.angle, K.dist)
+	return CFrame.lookAt(centre, Vector3.zero) * CFrame.Angles(0, math.pi, 0)
+end
+
+-- A spot in the Cafe: x across, z towards the way in (web units from the middle), turned `turn`.
+function Config.cafeAt(x: number, z: number, turn: number?): CFrame
+	return Config.cafeFrame() * CFrame.new(x * S, 0, z * S) * CFrame.Angles(0, turn or 0, 0)
+end
+
+-- Where you stand to use station `i` (in front of the counter), on the ground.
+function Config.cafeStation(i: number): CFrame
+	return Config.cafeAt(Config.CAFE.STATION_X[i], Config.CAFE.COUNTER_Z + 1.4)
+end
+
+-- Where you stand to wash up dirty plates (in front of the tub), on the ground.
+function Config.cafeWash(): CFrame
+	return Config.cafeAt(Config.CAFE.WASH_X, Config.CAFE.COUNTER_Z + 1.4)
+end
+
+-- The middle of table `i`, on the ground.
+function Config.cafeTable(i: number): CFrame
+	local spot = Config.CAFE.TABLES[i]
+	return Config.cafeAt(spot[1], spot[2])
+end
+
+-- How many visitors wait at once with `helpers` helpers.
+function Config.cafeWaiting(helpers: number): number
+	local list = Config.CAFE.WAITING
+	return list[math.clamp(helpers, 1, #list)]
 end
 
 ---------------------------------------------------------------- pets
@@ -379,9 +473,10 @@ end
 -- The animals you can be from the start (more join as you make friends, later on).
 Config.START_ANIMALS = { "capybara", "bunny", "guineapig" }
 
--- Who lives in the square in this version. Their looks and lines come from
--- assets/characters/sunnyfolk.json (residents).
-Config.RESIDENTS = { "clover", "puddles", "pebble" }
+-- Who lives in town in this version. Their looks and lines come from
+-- assets/characters/sunnyfolk.json (residents). Chef Pepper needs guineapig-grumpy.glb
+-- imported into SunnyfolkModels; until it is, he stays away (server/Residents).
+Config.RESIDENTS = { "clover", "puddles", "pebble", "biscuit", "pepper" }
 
 -- Where each resident likes to be in this bigger square (web units: a spot, and how far they
 -- stroll from it). Anyone not listed uses their home from sunnyfolk.json.
@@ -389,6 +484,8 @@ Config.RESIDENT_HOMES = {
 	clover = { at = Config.polar(36, Config.SHOP_DIST - 5.5), r = 1.5 }, -- outside her Hat Shop
 	puddles = { at = Config.polar(216, 8.5), r = 2.5 }, -- by the fountain
 	pebble = { at = Config.polar(316, 22), r = 3 }, -- near the Post Office
+	biscuit = { at = Config.cafeAt(0, -9.8).Position, r = 1 }, -- behind her counter
+	pepper = { at = Config.cafeAt(6.4, -10.6).Position, r = 0.6 }, -- by his stove
 }
 Config.RESIDENT_WALK_SPEED = 7
 
@@ -433,6 +530,7 @@ Config.REMOTE_LIMITS = {
 	Garden = { calls = 8, seconds = 2 }, -- planting, watering and harvesting (server/places/Garden)
 	ChooseAdventure = { calls = 4, seconds = 2 }, -- choosing an Adventure on the Goals screen (server/Goals)
 	Emote = { calls = 4, seconds = 3 }, -- waving, cheering, dancing, sitting (server/Emotes)
+	Cafe = { calls = 8, seconds = 2 }, -- starting a shift, picking up food, serving (server/places/Cafe)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.

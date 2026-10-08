@@ -318,7 +318,8 @@ end
 
 -- The message area on a phone on its side: a column at the top left, under Roblox's buttons
 -- (Config.UI.MESSAGE_...). What a resident says (client/Talk) and the big messages
--- (client/Hud) go in it, one under the other, so they never cover each other.
+-- (client/Hud) go in it, one under the other, so they never cover each other. On a TV the big
+-- messages go here too, kept in from the edges (Config.UI.TV_SAFE) and wider, for bigger words.
 local messageColumn: Frame? = nil
 function Ui.messages(): Frame
 	if messageColumn and messageColumn.Parent then
@@ -326,7 +327,9 @@ function Ui.messages(): Frame
 	end
 	local gui = Ui.screen("Messages", 4) -- under the HUD and the buttons, if ever they meet
 	local column = Ui.new("Frame", {
-		Position = UDim2.fromOffset(Config.UI.MESSAGE_LEFT, Config.UI.MESSAGE_TOP),
+		Position = if Ui.CONSOLE
+			then UDim2.fromScale(Config.UI.TV_SAFE, Config.UI.TV_SAFE)
+			else UDim2.fromOffset(Config.UI.MESSAGE_LEFT, Config.UI.MESSAGE_TOP),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		Parent = gui,
@@ -338,7 +341,8 @@ function Ui.messages(): Frame
 		if across <= 0 and workspace.CurrentCamera then
 			across = workspace.CurrentCamera.ViewportSize.X
 		end
-		column.Size = UDim2.fromOffset(math.min(across * Config.UI.MESSAGE_WIDTH, Config.UI.MESSAGE_MAX_WIDTH), 0)
+		local most = Config.UI.MESSAGE_MAX_WIDTH * (if Ui.CONSOLE then 2 * Config.UI.CONSOLE_SCALE else 1)
+		column.Size = UDim2.fromOffset(math.min(across * Config.UI.MESSAGE_WIDTH, most), 0)
 	end
 	fit()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)

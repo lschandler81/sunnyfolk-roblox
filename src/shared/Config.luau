@@ -79,6 +79,7 @@ Config.HOME = {
 	plotsPerPond = 10,
 	plots = 20, -- one for each player on a server (set the server size to match)
 	wayIn = 40, -- degrees left open for the way in to each pond
+	door = 3.6, -- from a plot's middle to just outside its house's front door (the door's buttons)
 }
 -- `branch`: how far from the fountain Lily Pond's path leaves the Home Pond road. `color`: its
 -- gate (Home Pond's is sky blue).
@@ -468,6 +469,118 @@ end
 -- (say 20). 0 for none. It does nothing outside Studio.
 Config.PET_TEST_CROWD = 0
 
+---------------------------------------------------------------- inside your house
+
+-- Going inside your house: a living room, a kitchen and a bedroom upstairs, to decorate with
+-- furniture from the web game's furniture.js (see shared/Furniture, server/Interiors and
+-- client/Decorator). Sizes are in floor tiles (one web unit, Config.STUDS each). A house is
+-- only built while its owner is inside, far away from town, and only its owner can go in.
+Config.ROOM = {
+	-- where houses are built: a row of spots this far apart (studs), well past what Roblox
+	-- loads round each player, so nobody's screen ever loads anyone else's house
+	ORIGIN = Vector3.new(0, 0, 3000),
+	GAP = 1100,
+	WALL_H = 3.2, -- how tall the walls are
+	UPSTAIRS = 3.4, -- how high the bedroom floor is (on top of the living room's walls)
+	-- Your screen hides everything upstairs while you're downstairs, so the bedroom's floor never
+	-- gets in the camera's way; it shows once you're this far up the stairs (0 to 1).
+	SHOW_UPSTAIRS = 0.6,
+	WALL_Y = 1.85, -- how high things hang on a wall (their middle, above the floor)
+	LAWN = { w = 44, d = 30, x = 1, z = 2 }, -- the grass round the house: its size and middle
+	MAX_PIECES = 20, -- furniture in each room
+	MAX_OWNED = 60, -- furniture a player can own in all (no more than fits in all the rooms)
+	DOOR_REACH = 18, -- studs: how close to your front door you must be to go in
+	FAR = 90, -- studs from a house's middle: anyone further away isn't in it
+	CHECK_SECONDS = 2, -- how often the server looks to see who's in which house
+	FADE_SECONDS = 0.35, -- the screen fades out and in as you go in and out
+	-- decorating (client/Decorator): the camera looks down into the room at this angle (degrees),
+	-- from the front at first (the turn buttons take it round to each side), from far
+	-- enough back to see the whole room with this much room to spare (1 just fits); and a
+	-- piece you're holding floats this high (tiles) over its spot
+	CAMERA_PITCH = 60,
+	CAMERA_ROOM = 1.15,
+	-- after decorating, and going in or out, the camera goes back behind your animal: this far
+	-- behind and this high (studs)
+	CAMERA_BEHIND = { distance = 16, height = 6 },
+	HOLD_LIFT = 0.25,
+	-- walking round inside: a wall between your animal and where the camera wants to be (up to
+	-- REACH studs behind you) fades to see-through (FADE: 0 solid, 1 gone), like a dollhouse,
+	-- checked this often (seconds). Roblox's camera doesn't bump into a faded wall.
+	CUTAWAY = { REACH = 60, FADE = 0.8, SECONDS = 0.1 },
+	-- The rooms. x and z: where each room's middle is in the house (tiles). `up`: upstairs.
+	-- `front`: the front door, on the inside of the front wall (first tile and how wide; you go out
+	-- with the "Go outside" button by it). `doors`: gaps in the
+	-- walls to the next room (first tile from the back, or from the left, and how wide).
+	-- `clear`: tiles kept free of furniture (doorways, the stairs), as x, z, width, depth.
+	-- `noHang`: walls nothing hangs on, or (as a list) the stretches of a wall nothing hangs on
+	-- (first tile and how many). `hole`: where the stairs come up through an upstairs floor
+	-- (x, z, width, depth), with a banister along its open side.
+	ROOMS = {
+		{
+			id = "living", name = "Living room", short = "Living", icon = "🛋️", w = 12, d = 9, x = 0, z = 0,
+			front = { 5, 2 },
+			doors = { left = { { 3, 2 } } },
+			-- (the front door's two rows keep the spot where you come in clear)
+			clear = { { 5, 7, 2, 2 }, { 0, 3, 1, 2 }, { 10, 0, 2, 9 } },
+			-- (the stairs run along the right wall, and the landing covers the back wall's end)
+			noHang = { right = true, back = { { 10, 2 } } },
+			stairs = true,
+		},
+		{
+			id = "kitchen", name = "Kitchen", short = "Kitchen", icon = "🍳", w = 8, d = 9, x = -10.6, z = 0,
+			doors = { right = { { 3, 2 } } },
+			clear = { { 7, 3, 1, 2 } },
+		},
+		{
+			-- right over the living room, the same size
+			id = "bedroom", name = "Bedroom", short = "Bedroom", icon = "🛏️", w = 12, d = 9, x = 0, z = 0, up = true,
+			-- (the stairs come up at the back right: keep where you arrive clear too)
+			clear = { { 10, 0, 2, 9 } },
+			hole = { 10, 2, 2, 7 },
+		},
+	},
+	-- The stairs in the living room, up its right side from near the front to the back, coming
+	-- up through the bedroom's floor (its `hole`): which tiles across, and where they start and
+	-- end (z, tiles from the room's middle). `guardFrom`: how far up (0 to 1) the invisible wall
+	-- on the open side starts, so the bottom steps can be stepped onto from the side.
+	STAIRS = { x = 10, w = 2, bottom = 3, top = -2.5, steps = 10, guardFrom = 0.35 },
+	-- Furniture (from furniture.js, with its prices), in the order the shop shows it. w and d:
+	-- the tiles it covers. `layer`: "floor" (you bump into it), "rug" (you walk on it) or
+	-- "wall" (it hangs on a wall). `tall`: how high you bump into it.
+	PIECES = {
+		{ id = "bed", name = "Cosy bed", price = 40, w = 2, d = 3, layer = "floor", tall = 0.9 },
+		{ id = "rug", name = "Round rug", price = 15, w = 3, d = 3, layer = "rug" },
+		{ id = "armchair", name = "Armchair", price = 30, w = 2, d = 2, layer = "floor", tall = 1.3 },
+		{ id = "bookshelf", name = "Bookshelf", price = 25, w = 2, d = 1, layer = "floor", tall = 1.9 },
+		{ id = "plant", name = "Potted plant", price = 10, w = 1, d = 1, layer = "floor", tall = 1.2 },
+		{ id = "stove", name = "Cosy stove", price = 35, w = 2, d = 1, layer = "floor", tall = 1.2 },
+		{ id = "table", name = "Round table", price = 20, w = 2, d = 2, layer = "floor", tall = 0.9 },
+		{ id = "stool", name = "Comfy stool", price = 8, w = 1, d = 1, layer = "floor", tall = 0.65 },
+		{ id = "wardrobe", name = "Wardrobe", price = 30, w = 2, d = 1, layer = "floor", tall = 2.4 },
+		{ id = "lamp", name = "Floor lamp", price = 18, w = 1, d = 1, layer = "floor", tall = 2 },
+		-- (not in furniture.js: priced like its toy box and wall clock)
+		{ id = "petBed", name = "Pet bed", price = 12, w = 1, d = 1, layer = "floor", tall = 0.35 },
+		{ id = "picture", name = "Sunny picture", price = 12, w = 2, d = 1, layer = "wall" },
+	},
+	-- Wallpapers and floors. Each room has its own; one bought can be used in every room.
+	WALLS = {
+		{ id = "cream", name = "Cream", color = "#f6e7cf", trim = "#d9b48a", price = 0 },
+		{ id = "mint", name = "Mint", color = "#cfeadc", trim = "#8fbfa6", price = 10 },
+		{ id = "peach", name = "Peach", color = "#f9d9c6", trim = "#e0a184", price = 10 },
+	},
+	FLOORS = {
+		{ id = "honey", name = "Honey wood", color = "#d9a46c", line = "#b8844e", price = 0 },
+		{ id = "pale", name = "Pale wood", color = "#ead2a8", line = "#cdb084", price = 10 },
+		{ id = "mintTiles", name = "Mint tiles", color = "#bfe0cf", line = "#9cc7b2", price = 10, tiles = true },
+	},
+	-- A new house: one free piece in each room, so it feels like home straight away.
+	START = {
+		living = { { id = "rug", x = 4, z = 3, r = 0 } },
+		kitchen = { { id = "stove", x = 3, z = 0, r = 0 } },
+		bedroom = { { id = "bed", x = 7, z = 0, r = 0 } },
+	},
+}
+
 ---------------------------------------------------------------- the daily present and the request board
 
 -- A present each day you visit (see server/Daily.luau). Days are counted on the server's
@@ -640,6 +753,7 @@ Config.REMOTE_LIMITS = {
 	Emote = { calls = 4, seconds = 3 }, -- waving, cheering, dancing, sitting (server/Emotes)
 	Cafe = { calls = 8, seconds = 2 }, -- starting a shift, picking up food, serving (server/places/Cafe)
 	Fish = { calls = 6, seconds = 2 }, -- casting, reeling in, putting the rod away (server/Fishing)
+	Room = { calls = 10, seconds = 2 }, -- going in and out, buying and placing furniture (server/Interiors)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.

@@ -1,11 +1,12 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
 -- clothes, their pet, their home, their garden and Garden Book, the goals they've done (with
--- the sunshine they've earned), their daily present, today's requests, their cafe shifts and
--- their Fish Book.
+-- the sunshine they've earned), their daily present, today's requests, their cafe shifts,
+-- their Fish Book, and the furniture, wallpaper and floors inside their house.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
--- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests, FishBook), which the game's
+-- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests, FishBook,
+-- Interior), which the game's
 -- screens read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
@@ -30,17 +31,18 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Config = require(Shared.Config)
+local Furniture = require(Shared.Furniture)
 local GoalList = require(Shared.Goals)
 local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 11 -- the save version this code writes (see migrate)
+local VERSION = 12 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
 	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden",
 	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests", "cafe",
-	"fishBook",
+	"fishBook", "interior",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -94,6 +96,9 @@ export type Data = {
 	cafe: { shifts: number, hourStart: number, hourCoins: number },
 	-- the Fish Book: how many of each fish (Config.FISHING.FISH) they've caught
 	fishBook: { caught: { [string]: number } },
+	-- inside their house (shared/Furniture): the furniture they own, the wallpapers and floors
+	-- they've bought, and each room's wallpaper, floor and furniture
+	interior: Furniture.Interior,
 }
 type Profile = {
 	data: Data,
@@ -152,6 +157,7 @@ local function blank(): Data
 		requests = { day = 0, got = {}, done = {} },
 		cafe = { shifts = 0, hourStart = 0, hourCoins = 0 },
 		fishBook = { caught = {} },
+		interior = Furniture.blank(),
 	}
 end
 
@@ -242,6 +248,11 @@ local function migrate(saved: any): any
 		-- Version 11 added fishing. Older saves start with an empty Fish Book, which tidy() fills
 		-- in.
 		version = 11
+	end
+	if version < 12 then
+		-- Version 12 added the inside of their house. Older saves start with a new one (a rug, a
+		-- stove and a bed, Config.ROOM.START), which tidy() fills in.
+		version = 12
 	end
 	saved.version = version
 	return saved
@@ -406,6 +417,8 @@ local function tidy(saved: any): Data
 			end
 		end
 	end
+	-- inside their house: only pieces and styles that exist, and pieces placed where they fit
+	data.interior = Furniture.tidy(saved.interior)
 	local requests = saved.requests
 	if typeof(requests) == "table" then
 		data.requests.day = count(requests.day) or 0
@@ -443,6 +456,7 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("DailyStreak", data.daily.streak)
 	player:SetAttribute("Requests", HttpService:JSONEncode(data.requests))
 	player:SetAttribute("FishBook", HttpService:JSONEncode(data.fishBook))
+	player:SetAttribute("Interior", HttpService:JSONEncode(data.interior))
 end
 
 -- Is this save open on another server that's still running?

@@ -1,6 +1,7 @@
--- Homes on the player's side: the "Make this my home" button on free plots, and a
--- "Change my home" button at the door of your own house (only you see that one), and a kind
--- message when someone else is on your saved plot, so your house is on another one this visit.
+-- Homes on the player's side: the "Make this my home" button on free plots, the "Go inside"
+-- and "Change my home" buttons at the door of your own house (only you see those; going
+-- inside is client/Decorator's), and a kind message when someone else is on your saved plot,
+-- so your house is on another one this visit.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -28,7 +29,8 @@ function Homes.start(say: (string) -> ())
 		end
 	end)
 
-	-- the button at your own front door
+	-- the buttons at your own front door: Go inside (E, or X on a controller) and Change my
+	-- home (F, or Y)
 	local doorButton: Part? = nil
 	local function updateDoor()
 		if doorButton then
@@ -50,15 +52,22 @@ function Homes.start(say: (string) -> ())
 		spot.CanTouch = false
 		spot.Transparency = 1
 		spot.Size = Vector3.new(3, 3, 1)
-		spot.CFrame = at * CFrame.new(0, 3, 3.6 * S)
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "ChangeHome"
-		prompt.ActionText = "Change my home"
-		prompt.ObjectText = "Your home"
-		prompt.MaxActivationDistance = 12
-		prompt.RequiresLineOfSight = false
-		prompt.Style = Enum.ProximityPromptStyle.Custom
-		prompt.Parent = spot
+		spot.CFrame = at * CFrame.new(0, 3, Config.HOME.door * S)
+		for _, button in {
+			{ name = "GoInside", text = "Go inside", key = Enum.KeyCode.E, pad = Enum.KeyCode.ButtonX },
+			{ name = "ChangeHome", text = "Change my home", key = Enum.KeyCode.F, pad = Enum.KeyCode.ButtonY },
+		} do
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.Name = button.name
+			prompt.ActionText = button.text
+			prompt.ObjectText = "Your home"
+			prompt.KeyboardKeyCode = button.key
+			prompt.GamepadKeyCode = button.pad
+			prompt.MaxActivationDistance = 12
+			prompt.RequiresLineOfSight = false
+			prompt.Style = Enum.ProximityPromptStyle.Custom
+			prompt.Parent = spot
+		end
 		spot.Parent = Workspace
 		doorButton = spot
 	end

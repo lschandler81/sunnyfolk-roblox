@@ -364,8 +364,9 @@ function GoalsPanel.start(corner: Frame)
 		local character = player.Character
 		local root = character and character.PrimaryPart
 		local goal = currentGoal()
+		-- (not inside your house, where everything is far away: client/Decorator)
 		local showing = goal ~= nil and root ~= nil and hud ~= nil and hud.Enabled and Ui.openScreens == 0
-			and screen == nil
+			and screen == nil and player:GetAttribute("Indoors") == nil
 		if not showing or not root or not goal then
 			arrow.Parent = nil
 			spot.Parent = nil

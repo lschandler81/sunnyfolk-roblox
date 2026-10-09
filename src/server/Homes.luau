@@ -125,6 +125,16 @@ local function plotFor(wanted: number?): number?
 	return best
 end
 
+-- Just outside the front door of `player`'s house, facing away from it (where you come out
+-- of your house: see server/Interiors), or nil if they haven't a house this visit.
+function Homes.doorOf(player: Player): CFrame?
+	local plot = plots[plotOf[player]]
+	if not plot then
+		return nil
+	end
+	return plot.cframe * CFrame.new(0, 0, Config.HOME.door * S) * CFrame.Angles(0, math.pi, 0)
+end
+
 function Homes.start(plotFrames: { CFrame })
 	local folder = Instance.new("Folder")
 	folder.Name = "HomePlots"

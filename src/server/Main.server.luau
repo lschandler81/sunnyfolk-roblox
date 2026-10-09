@@ -1,6 +1,6 @@
 -- Starts the game on the server: builds the town, then looks after players, coins, the Hat
 -- Shop, the residents, players' homes, the goals, the daily present and request board,
--- badges, pets, the Garden, the Cafe, emotes and fishing.
+-- badges, pets, the Garden, the Cafe, emotes, fishing and the inside of players' houses.
 
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +17,7 @@ local Fishing = require(script.Parent.Fishing)
 local Goals = require(script.Parent.Goals)
 local HatShop = require(script.Parent.HatShop)
 local Homes = require(script.Parent.Homes)
+local Interiors = require(script.Parent.Interiors)
 local Pets = require(script.Parent.Pets)
 local Garden = require(script.Parent.places.Garden)
 local PlayerData = require(script.Parent.PlayerData)
@@ -38,6 +39,7 @@ Coins.start()
 HatShop.start()
 Residents.start(town.doors)
 Homes.start(town.plots)
+Interiors.start()
 Goals.start()
 Daily.start()
 Badges.start()

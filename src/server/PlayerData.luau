@@ -1,12 +1,13 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
 -- clothes, their pet, their home, their garden and Garden Book, the goals they've done (with
 -- the sunshine they've earned), their daily present, today's requests, their cafe shifts,
--- their Fish Book, and the furniture, wallpaper and floors inside their house.
+-- their Fish Book, the furniture, wallpaper and floors inside their house, and their library
+-- card (stamps, and the stories they've unlocked and read).
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
 -- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests, FishBook,
--- Interior), which the game's
+-- Interior, Library), which the game's
 -- screens read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
@@ -35,14 +36,15 @@ local Furniture = require(Shared.Furniture)
 local GoalList = require(Shared.Goals)
 local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
+local Stories = require(Shared.Stories)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 12 -- the save version this code writes (see migrate)
+local VERSION = 13 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
 	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden",
 	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests", "cafe",
-	"fishBook", "interior",
+	"fishBook", "interior", "library",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -99,6 +101,11 @@ export type Data = {
 	-- inside their house (shared/Furniture): the furniture they own, the wallpapers and floors
 	-- they've bought, and each room's wallpaper, floor and furniture
 	interior: Furniture.Interior,
+	-- the Library (server/Library): stamps on their library card (one for each round of tidying
+	-- the shelves), how many stories they've unlocked (shared/Stories; it only goes up), the ids
+	-- of the stories they've read to the end, and the coins they've earned from rounds since
+	-- `hourStart` (server clock, os.time), which Config.LIBRARY.COINS_PER_HOUR caps
+	library: { stamps: number, stories: number, read: { string }, hourStart: number, hourCoins: number },
 }
 type Profile = {
 	data: Data,
@@ -158,6 +165,7 @@ local function blank(): Data
 		cafe = { shifts = 0, hourStart = 0, hourCoins = 0 },
 		fishBook = { caught = {} },
 		interior = Furniture.blank(),
+		library = { stamps = 0, stories = 0, read = {}, hourStart = 0, hourCoins = 0 },
 	}
 end
 
@@ -253,6 +261,11 @@ local function migrate(saved: any): any
 		-- Version 12 added the inside of their house. Older saves start with a new one (a rug, a
 		-- stove and a bed, Config.ROOM.START), which tidy() fills in.
 		version = 12
+	end
+	if version < 13 then
+		-- Version 13 added the Library. Older saves start with an empty library card, which
+		-- tidy() fills in.
+		version = 13
 	end
 	saved.version = version
 	return saved
@@ -419,6 +432,25 @@ local function tidy(saved: any): Data
 	end
 	-- inside their house: only pieces and styles that exist, and pieces placed where they fit
 	data.interior = Furniture.tidy(saved.interior)
+	-- the library card: at least the stories their stamps unlock, and only stories they've
+	-- unlocked can have been read (each once)
+	local library = saved.library
+	if typeof(library) == "table" then
+		local L = data.library
+		L.stamps = count(library.stamps) or 0
+		L.stories = math.clamp(math.max(count(library.stories) or 0, Stories.unlockedFor(L.stamps)), 0, #Stories.LIST)
+		if typeof(library.read) == "table" then
+			for _, id in library.read do
+				local index = typeof(id) == "string" and Stories.INDEX[id]
+				if index and index <= L.stories and not table.find(L.read, id) then
+					table.insert(L.read, id)
+				end
+			end
+		end
+		-- (an hour can't start in the future)
+		L.hourStart = math.min(count(library.hourStart) or 0, os.time())
+		L.hourCoins = math.min(count(library.hourCoins) or 0, Config.LIBRARY.COINS_PER_HOUR)
+	end
 	local requests = saved.requests
 	if typeof(requests) == "table" then
 		data.requests.day = count(requests.day) or 0
@@ -457,6 +489,8 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Requests", HttpService:JSONEncode(data.requests))
 	player:SetAttribute("FishBook", HttpService:JSONEncode(data.fishBook))
 	player:SetAttribute("Interior", HttpService:JSONEncode(data.interior))
+	local L = data.library
+	player:SetAttribute("Library", HttpService:JSONEncode({ stamps = L.stamps, stories = L.stories, read = L.read }))
 end
 
 -- Is this save open on another server that's still running?

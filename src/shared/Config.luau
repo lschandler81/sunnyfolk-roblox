@@ -85,8 +85,179 @@ Config.HOME = {
 -- gate (Home Pond's is sky blue).
 
 -- The library on the south lawn, and a gazebo on the east lawn.
-Config.LIBRARY = { angle = 180, dist = 38 }
+--
+-- "Go in" at the library's door takes you into the library hall (like going into your house):
+-- one big hall for everyone, built far from town (server/Town), and much bigger inside than
+-- the building on the square. There you help Pebble tidy the shelves (server/Library,
+-- client/Library): press "Help Pebble" at Pebble's desk, then carry each book from the cart to
+-- the bookcase whose sign matches it, first by colour, then by size (tall and short), then
+-- both. Each book colour has its own symbol, so it works without seeing colours. Each round
+-- finished gives a library card stamp, and stamps unlock the picture stories (shared/Stories),
+-- read in the story corner. "Go outside" by the hall's door takes you back to the square.
+--
+-- Spots in the hall are in web units from its middle (Config.libraryAt): x across, z towards
+-- its door.
+Config.LIBRARY = {
+	-- the building on the square
+	angle = 180,
+	dist = 38,
+	w = 9,
+	d = 6,
+	DOOR_REACH = 16, -- studs from a door (outside or in the hall) that the server accepts for going through
+	-- the hall: where its middle is (far from town and from the houses, Config.ROOM), its size
+	-- inside, and how high and thick its walls are
+	HALL = Vector3.new(0, 0, -3000),
+	HALL_W = 24,
+	HALL_D = 18,
+	HALL_H = 6,
+	WALL = 0.4,
+	-- the bookcases you tidy: where each stands, and which way it faces (degrees; 0 faces the
+	-- hall's door)
+	CASES = {
+		{ x = -11.1, z = -1.5, turn = 90 }, -- on the left wall
+		{ x = -4.6, z = -8.1, turn = 0 }, -- two on the back wall
+		{ x = 4.6, z = -8.1, turn = 0 },
+		{ x = 11.1, z = -1.5, turn = -90 }, -- on the right wall
+	},
+	CASE = Vector3.new(4.4, 4.2, 1.0), -- a bookcase's size
+	SHELF_Y = 1.35, -- the top of the shelf that tidied books go on
+	TOP_SHELVES = { 2.55, 3.55 }, -- and of the shelves over it (more than a tall book higher)
+	CART = { x = 0, z = 0.5 }, -- the book cart, lying across the hall
+	DESK = { x = 4.4, z = 1.0 }, -- Pebble's desk, facing the door, where you start helping
+	DESK_SIZE = Vector3.new(2.6, 1.1, 0.9),
+	CART_SIZE = Vector3.new(3, 1.0, 1.0), -- (its top is where the books stand)
+	CART_STEP = 0.48, -- between the books on the cart (clear of its end rails)
+	READ = { x = -7.5, z = 5.6 }, -- the story corner's armchair (turned to the hall's middle)
+	READ_REACH = 10, -- studs from the middle of the rug in front of it: where its Read button shows
+	PEBBLE = { x = 4.4, z = -1.2, r = 0.3 }, -- behind the desk (clear of the way to the right-hand bookcase)
+	-- a book: how thick, how deep, and how high a tall and a short one are
+	BOOK = { thick = 0.36, deep = 0.6, tall = 1.0, short = 0.7 },
+	BUTTON_REACH = 7, -- studs: how close the buttons ("Pick up", "Put away"...) show
+	REACH = 2.5, -- web units from the cart, or the spot in front of a bookcase, that the server accepts
+	CARRY_CHECK = 2, -- seconds: how often the server looks for books carried out of the hall
+	BOOKS = 6, -- books on the cart in each round
+	-- the most books a round puts on one bookcase (a size round uses two bookcases, so keep
+	-- BOOKS at most twice this)
+	SHELF_MAX = 3,
+	COLOUR_SHELVES = 3, -- bookcases in a colour round
+	-- What a round sorts by, from how many rounds you've finished (your stamps): colour until
+	-- SIZE_FROM, size until BOTH_FROM, then both, and from MIXED_FROM any of the three.
+	SIZE_FROM = 3,
+	BOTH_FROM = 6,
+	MIXED_FROM = 9,
+	-- the book colours, each with its own white symbol (drawn by client/Library)
+	BOOK_COLORS = {
+		{ color = "#d9534a", symbol = "heart" },
+		{ color = "#3f6fc4", symbol = "moon" },
+		{ color = "#3f8f4f", symbol = "diamond" },
+		{ color = "#8a5cc2", symbol = "spot" },
+	},
+	-- seconds: a round finished sooner than this is stamped once the time's up (nobody walks
+	-- six books to the shelves that fast, so only a cheat would wait)
+	MIN_ROUND = 10,
+	ROUND_COINS = 3, -- for each round finished
+	-- the most coins anyone can earn from rounds in an hour (HOUR seconds), so they can't be
+	-- farmed; after that, rounds still give stamps, without coins
+	COINS_PER_HOUR = 30,
+	HOUR = 60 * 60,
+	STORY_COINS = 3, -- for reading each story to the end, the first time
+	FIRST_STORY = 1, -- stamps for the first story
+	STORY_EVERY = 2, -- and more stamps for each story after that
+}
 Config.GAZEBO = { angle = 108, dist = 47 }
+
+-- The picnic blanket on the south lawn, by the big yuzu tree (server/Town): where it lies and
+-- its turn (radians), and the spots on it where you sit for a picnic (web units from its
+-- middle; client/Picnic).
+Config.PICNIC = {
+	angle = 196,
+	dist = 26,
+	turn = 0.3,
+	SPOTS = { { -0.7, 0.75 }, { 0.75, -0.65 } },
+	REACH = 10, -- studs: where its "Have a picnic" button shows
+	WALK_SECONDS = 3, -- the most it waits for your animal to walk to its spot
+	SETTLE_SECONDS = 0.5, -- and then for it to stop, so the sit isn't undone by the last step
+	TAKEN = 2, -- studs: a spot with someone else this close to it is taken
+	THERE = 2.5, -- studs: close enough to your spot to sit down (walking off on the way stops it)
+}
+
+function Config.picnicFrame(): CFrame
+	local P = Config.PICNIC
+	return CFrame.new(Config.polar(P.angle, P.dist)) * CFrame.Angles(0, P.turn, 0)
+end
+
+-- Just outside the library's front door, on the square (Build.house puts that 1.1 web units
+-- out from the front wall, and the front faces the fountain).
+function Config.libraryDoor(): Vector3
+	local L = Config.LIBRARY
+	return Config.polar(L.angle, L.dist - L.d / 2 - 1.1)
+end
+
+-- The hall's middle, on its floor; +Z points to its door.
+function Config.libraryFrame(): CFrame
+	return CFrame.new(Config.LIBRARY.HALL)
+end
+
+-- A spot in the hall (web units from its middle; see Config.LIBRARY).
+function Config.libraryAt(x: number, z: number): CFrame
+	return Config.libraryFrame() * CFrame.new(x * S, 0, z * S)
+end
+
+-- Just inside the hall's door (where "Go in" brings you, facing into the hall).
+function Config.libraryHallDoor(): CFrame
+	return Config.libraryAt(0, Config.LIBRARY.HALL_D / 2 - 1.6)
+end
+
+-- Bookcase `k`, on the floor, turned so +Z points out of its front (into the hall).
+function Config.libraryCase(k: number): CFrame
+	local case = Config.LIBRARY.CASES[k]
+	return Config.libraryAt(case.x, case.z) * CFrame.Angles(0, math.rad(case.turn), 0)
+end
+
+-- Where you stand to put a book on bookcase `k`: just in front of it.
+function Config.libraryCaseFront(k: number): Vector3
+	local L = Config.LIBRARY
+	return (Config.libraryCase(k) * CFrame.new(0, 0, (L.CASE.Z / 2 + 0.9) * S)).Position
+end
+
+-- The middle of the book cart, on the floor.
+function Config.libraryCart(): Vector3
+	local L = Config.LIBRARY
+	return Config.libraryAt(L.CART.x, L.CART.z).Position
+end
+
+-- The story corner's armchair, on the floor, turned to face the middle of the hall (+Z is
+-- the way it faces).
+function Config.libraryChair(): CFrame
+	local L = Config.LIBRARY
+	return Config.libraryAt(L.READ.x, L.READ.z) * CFrame.Angles(0, math.atan2(-L.READ.x, -L.READ.z), 0)
+end
+
+-- Where you stand at Pebble's desk: just in front of it.
+function Config.libraryDesk(): Vector3
+	local L = Config.LIBRARY
+	return Config.libraryAt(L.DESK.x, L.DESK.z + L.DESK_SIZE.Z / 2 + 0.9).Position
+end
+
+-- Where book `i` of `count` stands on the cart, at the cart's top.
+function Config.libraryCartSlot(i: number, count: number): CFrame
+	local L = Config.LIBRARY
+	return Config.libraryAt(L.CART.x + (i - (count + 1) / 2) * L.CART_STEP, L.CART.z) * CFrame.new(0, L.CART_SIZE.Y * S, 0)
+end
+
+-- Is `position` inside the library hall?
+function Config.libraryInside(position: Vector3): boolean
+	local L = Config.LIBRARY
+	local p = Config.libraryFrame():PointToObjectSpace(position)
+	return math.abs(p.X) < L.HALL_W / 2 * S and math.abs(p.Z) < L.HALL_D / 2 * S and math.abs(p.Y) < 60
+end
+
+-- Does a book ({ color, size }) belong on a shelf? A shelf with a colour (a number into
+-- Config.LIBRARY.BOOK_COLORS) takes only books of that colour, and one with a size ("tall" or
+-- "short") only books of that size.
+function Config.shelfFits(shelf: { color: number?, size: string? }, book: { color: number, size: string }): boolean
+	return (shelf.color == nil or shelf.color == book.color) and (shelf.size == nil or shelf.size == book.size)
+end
 
 -- Cottages along the roads out of town. A label puts a name sign over the door; the others
 -- are waiting for friends who'll move in later.
@@ -595,14 +766,14 @@ Config.DAILY = {
 }
 
 -- The request board on the lawn by the fountain: three requests a day, the same for everyone,
--- picked by the day's number. Each pays coins once. (A library request comes back once the
--- library has something to do: Step 22.)
+-- picked by the day's number. Each pays coins once. (The library joins the board in Step 23,
+-- "Today in Sunnyfolk".)
 Config.REQUEST_BOARD = { angle = 198, dist = 20.5 } -- where the board stands
 Config.REQUESTS_PER_DAY = 3
 Config.REQUESTS = {
 	{ id = "coins", kind = "coin", need = 15, coins = 8, text = "Pick up 15 coins" },
 	{ id = "puddles", kind = "talk", who = "puddles", coins = 4, text = "Say hello to Puddles" },
-	{ id = "pebble", kind = "talk", who = "pebble", coins = 4, text = "Say hello to Pebble" },
+	{ id = "pebble", kind = "talk", who = "pebble", coins = 4, text = "Say hello to Pebble in the library" },
 	{ id = "clover", kind = "talk", who = "clover", coins = 4, text = "Say hello to Clover" },
 	{ id = "hat", kind = "hat", coins = 8, text = "Buy a hat at Clover's" },
 	{ id = "homepond", kind = "visit", pond = 1, coins = 5, text = "Visit Home Pond" },
@@ -704,7 +875,7 @@ Config.RESIDENTS = { "clover", "puddles", "pebble", "biscuit", "pepper" }
 Config.RESIDENT_HOMES = {
 	clover = { at = Config.polar(36, Config.SHOP_DIST - 5.5), r = 1.5 }, -- outside her Hat Shop
 	puddles = { at = Config.polar(216, 8.5), r = 2.5 }, -- by the fountain
-	pebble = { at = Config.polar(316, 22), r = 3 }, -- near the Post Office
+	pebble = { at = Config.libraryAt(Config.LIBRARY.PEBBLE.x, Config.LIBRARY.PEBBLE.z).Position, r = Config.LIBRARY.PEBBLE.r }, -- in the library hall
 	biscuit = { at = Config.cafeAt(0, -9.8).Position, r = 1 }, -- behind her counter
 	pepper = { at = Config.cafeAt(6.4, -10.6).Position, r = 0.6 }, -- by his stove
 }
@@ -754,6 +925,7 @@ Config.REMOTE_LIMITS = {
 	Cafe = { calls = 8, seconds = 2 }, -- starting a shift, picking up food, serving (server/places/Cafe)
 	Fish = { calls = 6, seconds = 2 }, -- casting, reeling in, putting the rod away (server/Fishing)
 	Room = { calls = 10, seconds = 2 }, -- going in and out, buying and placing furniture (server/Interiors)
+	Library = { calls = 6, seconds = 2 }, -- starting and finishing a round, reading a story (server/Library)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.

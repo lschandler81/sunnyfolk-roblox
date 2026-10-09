@@ -1,7 +1,7 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
 -- coins, talking, the shops, "My things", homes, the goals, the daily present and request
 -- board, pets, the Garden and its Garden Book, the Cafe, emotes, fishing and its Fish Book,
--- going inside your house and decorating it, and the animals' animation.
+-- going inside your house and decorating it, the Library, picnics, and the animals' animation.
 
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
@@ -39,6 +39,8 @@ local GardenBook = require(script.Parent.GardenBook)
 local Emotes = require(script.Parent.Emotes)
 local FishBook = require(script.Parent.FishBook)
 local Fishing = require(script.Parent.Fishing)
+local Library = require(script.Parent.Library)
+local Picnic = require(script.Parent.Picnic)
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -85,6 +87,8 @@ task.spawn(Cafe.start) -- (it waits for the server's Cafe, so nothing else waits
 Homes.start(Hud.toast)
 Decorator.start()
 DailyPanel.start()
+Library.start()
+Picnic.start()
 
 -- While the welcome screen is up (before you've joined in), the camera drifts slowly
 -- round the square.

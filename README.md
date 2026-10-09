@@ -13,7 +13,7 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 - **Choose your animal**: a capybara, bunny or guinea pig, its colours and a scarf. Change
   any time from **My things** (the **Change animal** button there).
 - **Walk around**: the animals waddle, breathe, look around and blink, just like in the web game.
-- **Residents**: Clover the bunny (by her Hat Shop), Puddles the duck, Pebble the penguin, and
+- **Residents**: Clover the bunny (by her Hat Shop), Puddles the duck, Pebble the penguin (in the library hall), and
   Biscuit the capybara and Chef Pepper at the Cafe. Walk up and press **Talk** to see what they say in a speech bubble. The first
   time each visit, they wave and say hello by name.
 - **Coins** float round the square. Walk into one to pick it up; it comes back a few
@@ -37,6 +37,14 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
 - **Fishing** at Home Pond, Lily Pond and Puddles' pond: cast, wait for the splash, then reel
   in. Every fish goes back in the water and into your **Fish Book**, which shows the shape of
   the next fish to find. A new fish pays a few coins, and a full book gives a badge.
+- **The Library** on the south lawn: "Go in" at its door and you're in the library hall (much
+  bigger inside, like your house), where Pebble needs help tidying the shelves. Press "Help
+  Pebble" at Pebble's desk, then pick up each book from the cart and carry it to the bookcase
+  whose sign matches it, by colour, then size, then both (every colour has its own symbol).
+  Each round puts a stamp on your library card, and stamps open eight short picture stories to read as picture books in the story corner,
+  each with a friendly picture question at the end.
+- **A picnic**: the "Have a picnic" button at the picnic blanket by the big yuzu tree sits you
+  down on it, and everyone nearby sees you sitting.
 - **Goals**: a new player is led round town by nine little goals (say hello, pick up coins,
   buy a hat, make a home, visit places, adopt a pet), with a yellow arrow pointing the way.
   Each pays coins and sunshine; sunshine will open the gated roads once there's something
@@ -68,6 +76,7 @@ src/shared/             → ReplicatedStorage.Sunnyfolk (used by the server and 
   Goals.luau              the goals for new players, and what each one pays
   PetBuilder.luau         builds a pet from simple parts, and poses it
   CafeFood.luau           the Cafe's cocoa, cake, pancakes and soup, from simple parts
+  Stories.luau            the Library's eight picture stories, and the stamps that open them
   Looks.luau              easy reading of sunnyfolk.json (coats, scarves, hats, residents)
   Models.luau             finds the imported models in ReplicatedStorage.SunnyfolkModels
   MeshLayout.luau         where every mesh sits (made by the tool above)
@@ -75,7 +84,7 @@ src/shared/             → ReplicatedStorage.Sunnyfolk (used by the server and 
 
 src/server/             → ServerScriptService.Sunnyfolk
   Main.server.luau        starts everything
-  Town.luau               builds the town square
+  Town.luau               builds the town square, and the library hall far away
   PlayerData.luau         saves coins, your animal and your hats (DataStore)
   Avatars.luau            gives each player their animal
   Residents.luau          Clover, Puddles, Pebble, Biscuit and Pepper: strolling, and facing you when you talk
@@ -86,6 +95,7 @@ src/server/             → ServerScriptService.Sunnyfolk
   Goals.luau              watches for each goal, pays its coins and sunshine
   Pets.luau               adopting, changing and dressing pets (checked here)
   Fishing.luau            fishing: picks every bite and every fish (checked here)
+  Library.luau            the Library's rounds of tidying the shelves, and stories read (checked here)
 
 src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Main.client.luau        starts everything on each player's computer
@@ -97,6 +107,7 @@ src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Cafe.luau               the Cafe's visitors, order bubbles, buttons and shift cards
   Fishing.luau            the ponds' fishing buttons, the fishing card, and everyone's rods
   FishBook.luau           the Fish Book screen, and the fish themselves
+  Library.luau            the Library: your books, the shelf signs, carrying books, and the Stories screen
   Coins.luau              the coins you see, spinning, and picking them up
   Talk.luau               speech bubbles and name tags
   HatShop.luau            the shop screen, for Clover's Hat Shop and the Clothes Shop

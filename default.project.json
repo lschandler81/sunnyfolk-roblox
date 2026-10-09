@@ -27,7 +27,8 @@
           "CafeAction": { "$className": "RemoteFunction" },
           "CafeNews": { "$className": "RemoteEvent" },
           "FishAction": { "$className": "RemoteFunction" },
-          "RoomAction": { "$className": "RemoteFunction" }
+          "RoomAction": { "$className": "RemoteFunction" },
+          "LibraryAction": { "$className": "RemoteFunction" }
         }
       },
       "SunnyfolkModels": {

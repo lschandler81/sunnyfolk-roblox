@@ -21,6 +21,7 @@ local Build = require(Shared.Build)
 
 local C, FLOWERS, DECOR, LAMP_H = Build.C, Build.FLOWERS, Build.DECOR, Build.LAMP_H
 local block, cylinder, ball, blob, label, yawAt = Build.block, Build.cylinder, Build.ball, Build.blob, Build.label, Build.yawAt
+local wedge, disc = Build.wedge, Build.disc
 local flower, lamp, bunting, bench, planter = Build.flower, Build.lamp, Build.bunting, Build.bench, Build.planter
 local bush, tree, house = Build.bush, Build.tree, Build.house
 local random = Build.random
@@ -377,11 +378,12 @@ local function shops(): { [string]: CFrame }
 	return doors
 end
 
--- The library on the south lawn: a porch on columns, steps, and two giant books.
+-- The library on the south lawn: a porch on columns, steps, and two giant books. "Go in" at
+-- its door takes you into the library hall (see libraryHall, and server/Library).
 local function library()
 	local L = Config.LIBRARY
 	local at = yawAt(Config.polar(L.angle, L.dist), Config.faceIn(L.angle))
-	local w, d = 9, 6
+	local w, d = L.w, L.d
 	local blue = Color3.fromHex("#4a5aa8")
 	local door = house(at, { w = w, d = d, h = 4, wall = Color3.fromHex("#e6eef7"), roof = blue, door = C.coral, label = "Library", sign = blue, chimney = false, yard = false })
 	local front = d / 2
@@ -397,10 +399,315 @@ local function library()
 		block(Vector3.new(0.7, 0.9, 0.22) * S, bookAt, book[2])
 		block(Vector3.new(0.62, 0.84, 0.24) * S, bookAt, C.cream, DECOR)
 	end
-	local sign = block(Vector3.new(1.6, 0.5, 0.06) * S, door * CFrame.new(1.8 * S, 1.2 * S, -0.4 * S) * CFrame.Angles(0, math.pi, 0), C.cream, DECOR)
-	label(sign, "Opening soon!", C.ink, C.cream)
+	-- the door's "Go in" button, on an invisible part in front of it (client/Library)
+	local spot = block(Vector3.new(1, 1, 1) * S, door * CFrame.new(0, 1 * S, 0), C.coral, { CanCollide = false, Transparency = 1 })
+	spot.Name = "LibraryDoor"
+	local goIn = Instance.new("ProximityPrompt")
+	goIn.Name = "LibraryDoor"
+	goIn.ActionText = "Go in"
+	goIn.ObjectText = "Library"
+	goIn.KeyboardKeyCode = Enum.KeyCode.E
+	goIn.GamepadKeyCode = Enum.KeyCode.ButtonX
+	goIn.HoldDuration = 0
+	goIn.MaxActivationDistance = 10
+	goIn.RequiresLineOfSight = false
+	goIn.Style = Enum.ProximityPromptStyle.Custom -- shown at the bottom of the screen (client/Prompts)
+	goIn.Parent = spot
 	footpath(Config.polar(L.angle, Config.PLAZA_R), door.Position, 2.6)
 	keepClear(at.Position, 8)
+end
+
+-- The library hall, far from town (Config.LIBRARY.HALL), where "Go in" at the library takes
+-- everyone: one big room with a beamed ceiling and lanterns, on a lawn with a few trees. Five
+-- bookcases full of old books, and four more (Config.LIBRARY.CASES) with a middle shelf left
+-- empty for the books you tidy; the book cart in the middle; Pebble behind Pebble's desk, where
+-- you start helping; a story corner with an armchair, beanbags and a lamp, where you read the
+-- stories; a reading table; and the door you came in by. Signs hang over the desk and the
+-- story corner. The books you tidy, the signs on the bookcases and the buttons are made on each
+-- player's own screen (client/Library), so everyone can tidy at once. The walls (each a "Wall"
+-- model) and the roof ("Roof") are in Shell, so the screen of someone inside can see through
+-- the ones in the camera's way.
+local function libraryHall()
+	local L = Config.LIBRARY
+	local at = Config.libraryFrame()
+	local w, d, h, t = L.HALL_W * S, L.HALL_D * S, L.HALL_H * S, L.WALL * S
+	local outside = Color3.fromHex("#e6eef7")
+	local blue = Color3.fromHex("#4a5aa8")
+	local coralDark = Color3.fromHex("#d85c44")
+	local floorTop = 0.25 -- studs
+	local RUG = 0.1 -- studs: how high a rug's middle is over the floor (clear of the boards, so it never flickers)
+	-- (its own random numbers, so the trees and flowers scattered round town stay put)
+	local random = Random.new(22)
+	local hall = Instance.new("Model")
+	hall.Name = "LibraryHall"
+	local function group(name: string, parent: Instance?): Model
+		local m = Instance.new("Model")
+		m.Name = name
+		m.Parent = parent or hall
+		Build.into(m)
+		return m
+	end
+	-- a spot in the hall, in web units from its middle
+	local function u(x: number, y: number, z: number): CFrame
+		return at * CFrame.new(x * S, y * S, z * S)
+	end
+
+	-- the lawn round it, a few trees, and the floor: a stone edge round warm boards
+	group("Grounds")
+	block(Vector3.new(w + 30 * S, 1, d + 30 * S), at * CFrame.new(0, -0.5, 0), C.leafLight)
+	for i = 0, 7 do
+		local a = math.rad(i * 45 + 20)
+		local spot = at * CFrame.new(math.sin(a) * (L.HALL_W / 2 + 6) * S, 0, math.cos(a) * (L.HALL_D / 2 + 5) * S)
+		tree(spot, random:NextNumber(1.2, 1.6), i % 3 == 0)
+	end
+	block(Vector3.new(w + 0.3 * S, floorTop, d + 0.3 * S), at * CFrame.new(0, floorTop / 2, 0), C.stone)
+	block(Vector3.new(w - 2 * t, 0.05, d - 2 * t), at * CFrame.new(0, floorTop + 0.025, 0), C.wood, DECOR)
+
+	-- the walls, each its own model (with what's on it), so it can fade on its own
+	local shell = group("Shell")
+	local function wall(size: Vector3, cframe: CFrame): Model
+		local m = group("Wall", shell)
+		block(size, cframe, outside)
+		return m
+	end
+	-- a round window through a wall, seen from both sides; `cframe` faces out of the wall
+	local function window(cframe: CFrame)
+		disc(0.7 * S, t + 0.06 * S, cframe, C.white, DECOR)
+		disc(0.6 * S, t + 0.12 * S, cframe, C.skyBlue, DECOR)
+	end
+	-- a wooden band round the inside, along the bottom of the walls
+	local function band(length: number, cframe: CFrame)
+		block(Vector3.new(length, 0.9 * S, 0.06 * S), cframe * CFrame.new(0, 0.45 * S, 0), C.wood, DECOR)
+	end
+	local inner = L.HALL_D / 2 - L.WALL -- (web units from the middle to the inside of the back and front walls)
+	local side = L.HALL_W / 2 - L.WALL
+	wall(Vector3.new(w, h, t), at * CFrame.new(0, h / 2, -(d / 2 - t / 2)))
+	band(w - 2 * t, at * CFrame.new(0, 0, -(d / 2 - t - 0.03 * S)))
+	for _, x in { -8, 8 } do
+		window(u(x, 5.0, -(L.HALL_D / 2 - L.WALL / 2)))
+	end
+	-- a banner over the back wall's middle bookcase
+	local banner = block(Vector3.new(6, 0.9, 0.1) * S, u(0, 5.0, -(inner - 0.06)) * CFrame.Angles(0, math.pi, 0), blue, DECOR)
+	label(banner, "Library", C.cream)
+	for _, s in { -1, 1 } do
+		wall(Vector3.new(t, h, d), at * CFrame.new(s * (w / 2 - t / 2), h / 2, 0))
+		band(d - 2 * t, at * CFrame.new(s * (w / 2 - t - 0.03 * S), 0, 0) * CFrame.Angles(0, math.pi / 2, 0))
+		for _, z in { -6, 1.9, 5 } do -- (clear of the signs on the bookcases on these walls)
+			window(u(s * (L.HALL_W / 2 - L.WALL / 2), 5.0, z) * CFrame.Angles(0, math.pi / 2, 0))
+		end
+	end
+	-- the front wall, with the door you came in by painted on its inside (its "Go outside"
+	-- button is client/Library's) and two windows
+	wall(Vector3.new(w, h, t), at * CFrame.new(0, h / 2, d / 2 - t / 2))
+	band(w - 2 * t, at * CFrame.new(0, 0, d / 2 - t - 0.03 * S))
+	block(Vector3.new(1.6, 2.6, 0.1) * S, u(0, 1.3, inner - 0.04), C.coral, DECOR)
+	block(Vector3.new(1.9, 0.18, 0.12) * S, u(0, 2.65, inner - 0.04), coralDark, DECOR)
+	ball(0.2 * S, u(0.55, 1.3, inner - 0.12), C.yellow, DECOR)
+	for _, x in { -6, 6 } do
+		window(u(x, 2.6, L.HALL_D / 2 - L.WALL / 2))
+	end
+
+	-- the roof: a ceiling with beams and hanging lanterns inside, and two blue slabs with gables
+	-- over it outside. It casts no shadow, so the hall stays sunny.
+	local roofModel = group("Roof", shell)
+	block(Vector3.new(w, 0.3 * S, d), at * CFrame.new(0, h + 0.15 * S, 0), Color3.fromHex("#f3ead8"))
+	for z = -7.5, 7.5, 3 do
+		block(Vector3.new(w - 2 * t, 0.35 * S, 0.3 * S), u(0, L.HALL_H - 0.175, z), C.wood, DECOR)
+	end
+	for _, spot in { { -6, -3 }, { 6, -3 }, { -3, 3 }, { 7, 3 } } do
+		cylinder(0.03 * S, 1.2 * S, u(spot[1], L.HALL_H - 0.6, spot[2]), C.ink, DECOR)
+		local lantern = ball(0.55 * S, u(spot[1], L.HALL_H - 1.4, spot[2]), C.yellowLight, DECOR)
+		lantern.Material = Enum.Material.Neon
+		cylinder(0.2 * S, 0.12 * S, u(spot[1], L.HALL_H - 1.1, spot[2]), C.woodDark, DECOR)
+	end
+	local pitch = 0.5
+	local half = w / 2 + 0.45 * S
+	local slab = half / math.cos(pitch)
+	local top = h + 0.3 * S
+	for _, s in { -1, 1 } do
+		local y = top + math.tan(pitch) * half / 2 - 0.05 * S
+		block(Vector3.new(slab, 0.28 * S, d + 0.9 * S), at * CFrame.new(s * half / 2, y, 0) * CFrame.Angles(0, 0, -s * pitch), blue)
+	end
+	local gable = math.tan(pitch) * w / 2
+	wedge(Vector3.new(d, gable, w / 2), at * CFrame.fromMatrix(Vector3.new(w / 4, top + gable / 2, 0), Vector3.zAxis, Vector3.yAxis), outside)
+	wedge(Vector3.new(d, gable, w / 2), at * CFrame.fromMatrix(Vector3.new(-w / 4, top + gable / 2, 0), -Vector3.zAxis, Vector3.yAxis), outside)
+	for _, part in roofModel:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CastShadow = false
+		end
+	end
+
+	-- A sign hanging from the ceiling on two cords, over `x`, `z`, saying `text` on both sides.
+	local function hangingSign(x: number, z: number, text: string, color: Color3)
+		local board = block(Vector3.new(3.6, 0.95, 0.12) * S, u(x, 3.9, z), color, DECOR)
+		label(board, text, C.cream)
+		label(board, text, C.cream, nil, Enum.NormalId.Back)
+		for _, s in { -1, 1 } do
+			cylinder(0.03 * S, (L.HALL_H - 4.37) * S, u(x + s * 1.5, (L.HALL_H + 4.37) / 2, z), C.ink, DECOR)
+		end
+	end
+
+	local inside = group("Inside")
+	local muted = { C.creamDeep, C.stoneDark, Color3.fromHex("#b9a58c"), Color3.fromHex("#9fb3a6"), Color3.fromHex("#c9b8d6") }
+
+	-- A bookcase `wide` web units across, standing on `cf` and facing its +Z. Its shelves are
+	-- full of old books in quiet colours (never mixed up with the books to tidy), except the
+	-- middle one when `empty` (for the books you tidy).
+	local function bookcase(cf: CFrame, wide: number, empty: boolean, n: number)
+		local cw, ch, cd = wide * S, L.CASE.Y * S, L.CASE.Z * S
+		block(Vector3.new(cw, ch, 0.1 * S), cf * CFrame.new(0, ch / 2, -cd / 2 + 0.05 * S), C.woodDark)
+		for _, s in { -1, 1 } do
+			block(Vector3.new(0.15 * S, ch, cd), cf * CFrame.new(s * (cw / 2 - 0.075 * S), ch / 2, 0), C.wood)
+		end
+		block(Vector3.new(cw + 0.1 * S, 0.15 * S, cd + 0.1 * S), cf * CFrame.new(0, ch - 0.075 * S, 0), C.wood)
+		block(Vector3.new(cw - 0.3 * S, 0.15 * S, cd), cf * CFrame.new(0, 0.075 * S, 0), C.wood)
+		local shelves = { L.SHELF_Y }
+		for _, y in L.TOP_SHELVES do
+			table.insert(shelves, y)
+		end
+		for _, y in shelves do
+			block(Vector3.new(cw - 0.3 * S, 0.1 * S, cd - 0.1 * S), cf * CFrame.new(0, (y - 0.05) * S, 0.05 * S), C.wood)
+		end
+		-- each shelf's books, up to the shelf over it
+		local rows = { { y = 0.15, top = L.SHELF_Y - 0.1 } }
+		if not empty then
+			table.insert(rows, { y = L.SHELF_Y, top = L.TOP_SHELVES[1] - 0.1 })
+		end
+		for i, y in L.TOP_SHELVES do
+			table.insert(rows, { y = y, top = (L.TOP_SHELVES[i + 1] or L.CASE.Y - 0.15) - 0.1 })
+		end
+		for _, row in rows do
+			local most = math.min(row.top - row.y - 0.05, 0.85)
+			local x = -wide / 2 + 0.3
+			local j = 0
+			while x < wide / 2 - 0.65 do
+				j += 1
+				local tall = random:NextNumber(most * 0.7, most)
+				local thick = random:NextNumber(0.22, 0.32)
+				block(Vector3.new(thick, tall, 0.55) * S, cf * CFrame.new((x + thick / 2) * S, (row.y + tall / 2) * S, 0.05 * S), muted[(j + n) % #muted + 1], DECOR)
+				x += thick + 0.04
+				-- now and then a gap, or a book leaning over
+				if random:NextNumber() < 0.12 then
+					x += 0.35
+				end
+			end
+		end
+	end
+	-- the bookcases you tidy
+	for k = 1, #L.CASES do
+		group(`Case{k}`, inside)
+		bookcase(Config.libraryCase(k), L.CASE.X, true, k)
+	end
+	-- and the ones full of old books: three on the back wall, one on each side near the front
+	group("Shelves", inside)
+	local back = -(inner - L.CASE.Z / 2)
+	local sides = side - L.CASE.Z / 2
+	bookcase(u(0, 0, back), L.CASE.X, false, 5)
+	for _, s in { -1, 1 } do
+		bookcase(u(s * 9.6, 0, back), 3.6, false, 6 + s)
+		bookcase(u(s * sides, 0, 5) * CFrame.Angles(0, -s * math.pi / 2, 0), 3.6, false, 9 + s)
+	end
+
+	-- the book cart, lying across the hall, on a rug (the books on it are each player's own),
+	-- and a runner from the door to it
+	group("Cart", inside)
+	cylinder(2.4 * S, 0.06, u(L.CART.x, 0, L.CART.z) * CFrame.new(0, floorTop + RUG, 0), C.lilac, DECOR)
+	local runFrom, runTo = L.CART.z + 2.4, inner - 0.2
+	block(Vector3.new(2.2 * S, 0.06, (runTo - runFrom) * S), u(0, 0, (runFrom + runTo) / 2) * CFrame.new(0, floorTop + RUG, 0), Color3.fromHex("#f4c6b8"), DECOR)
+	local cart = u(L.CART.x, 0, L.CART.z)
+	local cw, ch, cd = L.CART_SIZE.X * S, L.CART_SIZE.Y * S, L.CART_SIZE.Z * S
+	block(Vector3.new(cw, 0.15 * S, cd), cart * CFrame.new(0, ch - 0.075 * S, 0), C.wood)
+	block(Vector3.new(cw - 0.2 * S, 0.1 * S, cd - 0.1 * S), cart * CFrame.new(0, 0.4 * S, 0), C.woodDark)
+	for _, sx in { -1, 1 } do
+		block(Vector3.new(0.1, 0.4, cd / S) * S, cart * CFrame.new(sx * (cw / 2 - 0.05 * S), ch + 0.2 * S, 0), C.woodDark, DECOR)
+		for _, sz in { -1, 1 } do
+			block(Vector3.new(0.12, ch / S - 0.3, 0.12) * S, cart * CFrame.new(sx * (cw / 2 - 0.12 * S), 0.3 * S + (ch - 0.3 * S) / 2, sz * (cd / 2 - 0.12 * S)), C.woodDark)
+			disc(0.15 * S, 0.08 * S, cart * CFrame.new(sx * (cw / 2 - 0.2 * S), 0.15 * S, sz * (cd / 2 - 0.02 * S)), C.ink, DECOR)
+		end
+	end
+	-- its handle, at the right-hand end
+	for _, sz in { -1, 1 } do
+		block(Vector3.new(0.08, 0.5, 0.08) * S, cart * CFrame.new(cw / 2 + 0.15 * S, ch + 0.2 * S, sz * 0.35 * S), C.woodDark, DECOR)
+	end
+	block(Vector3.new(0.1, 0.1, 0.8) * S, cart * CFrame.new(cw / 2 + 0.15 * S, ch + 0.45 * S, 0), C.coral, DECOR)
+
+	-- Pebble's desk, facing the door: where you start helping, with a bell, a pile
+	-- of books, and a sign hanging over it
+	group("Desk", inside)
+	local desk = u(L.DESK.x, 0, L.DESK.z)
+	local dw, dh, dd = L.DESK_SIZE.X * S, L.DESK_SIZE.Y * S, L.DESK_SIZE.Z * S
+	block(Vector3.new(dw, dh - 0.15 * S, dd), desk * CFrame.new(0, (dh - 0.15 * S) / 2, 0), blue)
+	block(Vector3.new(dw + 0.2 * S, 0.15 * S, dd + 0.2 * S), desk * CFrame.new(0, dh - 0.075 * S, 0), C.wood)
+	block(Vector3.new(dw - 0.4 * S, 0.5 * S, 0.06 * S), desk * CFrame.new(0, 0.6 * S, dd / 2 + 0.03 * S), C.cream, DECOR)
+	cylinder(0.22 * S, 0.06 * S, desk * CFrame.new(-0.8 * S, dh + 0.03 * S, 0.1 * S), C.yellow, DECOR)
+	ball(0.3 * S, desk * CFrame.new(-0.8 * S, dh + 0.12 * S, 0.1 * S), C.yellow, DECOR)
+	for i, book in { { C.coral, 0.12 }, { C.teal, -0.15 }, { C.lilac, 0.05 } } do
+		block(Vector3.new(0.75, 0.14, 0.5) * S, desk * CFrame.new(0.7 * S, dh + (i - 0.5) * 0.14 * S, 0) * CFrame.Angles(0, book[2], 0), book[1], DECOR)
+	end
+	hangingSign(L.DESK.x, L.DESK.z, "📚 Help Pebble here!", blue)
+
+	-- the story corner: a rug, an armchair turned to the hall, two beanbags, and a little table
+	-- with a lamp, under its sign
+	group("CosyCorner", inside)
+	hangingSign(L.READ.x + 0.6, L.READ.z - 0.6, "📖 Story corner", C.coral)
+	local corner = u(L.READ.x, 0, L.READ.z)
+	cylinder(2.4 * S, 0.06, corner * CFrame.new(0.4 * S, floorTop + RUG, -0.4 * S), Color3.fromHex("#fbe3a6"), DECOR)
+	local chair = Config.libraryChair()
+	-- (standing on the floor, which is floorTop studs high)
+	local base = floorTop / S
+	block(Vector3.new(1.6, 0.69 - base, 1.4) * S, chair * CFrame.new(0, (0.69 + base) / 2 * S, 0), C.coral)
+	block(Vector3.new(1.6, 1.69 - base, 0.35) * S, chair * CFrame.new(0, (1.69 + base) / 2 * S, -0.55 * S), C.coral)
+	for _, s in { -1, 1 } do
+		block(Vector3.new(0.3, 1.05 - base, 1.4) * S, chair * CFrame.new(s * 0.8 * S, (1.05 + base) / 2 * S, 0), coralDark)
+	end
+	blob(Vector3.new(1.2, 0.3, 1.0) * S, chair * CFrame.new(0, 0.78 * S, 0.05 * S), C.cream, DECOR)
+	-- (beside the chair, so the way to it, and its Read button, stays clear)
+	for i, bag in { { -1.8, C.teal }, { 1.8, C.yellow } } do
+		blob(Vector3.new(1.3, 0.8, 1.3) * S, chair * CFrame.new(bag[1] * S, (base + 0.4) * S, 0.5 * S) * CFrame.Angles(0, i, 0), bag[2])
+	end
+	local table_ = corner * CFrame.new(-1.6 * S, 0, 1.2 * S)
+	cylinder(0.08 * S, 0.9 * S, table_ * CFrame.new(0, 0.45 * S, 0), C.woodDark)
+	cylinder(0.45 * S, 0.08 * S, table_ * CFrame.new(0, 0.94 * S, 0), C.wood)
+	block(Vector3.new(0.5, 0.12, 0.35) * S, table_ * CFrame.new(-0.1 * S, 1.04 * S, 0.1 * S) * CFrame.Angles(0, 0.3, 0), C.teal, DECOR)
+	block(Vector3.new(0.45, 0.12, 0.32) * S, table_ * CFrame.new(-0.1 * S, 1.16 * S, 0.1 * S) * CFrame.Angles(0, -0.2, 0), C.yellow, DECOR)
+	cylinder(0.04 * S, 0.6 * S, table_ * CFrame.new(0.2 * S, 1.28 * S, -0.1 * S), C.ink, DECOR)
+	local shade = ball(0.45 * S, table_ * CFrame.new(0.2 * S, 1.65 * S, -0.1 * S), C.yellowLight, DECOR)
+	shade.Material = Enum.Material.Neon
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromHex("#ffd9a0")
+	light.Range = 16
+	light.Brightness = 0.6
+	light.Shadows = false
+	light.Parent = shade
+
+	-- a reading table with four stools, a few books and a lamp
+	group("ReadingTable", inside)
+	local readingTable = u(7, 0, 5)
+	block(Vector3.new(4, 0.15, 1.6) * S, readingTable * CFrame.new(0, 1.0 * S, 0), C.wood)
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			block(Vector3.new(0.14, 0.95, 0.14) * S, readingTable * CFrame.new(sx * 1.8 * S, 0.475 * S, sz * 0.65 * S), C.woodDark)
+		end
+		for _, sz in { -1, 1 } do
+			cylinder(0.35 * S, 0.65 * S, readingTable * CFrame.new(sx * 1.0 * S, 0.325 * S, sz * 1.25 * S), C.coral)
+		end
+	end
+	block(Vector3.new(0.6, 0.1, 0.45) * S, readingTable * CFrame.new(-1.2 * S, 1.13 * S, 0.1 * S) * CFrame.Angles(0, 0.4, 0), C.teal, DECOR)
+	block(Vector3.new(0.7, 0.1, 0.5) * S, readingTable * CFrame.new(0.6 * S, 1.13 * S, -0.2 * S) * CFrame.Angles(0, -0.3, 0), C.lilac, DECOR)
+	cylinder(0.04 * S, 0.6 * S, readingTable * CFrame.new(1.5 * S, 1.37 * S, -0.3 * S), C.ink, DECOR)
+	local deskShade = ball(0.4 * S, readingTable * CFrame.new(1.5 * S, 1.72 * S, -0.3 * S), C.yellowLight, DECOR)
+	deskShade.Material = Enum.Material.Neon
+
+	-- potted plants by the door
+	group("Plants", inside)
+	for _, s in { -1, 1 } do
+		local pot = u(s * 3.2, 0, inner - 0.8)
+		cylinder(0.4 * S, 0.7 * S, pot * CFrame.new(0, 0.35 * S, 0), C.coral)
+		blob(Vector3.new(1.1, 1.3, 1.1) * S, pot * CFrame.new(0, 1.3 * S, 0), C.leaf, DECOR)
+	end
+
+	Build.into(folder)
+	hall.Parent = Workspace
 end
 
 -- A cottage beside a road, with a path to its door.
@@ -476,7 +783,7 @@ local function lawns()
 	local yuzuTree = Config.polar(158, 33)
 	tree(CFrame.new(yuzuTree), 1.8, true)
 	keepClear(yuzuTree, 5)
-	local picnic = yawAt(Config.polar(196, 26), 0.3)
+	local picnic = Config.picnicFrame()
 	for i = 0, 3 do
 		for j = 0, 3 do
 			local color = if (i + j) % 2 == 1 then C.coral else C.cream
@@ -486,6 +793,20 @@ local function lawns()
 	block(Vector3.new(0.7, 0.45, 0.5) * S, picnic * CFrame.new(0.4 * S, 0.3 * S, 0.2 * S), C.wood)
 	ball(0.32 * S, picnic * CFrame.new(-0.5 * S, 0.2 * S, -0.3 * S), C.yuzu, DECOR)
 	ball(0.32 * S, picnic * CFrame.new(-0.25 * S, 0.2 * S, -0.5 * S), C.yuzu, DECOR)
+	-- its "Have a picnic" button (client/Picnic sits you down on it)
+	local spot = block(Vector3.new(1, 1, 1) * S, picnic * CFrame.new(0, 0.5 * S, 0), C.coral, { CanCollide = false, Transparency = 1 })
+	spot.Name = "Picnic"
+	local sit = Instance.new("ProximityPrompt")
+	sit.Name = "Picnic"
+	sit.ActionText = "Have a picnic"
+	sit.ObjectText = "Picnic blanket"
+	sit.KeyboardKeyCode = Enum.KeyCode.E
+	sit.GamepadKeyCode = Enum.KeyCode.ButtonX
+	sit.HoldDuration = 0
+	sit.MaxActivationDistance = Config.PICNIC.REACH
+	sit.RequiresLineOfSight = false
+	sit.Style = Enum.ProximityPromptStyle.Custom -- shown at the bottom of the screen (client/Prompts)
+	sit.Parent = spot
 	keepClear(picnic.Position, 2.5)
 
 	-- the request board: three requests a day (server/Daily, client/DailyPanel)
@@ -785,6 +1106,7 @@ function Town.build(): { doors: { [string]: CFrame }, plots: { CFrame } }
 	roads()
 	local doors = shops()
 	library()
+	libraryHall()
 	for _, c in Config.COTTAGES do
 		cottage(c)
 	end

@@ -159,6 +159,23 @@ function Analytics.cafeShift(player: Player, served: number, helpers: number)
 	note(`{player.Name} finished a Cafe shift: {served} orders, {helpers} helper(s)`)
 end
 
+-- A round of tidying the library's shelves finished (`kind` is "colour", "size" or "both"),
+-- with the stamps they have now.
+function Analytics.libraryRound(player: Player, kind: string, stamps: number)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(player, `LibraryRound:{kind}`, stamps)
+	end)
+	note(`{player.Name} tidied a {kind} round in the Library ({stamps} stamps)`)
+end
+
+-- A Library story read to the end for the first time.
+function Analytics.libraryStory(player: Player, id: string)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(player, `LibraryStory:{id}`)
+	end)
+	note(`{player.Name} read the story "{id}"`)
+end
+
 -- Coins spent. `sink` says on what (like "hat:beret"); `balance` is their coins after.
 function Analytics.coinsSpent(player: Player, amount: number, balance: number, sink: string)
 	logPickups(player)

@@ -94,15 +94,24 @@ local function nearestTo(from: Vector3, spots: { Vector3 }): Vector3?
 	return best
 end
 
--- Where a resident is: their model if it's near enough to be loaded, or else their home.
+-- Where a resident is: their model if it's near enough to be loaded, or else their home. One
+-- who lives in the library hall (Pebble) is found through the library's door, unless you're in
+-- the hall too.
 local function residentAt(id: string): Vector3?
+	local spot = nil
 	for _, model in CollectionService:GetTagged(RESIDENT_TAG) do
 		if model:GetAttribute("ResidentId") == id and model:IsA("Model") and model.PrimaryPart then
-			return model.PrimaryPart.Position
+			spot = model.PrimaryPart.Position
+			break
 		end
 	end
 	local home = Config.RESIDENT_HOMES[id]
-	return if home then home.at else nil
+	spot = spot or (if home then home.at else nil)
+	local root = player.Character and player.Character.PrimaryPart
+	if spot and Config.libraryInside(spot) and not (root and Config.libraryInside(root.Position)) then
+		return Config.libraryDoor()
+	end
+	return spot
 end
 
 -- Where the goal you're on wants you to go, or nil.
@@ -164,6 +173,9 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 			table.insert(spots, pond.centre + out * (pond.r + 1) * S)
 		end
 		return nearestTo(from, spots)
+	elseif goal.kind == "library" then
+		-- the library's door, then (once you're in the hall) Pebble's desk
+		return if Config.libraryInside(from) then Config.libraryDesk() else Config.libraryDoor()
 	end
 	return nil
 end
@@ -434,6 +446,25 @@ local function littleGazebo(): Model
 	return model
 end
 
+-- A few books for the library's card: three standing in a row in the Library's book colours,
+-- one tall, and one lying on top.
+local function littleBooks(): Model
+	local model = Instance.new("Model")
+	Build.into(model)
+	local colors = Config.LIBRARY.BOOK_COLORS
+	for i, book in { { -0.45, 1.4 }, { 0, 1.8 }, { 0.45, 1.4 } } do
+		local tall = book[2] * S
+		local color = Color3.fromHex(colors[i].color)
+		Build.block(Vector3.new(0.4 * S, tall, 1.2 * S), CFrame.new(book[1] * S, tall / 2, 0), color)
+		-- a pale band round each spine
+		Build.block(Vector3.new(0.42 * S, 0.14 * S, 1.22 * S), CFrame.new(book[1] * S, tall * 0.8, 0), Build.C.cream)
+	end
+	local flat = CFrame.new(0.2 * S, 1.8 * S + 0.18 * S, 0) * CFrame.Angles(0, 0.4, 0)
+	Build.block(Vector3.new(1.3 * S, 0.35 * S, 1.0 * S), flat, Color3.fromHex(colors[4].color))
+	Build.block(Vector3.new(1.26 * S, 0.3 * S, 0.94 * S), flat * CFrame.new(0, 0, 0.04 * S), Build.C.cream)
+	return model
+end
+
 -- The picture on an Adventure's card, and which way its camera looks at it.
 local function adventurePicture(id: string): (Model?, Vector3)
 	if id == "home" then
@@ -482,6 +513,8 @@ local function adventurePicture(id: string): (Model?, Vector3)
 		return model, Vector3.new(0.2, 0.25, -1)
 	elseif id == "fish" then
 		return FishBook.model("goldfish"), Vector3.new(1, 0.35, 0.3) -- side on
+	elseif id == "shelves" then
+		return littleBooks(), Vector3.new(0.35, 0.3, 1)
 	end
 	return nil, Vector3.new(0, 0, -1)
 end

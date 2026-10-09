@@ -27,6 +27,7 @@ local Talk = {}
 local TAG_HEIGHT = 5 -- studs above the middle of the animal, at least
 local TAG_GAP = 1 -- studs between the top of the animal (ears, hat) and its name tag
 local WALK_AWAY = 24 -- the bubble goes when you're this far away
+local RESIDENT_TAG = "SunnyfolkResident" -- server/Residents tags each resident with this
 
 ---------------------------------------------------------------- name tags
 
@@ -217,6 +218,19 @@ local function talkTo(model: Model)
 		Animator.wave(model)
 	end
 	say(model, info.name, text)
+end
+
+-- A resident (by id, like "pebble") says `text` in a speech bubble on this screen only, as if
+-- you'd talked to them (the Library's Pebble). Returns their model, or nil if they aren't here.
+function Talk.residentSays(id: string, text: string): Model?
+	local info = Looks.resident(id)
+	for _, model in CollectionService:GetTagged(RESIDENT_TAG) do
+		if model:IsA("Model") and model:GetAttribute("ResidentId") == id and info then
+			say(model, info.name, text)
+			return model
+		end
+	end
+	return nil
 end
 
 ---------------------------------------------------------------- starting

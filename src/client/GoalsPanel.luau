@@ -259,12 +259,15 @@ end
 
 ---------------------------------------------------------------- the card on the HUD
 
--- `corner` is the HUD's top-right frame. The card isn't a button, so it never takes a tap
--- meant for the game's buttons underneath it (the Goals button opens the list).
+-- `corner` is the HUD's top-right frame. Tapping the card opens the Goals screen, like the
+-- Goals button (children tap "Choose your next adventure"); a controller uses the Goals button.
 function GoalsPanel.start(corner: Frame)
 	local hud = corner:FindFirstAncestorOfClass("ScreenGui")
 
-	local card = Ui.new("Frame", {
+	local card = Ui.new("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		Selectable = false,
 		Size = UDim2.fromOffset(240, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = Ui.colors.paper,
@@ -282,6 +285,9 @@ function GoalsPanel.start(corner: Frame)
 		}),
 		Ui.new("UIListLayout", { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
+	card.Activated:Connect(function()
+		GoalsPanel.open()
+	end)
 	local function line(order: number, size: number, color: Color3): TextLabel
 		return Ui.text({
 			TextSize = size,
@@ -320,7 +326,7 @@ function GoalsPanel.start(corner: Frame)
 		elseif choosing then
 			number.Text = "Adventures"
 			words.Text = "Choose your next adventure"
-			hint.Text = "Press Goals to pick one"
+			hint.Text = if Ui.usingController() then "Press Goals to pick one" else "Tap here to pick one"
 		end
 		-- (not while the goal is about the garden already)
 		local gardenGoal = goal ~= nil and (goal.kind == "plant" or goal.kind == "harvest")

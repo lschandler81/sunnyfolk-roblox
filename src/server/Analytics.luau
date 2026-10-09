@@ -11,12 +11,18 @@
 --     requests, harvests and Cafe shifts) and spent (in the shops). Coin pickups are added up for each
 --     player and logged together about once a minute (Config.ANALYTICS), and when they leave,
 --     so a busy server doesn't send one event per coin. Each reward is still one event.
+--     (Rewards include little helps and today's stories from the board.)
 --   * A "FirstStory" funnel follows new players through the First Story (shared/Goals):
 --     1 met Clover, 2 planted, 3 picked, 4 bought a hat, 5 chose an Adventure. Each step is
 --     logged once, and only for players who started the story after it came in (Step 16).
 --   * A "DailyPresent" funnel counts each day of the seven a player comes back for, and a
---     custom event is logged for each request finished, and for each Cafe shift finished
---     ("CafeShift", counting a shared shift as "CafeShiftShared" too).
+--     custom event is logged for each little help from the board finished ("Request:<id>"), and
+--     for each Cafe shift finished ("CafeShift", counting a shared shift as "CafeShiftShared" too).
+--   * A "TodayStory" funnel follows each of today's stories on the board (Config.TODAY) a player
+--     is given: 1 shown (they read it on the board), 2 started (the first bit done), 3 finished.
+--     A story counts even if they never read the board, so Started and Finished can be a little
+--     higher than Shown; for a story that's one thing to do, Started and Finished come together.
+--     A custom event "Today:<id>" is logged too when one is finished, to see which stories are done.
 --
 -- Every call to Roblox is wrapped in pcall, so analytics can never break the game. In Studio
 -- each event is also printed to the Output, so you can watch them while testing.
@@ -38,6 +44,7 @@ Analytics.FIRST_HOME = 5
 
 local STEP_NAMES = { "Joined", "Chose an animal", "First coin", "First hat bought", "First home" }
 local STORY_NAMES = { "Met Clover", "Planted", "Picked", "Bought a hat", "Chose an adventure" }
+local TODAY_NAMES = { "Shown", "Started", "Finished" }
 local CURRENCY = "Coins"
 
 local IN_STUDIO = RunService:IsStudio()
@@ -140,12 +147,29 @@ function Analytics.dailyPresent(player: Player, day: number, round: number)
 	note(`{player.Name} daily present: day {day} (round {round})`)
 end
 
--- A request from the board done (`id` from Config.REQUESTS).
+Analytics.TODAY_SHOWN = 1
+Analytics.TODAY_STARTED = 2
+Analytics.TODAY_FINISHED = 3
+
+-- Step `step` of today's story `id` (see the top of this file), given to the player on day
+-- number `day`. A player has at most one story a day, so their UserId and the day name it.
+function Analytics.todayStory(player: Player, id: string, day: number, step: number)
+	local name = TODAY_NAMES[step] or `Step {step}`
+	pcall(function()
+		AnalyticsService:LogFunnelStepEvent(player, "TodayStory", `{player.UserId}-{day}`, step, name)
+		if step == Analytics.TODAY_FINISHED then
+			AnalyticsService:LogCustomEvent(player, `Today:{id}`)
+		end
+	end)
+	note(`{player.Name} today's story "{id}": {name}`)
+end
+
+-- A little help from the board done (`id` from Config.REQUESTS).
 function Analytics.requestDone(player: Player, id: string)
 	pcall(function()
 		AnalyticsService:LogCustomEvent(player, `Request:{id}`)
 	end)
-	note(`{player.Name} finished the request "{id}"`)
+	note(`{player.Name} finished the little help "{id}"`)
 end
 
 -- A Cafe shift finished, with `served` orders and `helpers` helpers (counted once per helper).

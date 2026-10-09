@@ -19,6 +19,7 @@
           "GoalDone": { "$className": "RemoteEvent" },
           "DailyPresent": { "$className": "RemoteEvent" },
           "RequestDone": { "$className": "RemoteEvent" },
+          "TodayDone": { "$className": "RemoteEvent" },
           "StudioNextDay": { "$className": "RemoteEvent" },
           "PetAction": { "$className": "RemoteFunction" },
           "GardenAction": { "$className": "RemoteFunction" },

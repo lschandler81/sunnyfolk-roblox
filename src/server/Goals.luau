@@ -107,7 +107,8 @@ settle = function(player: Player)
 	end
 end
 
--- Others who want to hear about the same things (the request board, server/Daily).
+-- Others who want to hear about the same things (the board's little helps and today's story,
+-- server/Daily).
 local listeners: { (Player, string, string?) -> () } = {}
 
 -- Runs `callback(player, kind, what)` for everything Goals.event hears about.
@@ -120,9 +121,11 @@ function Goals.onStoryDone(callback: (Player) -> ())
 	table.insert(storyListeners, callback)
 end
 
--- Something happened that might finish a goal (or a request). `kind` is one of the kinds in
--- shared/Goals (or "coin", which only requests use); `what` says which resident for "talk",
--- and which shop for "shop".
+-- Something happened that might finish a goal, a little help or today's story (server/Daily).
+-- `kind` is one of the kinds in shared/Goals, or one that only the board uses: "coin" (a coin
+-- picked up), "water" (a Garden bed watered) or "decorate" (something added, moved or changed
+-- inside your house). `what` says which resident for "talk", which shop for "shop", and which
+-- crop for "plant", "harvest" and "water".
 function Goals.event(player: Player, kind: string, what: string?)
 	for _, listener in listeners do
 		listener(player, kind, what)

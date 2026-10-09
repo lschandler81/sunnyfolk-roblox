@@ -1,13 +1,14 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
 -- clothes, their pet, their home, their garden and Garden Book, the goals they've done (with
 -- the sunshine they've earned), their daily present, today's requests, their cafe shifts,
--- their Fish Book, the furniture, wallpaper and floors inside their house, and their library
--- card (stamps, and the stories they've unlocked and read).
+-- their Fish Book, the furniture, wallpaper and floors inside their house, their library
+-- card (stamps, and the stories they've unlocked and read), and today's story from the board
+-- (Today in Sunnyfolk) with their story stamps.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
--- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests, FishBook,
--- Interior, Library), which the game's
+-- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests, Today,
+-- FishBook, Interior, Library), which the game's
 -- screens read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
@@ -39,12 +40,12 @@ local Looks = require(Shared.Looks)
 local Stories = require(Shared.Stories)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 13 -- the save version this code writes (see migrate)
+local VERSION = 14 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
 	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden",
 	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests", "cafe",
-	"fishBook", "interior", "library",
+	"fishBook", "interior", "library", "today",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -106,6 +107,19 @@ export type Data = {
 	-- of the stories they've read to the end, and the coins they've earned from rounds since
 	-- `hourStart` (server clock, os.time), which Config.LIBRARY.COINS_PER_HOUR caps
 	library: { stamps: number, stories: number, read: { string }, hourStart: number, hourCoins: number },
+	-- today's story on the board (Config.TODAY, server/Daily): its id (nil before the first), the
+	-- day it came (server day number), how far they've got, whether it's done (and paid) and on
+	-- which day, and whether they've read it on the board; and their story stamps, counted for
+	-- each story
+	today: {
+		id: string?,
+		day: number,
+		got: number,
+		done: boolean,
+		doneDay: number,
+		shown: boolean,
+		stamps: { [string]: number },
+	},
 }
 type Profile = {
 	data: Data,
@@ -166,6 +180,7 @@ local function blank(): Data
 		fishBook = { caught = {} },
 		interior = Furniture.blank(),
 		library = { stamps = 0, stories = 0, read = {}, hourStart = 0, hourCoins = 0 },
+		today = { id = nil, day = 0, got = 0, done = false, doneDay = 0, shown = false, stamps = {} },
 	}
 end
 
@@ -266,6 +281,11 @@ local function migrate(saved: any): any
 		-- Version 13 added the Library. Older saves start with an empty library card, which
 		-- tidy() fills in.
 		version = 13
+	end
+	if version < 14 then
+		-- Version 14 added today's story on the board (Today in Sunnyfolk). Older saves start with
+		-- no story yet and no story stamps, which tidy() fills in.
+		version = 14
 	end
 	saved.version = version
 	return saved
@@ -451,6 +471,27 @@ local function tidy(saved: any): Data
 		L.hourStart = math.min(count(library.hourStart) or 0, os.time())
 		L.hourCoins = math.min(count(library.hourCoins) or 0, Config.LIBRARY.COINS_PER_HOUR)
 	end
+	-- today's story: only one that exists, with sensible numbers; and a stamp count for each
+	-- story there is
+	local today = saved.today
+	if typeof(today) == "table" then
+		local T = data.today
+		local story = Config.todayStory(today.id)
+		if story then
+			T.id = story.id
+			T.day = count(today.day) or 0
+			T.got = math.min(count(today.got) or 0, story.need)
+			T.done = today.done == true
+			T.doneDay = if T.done then count(today.doneDay) or 0 else 0
+			T.shown = today.shown == true
+		end
+		for _, each in Config.TODAY.STORIES do
+			local stamps = typeof(today.stamps) == "table" and count(today.stamps[each.id]) or 0
+			if stamps > 0 then
+				T.stamps[each.id] = stamps
+			end
+		end
+	end
 	local requests = saved.requests
 	if typeof(requests) == "table" then
 		data.requests.day = count(requests.day) or 0
@@ -487,6 +528,7 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Sun", data.sun)
 	player:SetAttribute("DailyStreak", data.daily.streak)
 	player:SetAttribute("Requests", HttpService:JSONEncode(data.requests))
+	player:SetAttribute("Today", HttpService:JSONEncode(data.today))
 	player:SetAttribute("FishBook", HttpService:JSONEncode(data.fishBook))
 	player:SetAttribute("Interior", HttpService:JSONEncode(data.interior))
 	local L = data.library

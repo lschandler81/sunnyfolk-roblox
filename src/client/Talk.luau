@@ -2,7 +2,8 @@
 -- bubble, nodding along. The first time each visit they say hello to you by name and wave.
 -- On a phone on its side, what they say shows in a card at the top left instead (Ui.messages),
 -- clear of the HUD and the buttons.
--- Also puts a name tag over every animal (other than you), just above its ears or hat.
+-- Also puts a name tag over every animal (other than you), just above its ears or hat, and
+-- keeps Clover's Hat Shop buttons hidden until you've said hello to her (shared/Goals).
 --
 -- Their lines are in assets/characters/sunnyfolk.json. Only the person talking sees the
 -- bubble, so nobody's chat gets in anyone else's way.
@@ -12,10 +13,12 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Sunnyfolk")
 local Builder = require(Shared.CharacterBuilder)
 local Config = require(Shared.Config)
+local GoalList = require(Shared.Goals)
 local Looks = require(Shared.Looks)
 local Animator = require(script.Parent.Animator)
 local Ui = require(script.Parent.Ui)
@@ -246,6 +249,25 @@ function Talk.start(openShop: (string) -> ())
 	for _, model in CollectionService:GetTagged(Builder.TAG) do
 		task.spawn(addTag, model)
 	end
+
+	-- Clover's Hat Shop buttons (by her, and at the shop's door; server/Residents makes them)
+	-- only work on your screen once you've said hello to her.
+	local function hatShopButton(object: Instance)
+		if object:IsA("ProximityPrompt") and object.Name == "Shop" and object:GetAttribute("ShopId") == "hats" then
+			object.Enabled = GoalList.hatShopOpen(GoalList.fromAttribute(player:GetAttribute("GoalsDone")))
+		end
+	end
+	task.spawn(function()
+		local residents = Workspace:WaitForChild("Residents")
+		residents.DescendantAdded:Connect(hatShopButton)
+		local function all()
+			for _, object in residents:GetDescendants() do
+				hatShopButton(object)
+			end
+		end
+		player:GetAttributeChangedSignal("GoalsDone"):Connect(all)
+		all()
+	end)
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt)
 		local model = prompt:FindFirstAncestorOfClass("Model")

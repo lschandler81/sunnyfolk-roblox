@@ -90,6 +90,10 @@ end
 -- Fern's Garden opens once this goal is done.
 Goals.GARDEN_OPENS = "hello"
 
+-- Clover's Hat Shop buttons show once this goal is done, so the very first goal (say hello to
+-- Clover) has just one button by her: Talk.
+Goals.HAT_SHOP_OPENS = "hello"
+
 -- The goals before Step 16, in their old order (old saves kept the number of the goal a
 -- player was on). Ids that are no longer goals ("coins", "shop", "library") are skipped.
 Goals.OLD_ORDER = { "hello", "coins", "friends", "shop", "hat", "home", "library", "gazebo", "pet", "harvest" }
@@ -154,6 +158,10 @@ end
 
 function Goals.gardenOpen(done: { string }): boolean
 	return table.find(done, Goals.GARDEN_OPENS) ~= nil
+end
+
+function Goals.hatShopOpen(done: { string }): boolean
+	return table.find(done, Goals.HAT_SHOP_OPENS) ~= nil
 end
 
 -- The goal a player is on: the first First Story goal they haven't done, then the Adventure

@@ -32,6 +32,7 @@ local Config = require(Shared.Config)
 local Furniture = require(Shared.Furniture)
 local Analytics = require(script.Parent.Analytics)
 local Avatars = require(script.Parent.Avatars)
+local Goals = require(script.Parent.Goals)
 local Homes = require(script.Parent.Homes)
 local PlayerData = require(script.Parent.PlayerData)
 local RemoteGuard = require(script.Parent.RemoteGuard)
@@ -399,7 +400,12 @@ function Interiors.start()
 		if not PlayerData.get(player) then
 			return false, "Just a moment!"
 		end
-		return action(player, what, a, b, c)
+		local ok, why = action(player, what, a, b, c)
+		-- adding, moving or changing something counts for today's story (server/Daily)
+		if ok and (what == "buy" or what == "place" or what == "move" or what == "style") then
+			Goals.event(player, "decorate")
+		end
+		return ok, why
 	end
 
 	-- Every few seconds: a house whose owner has gone (they fell, or their animal went back to

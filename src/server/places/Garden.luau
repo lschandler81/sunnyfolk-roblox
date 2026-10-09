@@ -260,6 +260,7 @@ local function action(player: Player, what: any, bed: any, crop: any): (boolean,
 			-- (the stage it's reached, now watered and growing on)
 			d.garden[bed] = { crop = plot.crop, stage = stage, readyAt = now + grow, quick = plot.quick }
 		end)
+		Goals.event(player, "water", plot.crop)
 		return true, grow
 	elseif what == "harvest" then
 		if not plot.crop or stage < G.STAGES then

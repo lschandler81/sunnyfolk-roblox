@@ -1,24 +1,34 @@
--- The daily present and the request board (numbers and the list of requests are in Config).
+-- The daily present and the board, "Today in Sunnyfolk" (the numbers and lists are in Config).
 --
 --   * The present: the first time a player is here on a new day (by the server's clock, in
 --     UTC), they get the next day's present of seven: coins, and on day 7 a hat too. Missing a
 --     day doesn't start them again. A new player's very first present waits until they've
 --     finished the First Story (shared/Goals), so it's a reward for that rather than one more
 --     thing on their first screen.
---   * The request board: three requests a day, the same for everyone, picked by the day's
+--   * Today's story, on top of the board (Config.TODAY): a resident asks for help with one
+--     activity. Each player's story is picked by the day's number from the ones they can do,
+--     and not from the resident who asked last time (if someone else can ask). It waits until
+--     they've done it: a new day doesn't take it away, and only once it's done does a new one
+--     come, on a later day. Like the present, stories start once the First Story is done. The
+--     server counts what they do (through Goals.onEvent), even if they haven't read the board
+--     yet, and pays its coins and a story stamp once. Reading it on the board is noted for the
+--     analytics.
+--   * The little helps, underneath: three a day, the same for everyone, picked by the day's
 --     number (Config.requestsFor). The server watches for each one itself (through
---     Goals.onEvent, and a once-a-second check for "visit" requests) and pays its coins once.
+--     Goals.onEvent, and a once-a-second check for "visit" ones) and pays its coins once.
+--     Nothing else needs them.
 --
 -- A new day is noticed when a player joins, every Config.DAILY.CHECK_SECONDS while they play,
 -- and whenever something happens on a day that's moved on. Days only ever go forwards: a
 -- server whose clock is a little behind another's never gives a second present or older
 -- requests.
 --
--- In Studio, the Request Board has a "Next day" button for testing (StudioNextDay). It only
+-- In Studio, the board has a "Next day" button for testing (StudioNextDay). It only
 -- works while saving is off (Studio's API access turned off), so a test never writes made-up
 -- dates into a real save. Live servers ignore it.
 
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -37,6 +47,7 @@ local S = Config.STUDS
 local IN_STUDIO = RunService:IsStudio()
 local SECONDS_A_DAY = 24 * 60 * 60
 local VISIT_CHECK_SECONDS = 1
+local TODAY = Config.TODAY
 
 local Daily = {}
 
@@ -73,8 +84,140 @@ local function settleHats(player: Player)
 	end
 end
 
--- Gives today's present, if they haven't had it, and starts today's requests, if they're
--- still on an earlier day's.
+---------------------------------------------------------------- today's story
+
+-- Can the player do this story's activity now (its `needs`, Config.TODAY)?
+local function storyOpen(story: any, data: PlayerData.Data): boolean
+	if story.needs == "garden" then
+		return GoalList.gardenOpen(data.goalsDone)
+	elseif story.needs == "cafe" then
+		return data.sun >= Config.CAFE.SUN
+	elseif story.needs == "home" then
+		return data.home ~= nil
+	end
+	return true
+end
+
+-- Is it time for a new story? Once the First Story is done: when they've none yet, or the one
+-- they have was done on an earlier day (so never two in one day).
+local function wantsStory(data: PlayerData.Data, today: number): boolean
+	if not GoalList.storyDone(data.goalsDone) then
+		return false
+	end
+	local T = data.today
+	return T.id == nil or (T.done and today > T.doneDay)
+end
+
+-- A new story for the player, picked by the day's number from those they can do, from someone
+-- other than who asked last time when there's a choice. Nil if none fits.
+local function chooseStory(data: PlayerData.Data, today: number): any
+	local last = Config.todayStory(data.today.id)
+	local open, others = {}, {}
+	for _, story in TODAY.STORIES do
+		if storyOpen(story, data) then
+			table.insert(open, story)
+			if not (last and last.who == story.who) then
+				table.insert(others, story)
+			end
+		end
+	end
+	local choices = if #others > 0 then others else open
+	if #choices == 0 then
+		return nil
+	end
+	return choices[Config.todayPick(today, #choices)]
+end
+
+-- Gives the player a new story, if it's time for one.
+local function pickStory(player: Player)
+	local today = Daily.today()
+	local data = PlayerData.get(player)
+	if not (data and wantsStory(data, today)) then
+		return
+	end
+	PlayerData.update(player, function(d)
+		local story = wantsStory(d, today) and chooseStory(d, today)
+		if story then
+			d.today.id = story.id
+			d.today.day = today
+			d.today.got = 0
+			d.today.done = false
+			d.today.doneDay = 0
+			d.today.shown = false
+		end
+	end)
+end
+
+-- Pays for their story, once, if it's all done.
+local function finishStory(player: Player)
+	local today = Daily.today()
+	local story: any, balance: number, day: number = nil, 0, 0
+	PlayerData.update(player, function(data)
+		local T = data.today
+		local mine = Config.todayStory(T.id)
+		if not mine or T.done or T.got < mine.need then
+			return
+		end
+		T.done = true
+		T.doneDay = today
+		T.stamps[mine.id] = (T.stamps[mine.id] or 0) + 1
+		data.coins += TODAY.COINS
+		story, balance, day = mine, data.coins, T.day
+	end)
+	if story then
+		Analytics.todayStory(player, story.id, day, Analytics.TODAY_FINISHED)
+		Analytics.coinsEarned(player, TODAY.COINS, balance, `today:{story.id}`)
+		Remotes.TodayDone:FireClient(player, story.id, TODAY.COINS)
+	end
+end
+
+-- Counts something they did (from Goals.event) towards their story, if it's what it asks for.
+local function storyHeard(player: Player, kind: string, what: string?)
+	local data = PlayerData.get(player)
+	local story = data and Config.todayStory(data.today.id)
+	if not (data and story) or data.today.done or story.kind ~= kind or (story.what and story.what ~= what) then
+		return
+	end
+	local first, day = false, 0
+	PlayerData.update(player, function(d)
+		local T = d.today
+		if T.id ~= story.id or T.done then
+			return
+		end
+		first = T.got == 0
+		T.got = math.min(T.got + 1, story.need)
+		day = T.day
+	end)
+	if first then
+		Analytics.todayStory(player, story.id, day, Analytics.TODAY_STARTED)
+	end
+	finishStory(player)
+end
+
+-- They've read the board: their story has been shown (noted once, for the analytics, unless
+-- they've done it already).
+local function readBoard(player: Player)
+	local data = PlayerData.get(player)
+	local story = data and Config.todayStory(data.today.id)
+	if not (data and story) or data.today.shown or data.today.done then
+		return
+	end
+	local shown, day = false, 0
+	PlayerData.update(player, function(d)
+		if d.today.id == story.id and not d.today.shown and not d.today.done then
+			d.today.shown = true
+			shown, day = true, d.today.day
+		end
+	end)
+	if shown then
+		Analytics.todayStory(player, story.id, day, Analytics.TODAY_SHOWN)
+	end
+end
+
+---------------------------------------------------------------- the present and little helps
+
+-- Gives today's present, if they haven't had it, starts today's little helps, if they're still
+-- on an earlier day's, and gives them a new story, if it's time.
 local function newDay(player: Player)
 	local today = Daily.today()
 	local present: { day: number, coins: number, hat: string? }? = nil
@@ -119,9 +262,12 @@ local function newDay(player: Player)
 		Remotes.DailyPresent:FireClient(player, gift.day, gift.coins, gift.hat)
 	end
 	settleHats(player)
+	-- (a story already done enough, say if Config.TODAY asks for less than it did, is paid now)
+	finishStory(player)
+	pickStory(player)
 end
 
--- Pays for request number `slot` (1 to 3) of today's, if it isn't done yet.
+-- Pays for little help number `slot` (1 to 3) of today's, if it isn't done yet.
 finish = function(player: Player, slot: number)
 	local request: any = nil
 	local balance = 0
@@ -144,12 +290,14 @@ finish = function(player: Player, slot: number)
 	end
 end
 
--- Something happened (from Goals.event) that might count towards today's requests.
+-- Something happened (from Goals.event) that might count towards their story or today's
+-- little helps.
 local function heard(player: Player, kind: string, what: string?)
 	local data = PlayerData.get(player)
 	if data and Daily.today() > data.requests.day then
-		newDay(player) -- a new day began since the last look: start its requests first
+		newDay(player) -- a new day began since the last look: start its little helps first
 	end
+	storyHeard(player, kind, what)
 	if not data or data.requests.day ~= Daily.today() then
 		return
 	end
@@ -175,23 +323,31 @@ end
 function Daily.start()
 	PlayerData.onLoaded(newDay)
 	Goals.onEvent(heard)
-	Goals.onStoryDone(newDay) -- a new player's first present
+	Goals.onStoryDone(newDay) -- a new player's first present, and their first story
 
-	-- A new day starting while people play.
+	-- A new day starting while people play (or a story that's due, say once they can do one).
 	task.spawn(function()
 		while true do
 			task.wait(Config.DAILY.CHECK_SECONDS)
 			for _, player in Players:GetPlayers() do
 				local data = PlayerData.get(player)
-				if data and (Daily.today() > data.daily.last or Daily.today() > data.requests.day) then
-					-- (for someone whose first present is waiting, this only starts new requests)
+				local today = Daily.today()
+				if data and (today > data.daily.last or today > data.requests.day or wantsStory(data, today)) then
+					-- (for someone whose first present is waiting, this only starts new little helps)
 					newDay(player)
 				end
 			end
 		end
 	end)
 
-	-- "Visit" requests: once a second, see whether anyone has got there.
+	-- Reading the board (its prompt is made in server/Town; Roblox checks they're close enough).
+	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+		if prompt.Name == "RequestBoard" then
+			readBoard(player)
+		end
+	end)
+
+	-- "Visit" little helps: once a second, see whether anyone has got there.
 	task.spawn(function()
 		while true do
 			task.wait(VISIT_CHECK_SECONDS)
@@ -241,6 +397,7 @@ function Daily.start()
 	-- These only go from the server to players; anything a player sends on them is ignored.
 	Remotes.DailyPresent.OnServerEvent:Connect(function() end)
 	Remotes.RequestDone.OnServerEvent:Connect(function() end)
+	Remotes.TodayDone.OnServerEvent:Connect(function() end)
 end
 
 return Daily

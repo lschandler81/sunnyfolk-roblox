@@ -752,7 +752,7 @@ Config.ROOM = {
 	},
 }
 
----------------------------------------------------------------- the daily present and the request board
+---------------------------------------------------------------- the daily present and Today in Sunnyfolk
 
 -- A present each day you visit (see server/Daily.luau). Days are counted on the server's
 -- clock (UTC), and go round 1 to 7. Missing a day doesn't start you again: your next visit is
@@ -765,9 +765,55 @@ Config.DAILY = {
 	CHECK_SECONDS = 30, -- how often the server looks to see whether a new day has started
 }
 
--- The request board on the lawn by the fountain: three requests a day, the same for everyone,
--- picked by the day's number. Each pays coins once. (The library joins the board in Step 23,
--- "Today in Sunnyfolk".)
+-- The board on the lawn by the fountain, "Today in Sunnyfolk" (server/Daily, client/DailyPanel).
+-- On top is today's story: a resident asks for help with one activity. A story waits until
+-- you've done it (a new day doesn't take it away), and only then does another come, on a later
+-- day. Stories only start once the First Story is done, and only for something you can do
+-- (`needs`: "garden" once the Garden is open, "cafe" once you've the Cafe's sunshine, "home"
+-- once you've a home). Each one pays COINS once, and a story stamp (one stamp for each story,
+-- counted every time you do it).
+-- kind: what counts (the kinds Goals.event hears about). `what` narrows it: which crop for
+-- "harvest". `need` is how many times. "water" is watering a bed, and "decorate" is adding,
+-- moving or changing anything inside your house.
+-- Saves keep a story's id, so never change one (take a story out instead).
+Config.TODAY = {
+	COINS = 6,
+	STORIES = {
+		{ id = "fern-water", who = "Fern", pic = "🦫💧", stamp = "💧", color = "#8cc63f", needs = "garden",
+			kind = "water", need = 3, title = "Fern needs a hand", text = "Water the beds in Fern's Garden three times" },
+		{ id = "fern-sunflowers", who = "Fern", pic = "🦫🌻", stamp = "🌻", color = "#f6d84a", needs = "garden",
+			kind = "harvest", what = "sunflower", need = 1, title = "Fern loves sunflowers",
+			text = "Grow some sunflowers and pick them" },
+		{ id = "biscuit-shift", who = "Biscuit", pic = "🦫☕", stamp = "☕", color = "#ee9a45", needs = "cafe",
+			kind = "cafe", need = 1, title = "Biscuit is busy", text = "Help with a shift at the Cafe" },
+		{ id = "pebble-books", who = "Pebble", pic = "🐧📚", stamp = "📚", color = "#6fa8dc",
+			kind = "library", need = 1, title = "Pebble's books are muddled", text = "Tidy a round of shelves in the library" },
+		{ id = "puddles-splash", who = "Puddles", pic = "🦆💦", stamp = "🐟", color = "#5aa9a8",
+			kind = "fish", need = 1, title = "Puddles found a splash", text = "Try fishing: catch a fish at a pond" },
+		{ id = "clover-home", who = "Clover", pic = "🐰🏡", stamp = "🛋️", color = "#f2a7b8", needs = "home",
+			kind = "decorate", need = 1, title = "Clover loves a cosy home",
+			text = "Make your house cosy: add or move something inside" },
+	},
+}
+
+-- Which of `count` stories a player is given on `day` (1 to `count`): picked by the day's
+-- number, like the little helps (Config.requestsFor).
+function Config.todayPick(day: number, count: number): number
+	return Random.new(day * 7919 + 37):NextInteger(1, count)
+end
+
+-- Today's story with this id, or nil.
+function Config.todayStory(id: any)
+	for _, story in Config.TODAY.STORIES do
+		if story.id == id then
+			return story
+		end
+	end
+	return nil
+end
+
+-- Underneath, three "little helps" a day, the same for everyone, picked by the day's number.
+-- Each pays coins once, and nothing else needs them.
 Config.REQUEST_BOARD = { angle = 198, dist = 20.5 } -- where the board stands
 Config.REQUESTS_PER_DAY = 3
 Config.REQUESTS = {

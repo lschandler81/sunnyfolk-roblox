@@ -809,7 +809,8 @@ local function lawns()
 	sit.Parent = spot
 	keepClear(picnic.Position, 2.5)
 
-	-- the request board: three requests a day (server/Daily, client/DailyPanel)
+	-- the board, Today in Sunnyfolk: today's story and three little helps (server/Daily,
+	-- client/DailyPanel)
 	local B = Config.REQUEST_BOARD
 	local board = yawAt(Config.polar(B.angle, B.dist), Config.faceIn(B.angle - 3))
 	for _, side in { -1, 1 } do
@@ -818,12 +819,12 @@ local function lawns()
 	local face = block(Vector3.new(2.6, 1.5, 0.15) * S, board * CFrame.new(0, 1.5 * S, 0), C.wood)
 	block(Vector3.new(2.8, 0.2, 0.4) * S, board * CFrame.new(0, 2.35 * S, 0), C.coral)
 	local heading = block(Vector3.new(2.4, 0.42, 0.06) * S, board * CFrame.new(0, 2.62 * S, 0) * CFrame.Angles(0, math.pi, 0), C.cream, DECOR)
-	label(heading, "Requests", C.ink, C.cream)
-	label(heading, "Requests", C.ink, C.cream, Enum.NormalId.Back)
+	label(heading, "Today in Sunnyfolk", C.ink, C.cream)
+	label(heading, "Today in Sunnyfolk", C.ink, C.cream, Enum.NormalId.Back)
 	local read = Instance.new("ProximityPrompt")
 	read.Name = "RequestBoard"
 	read.ActionText = "Read"
-	read.ObjectText = "Request Board"
+	read.ObjectText = "Today in Sunnyfolk"
 	read.KeyboardKeyCode = Enum.KeyCode.E
 	read.GamepadKeyCode = Enum.KeyCode.ButtonX
 	read.HoldDuration = 0

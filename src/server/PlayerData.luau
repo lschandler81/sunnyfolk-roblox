@@ -1,10 +1,11 @@
 -- Remembers each player between visits: their coins, the animal they picked, their hats and
 -- clothes, their pet, their home, their garden and Garden Book, the goals they've done (with
--- the sunshine they've earned), their daily present, today's requests and their cafe shifts.
+-- the sunshine they've earned), their daily present, today's requests, their cafe shifts and
+-- their Fish Book.
 --
 -- It's kept in a Roblox DataStore. Players can see their own numbers through attributes on
 -- their Player object (Coins, Hat, OwnedHats, OwnedClothes, Wearing, Pet, PetGear, Look,
--- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests), which the game's
+-- HomeDesign, Garden, GardenBook, Goal, GoalsDone, GoalMet, Sun, DailyStreak, Requests, FishBook), which the game's
 -- screens read. Everyone's Pet attribute is seen by every player, so their screens can show it.
 --
 -- Keeping saves safe:
@@ -34,11 +35,12 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 
 local STORE_NAME = "SunnyfolkPlayers1"
-local VERSION = 10 -- the save version this code writes (see migrate)
+local VERSION = 11 -- the save version this code writes (see migrate)
 -- the game's own fields in a save
 local FIELDS = {
 	"coins", "earned", "look", "hat", "hats", "clothes", "wearing", "pet", "petGear", "home", "garden",
 	"gardenBook", "goalsDone", "adventure", "goalMet", "goalsFinished", "newStory", "sun", "daily", "requests", "cafe",
+	"fishBook",
 }
 local SAVE = Config.SAVE
 local IN_STUDIO = RunService:IsStudio()
@@ -90,6 +92,8 @@ export type Data = {
 	-- the Cafe: how many shifts they've finished, and the coins they've earned there since
 	-- `hourStart` (server clock, os.time), which Config.CAFE.COINS_PER_HOUR caps
 	cafe: { shifts: number, hourStart: number, hourCoins: number },
+	-- the Fish Book: how many of each fish (Config.FISHING.FISH) they've caught
+	fishBook: { caught: { [string]: number } },
 }
 type Profile = {
 	data: Data,
@@ -147,6 +151,7 @@ local function blank(): Data
 		daily = { last = 0, streak = 0, start = 0 },
 		requests = { day = 0, got = {}, done = {} },
 		cafe = { shifts = 0, hourStart = 0, hourCoins = 0 },
+		fishBook = { caught = {} },
 	}
 end
 
@@ -232,6 +237,11 @@ local function migrate(saved: any): any
 		-- Version 10 added the Cafe. Older saves start with no shifts and no cafe coins this
 		-- hour, which tidy() fills in.
 		version = 10
+	end
+	if version < 11 then
+		-- Version 11 added fishing. Older saves start with an empty Fish Book, which tidy() fills
+		-- in.
+		version = 11
 	end
 	saved.version = version
 	return saved
@@ -386,6 +396,16 @@ local function tidy(saved: any): Data
 			hourCoins = math.min(count(cafe.hourCoins) or 0, Config.CAFE.COINS_PER_HOUR),
 		}
 	end
+	-- the Fish Book: a count for each fish there is
+	local fishBook = saved.fishBook
+	if typeof(fishBook) == "table" and typeof(fishBook.caught) == "table" then
+		for _, fish in Config.FISHING.FISH do
+			local caught = count(fishBook.caught[fish.id]) or 0
+			if caught > 0 then
+				data.fishBook.caught[fish.id] = caught
+			end
+		end
+	end
 	local requests = saved.requests
 	if typeof(requests) == "table" then
 		data.requests.day = count(requests.day) or 0
@@ -422,6 +442,7 @@ local function publish(player: Player, data: Data)
 	player:SetAttribute("Sun", data.sun)
 	player:SetAttribute("DailyStreak", data.daily.streak)
 	player:SetAttribute("Requests", HttpService:JSONEncode(data.requests))
+	player:SetAttribute("FishBook", HttpService:JSONEncode(data.fishBook))
 end
 
 -- Is this save open on another server that's still running?

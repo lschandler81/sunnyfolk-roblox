@@ -5,6 +5,7 @@
 --   coins         earned Config.BADGE_COINS coins in all
 --   week          got the day 7 present
 --   allGoals      finished all the goals
+--   fishBook      caught every fish in the Fish Book
 --
 -- Everything is decided from the player's own save, on the server: whenever one of their
 -- numbers changes (the attributes PlayerData sets, which only the server can change), and
@@ -50,10 +51,13 @@ local EARNED: { [string]: (PlayerData.Data) -> boolean } = {
 		-- (goalsFinished: they finished the goals there were then, even if more came since)
 		return data.goalsFinished or GoalList.allDone(data.goalsDone)
 	end,
+	fishBook = function(data)
+		return Config.fishBookFull(data.fishBook)
+	end,
 }
 
 -- The attributes whose changes might mean a new badge.
-local WATCH = { "Look", "OwnedHats", "HomeDesign", "Coins", "DailyStreak", "GoalsDone" }
+local WATCH = { "Look", "OwnedHats", "HomeDesign", "Coins", "DailyStreak", "GoalsDone", "FishBook" }
 
 local Badges = {}
 

@@ -25,7 +25,8 @@
           "ChooseAdventure": { "$className": "RemoteEvent" },
           "Emote": { "$className": "RemoteEvent" },
           "CafeAction": { "$className": "RemoteFunction" },
-          "CafeNews": { "$className": "RemoteEvent" }
+          "CafeNews": { "$className": "RemoteEvent" },
+          "FishAction": { "$className": "RemoteFunction" }
         }
       },
       "SunnyfolkModels": {

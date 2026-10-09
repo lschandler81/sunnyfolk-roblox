@@ -28,6 +28,7 @@ local Houses = require(Shared.Houses)
 local Looks = require(Shared.Looks)
 local PetBuilder = require(Shared.PetBuilder)
 local Controls = require(script.Parent.Controls)
+local FishBook = require(script.Parent.FishBook)
 local Garden = require(script.Parent.Garden)
 local Hud = require(script.Parent.Hud)
 local Ui = require(script.Parent.Ui)
@@ -150,6 +151,19 @@ local function targetFor(goal: GoalList.Goal, from: Vector3): Vector3?
 	elseif goal.kind == "cafe" then
 		-- (not while you're on a shift: you're already there)
 		return if player:GetAttribute("CafeHelper") then nil else residentAt("biscuit")
+	elseif goal.kind == "fish" then
+		-- the edge of the nearest pond, on your side (you can't walk into the water), and not
+		-- while you're fishing: you're already there
+		if player:GetAttribute("Fishing") ~= nil then
+			return nil
+		end
+		local spots = {}
+		for _, pond in Config.FISHING_PONDS do
+			local away = Vector3.new(from.X - pond.centre.X, 0, from.Z - pond.centre.Z)
+			local out = if away.Magnitude > 0.1 then away.Unit else Vector3.zAxis
+			table.insert(spots, pond.centre + out * (pond.r + 1) * S)
+		end
+		return nearestTo(from, spots)
 	end
 	return nil
 end
@@ -465,6 +479,8 @@ local function adventurePicture(id: string): (Model?, Vector3)
 		cocoa:PivotTo(CFrame.new(1.8, 0, -0.5))
 		cocoa.Parent = model
 		return model, Vector3.new(0.2, 0.25, -1)
+	elseif id == "fish" then
+		return FishBook.model("goldfish"), Vector3.new(1, 0.35, 0.3) -- side on
 	end
 	return nil, Vector3.new(0, 0, -1)
 end

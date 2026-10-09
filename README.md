@@ -34,6 +34,9 @@ for children aged 6–9. Make friends, collect coins and find a hat you love.
   shift, then carry each visitor what their bubble shows, from the counter to their table,
   and take their dirty plates to the wash-up tub. A friend can join the same shift, and every
   helper is paid for every order.
+- **Fishing** at Home Pond, Lily Pond and Puddles' pond: cast, wait for the splash, then reel
+  in. Every fish goes back in the water and into your **Fish Book**, which shows the shape of
+  the next fish to find. A new fish pays a few coins, and a full book gives a badge.
 - **Goals**: a new player is led round town by nine little goals (say hello, pick up coins,
   buy a hat, make a home, visit places, adopt a pet), with a yellow arrow pointing the way.
   Each pays coins and sunshine; sunshine will open the gated roads once there's something
@@ -82,6 +85,7 @@ src/server/             → ServerScriptService.Sunnyfolk
   Homes.luau              the plots at Home Pond: moving in, building houses, moving back in
   Goals.luau              watches for each goal, pays its coins and sunshine
   Pets.luau               adopting, changing and dressing pets (checked here)
+  Fishing.luau            fishing: picks every bite and every fish (checked here)
 
 src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Main.client.luau        starts everything on each player's computer
@@ -91,6 +95,8 @@ src/client/             → StarterPlayer.StarterPlayerScripts.Sunnyfolk
   Pets.luau               everyone's pets, walked along behind their owners on your screen
   PetShop.luau            the Pet Shop screen
   Cafe.luau               the Cafe's visitors, order bubbles, buttons and shift cards
+  Fishing.luau            the ponds' fishing buttons, the fishing card, and everyone's rods
+  FishBook.luau           the Fish Book screen, and the fish themselves
   Coins.luau              the coins you see, spinning, and picking them up
   Talk.luau               speech bubbles and name tags
   HatShop.luau            the shop screen, for Clover's Hat Shop and the Clothes Shop

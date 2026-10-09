@@ -198,9 +198,15 @@ local function rock(at: Vector3, s: number)
 	blob(Vector3.new(1.1, 0.6, 0.9) * s * S, CFrame.new(at + Vector3.new(0, 0.15 * s * S, 0)) * CFrame.Angles(0, random:NextNumber(0, 6), 0), C.stone)
 end
 
--- A little pond with stones round the edge and lily pads.
+-- A little pond with stones round the edge and lily pads. The top of its water is
+-- Config.FISHING.WATER_Y studs up. Fishing needs no raycasts (its bobbers land at that height),
+-- so the water stays out of raycasts like other walk-through parts. An invisible wall round it,
+-- just inside the stones and too tall to jump onto, keeps walkers out of the water (like the
+-- web game's pond).
 local function pond(at: CFrame, radius: number)
 	cylinder(radius * S, 0.3, at * CFrame.new(0, 0.1, 0), C.water, { CanCollide = false, Reflectance = 0.05 })
+	local wall = 40 -- studs tall
+	cylinder((radius + 0.3) * S, wall, at * CFrame.new(0, wall / 2, 0), C.water, { Transparency = 1, CastShadow = false })
 	local stones = math.round(radius * 4.3)
 	for i = 0, stones - 1 do
 		local s = random:NextNumber(0.7, 1.1)
@@ -221,6 +227,37 @@ local function pond(at: CFrame, radius: number)
 		block(Vector3.new(0.12, 0.35, 0.12) * S, reedAt * CFrame.new(0, 1.2 * S, 0), C.woodDark, DECOR)
 	end
 	keepClear(at.Position, radius + 0.8)
+end
+
+-- A sign that says "fishing here" without words: a post with a painted wooden fish hanging
+-- from its arm, and a little rod leaning against it. Its front faces +Z; the fish hangs to the
+-- right (+X). Nothing in it is solid.
+local function fishingSign(at: CFrame)
+	local function u(x: number, y: number, z: number): CFrame
+		return at * CFrame.new(x * S, y * S, z * S)
+	end
+	cylinder(0.1 * S, 2.4 * S, u(0, 1.2, 0), C.woodDark, DECOR)
+	block(Vector3.new(1.4, 0.12, 0.12) * S, u(0.62, 2.3, 0), C.woodDark, DECOR)
+	for _, x in { 0.45, 1.05 } do
+		cylinder(0.02 * S, 0.3 * S, u(x, 2.1, 0), C.ink, DECOR)
+	end
+	-- the fish: a flat coral body, a tail, a fin on top and an eye on each side
+	local fish = u(0.75, 1.75, 0)
+	blob(Vector3.new(1.0, 0.5, 0.14) * S, fish, C.coral, DECOR)
+	block(Vector3.new(0.34, 0.34, 0.1) * S, fish * CFrame.new(-0.55 * S, 0, 0) * CFrame.Angles(0, 0, math.pi / 4), C.yellow, DECOR)
+	blob(Vector3.new(0.36, 0.2, 0.08) * S, fish * CFrame.new(0, 0.24 * S, 0), C.yellow, DECOR)
+	for _, z in { -1, 1 } do
+		ball(0.11 * S, fish * CFrame.new(0.3 * S, 0.06 * S, z * 0.07 * S), C.ink, DECOR)
+	end
+	-- the rod, leaning on the post, with a red and white bobber hanging from its tip
+	local rod = u(-0.42, 1.25, 0.12) * CFrame.Angles(0, 0, -0.1)
+	cylinder(0.04 * S, 2.6 * S, rod, C.wood, DECOR)
+	cylinder(0.07 * S, 0.5 * S, rod * CFrame.new(0, -1.0 * S, 0), C.teal, DECOR)
+	local tip = (rod * CFrame.new(0, 1.3 * S, 0)).Position
+	cylinder(0.012 * S, 0.5 * S, CFrame.new(tip - Vector3.new(0, 0.25 * S, 0)), C.white, DECOR)
+	ball(0.2 * S, CFrame.new(tip - Vector3.new(0, 0.55 * S, 0)), C.coral, DECOR)
+	ball(0.12 * S, CFrame.new(tip - Vector3.new(0, 0.45 * S, 0)), C.white, DECOR)
+	keepClear(at.Position, 1.5)
 end
 
 ---------------------------------------------------------------- the square
@@ -382,7 +419,10 @@ local function cottage(c)
 	footpath(roadPoint, door.Position, 2.2)
 	keepClear(at.Position, 6)
 	if c.pond then
-		pond(at * CFrame.new(-9.5 * S, 0, -1.5 * S), 4.2)
+		local duckPond = Config.duckPond(c)
+		pond(duckPond, Config.DUCK_POND.r) -- (fishing uses these numbers too)
+		-- its fishing sign, on the road side, so you can see it from the road
+		fishingSign(duckPond * CFrame.new(0, 0, (Config.DUCK_POND.r + 1.2) * S))
 	end
 end
 
@@ -548,6 +588,7 @@ local function homePond(): { CFrame }
 		end
 
 		pond(CFrame.new(centre), H.pondR)
+		fishingSign(around(0, H.pondR + 1.4)) -- by the water, facing the way in
 		-- a path all the way round the pond
 		local segments = 28
 		for i = 0, segments - 1 do

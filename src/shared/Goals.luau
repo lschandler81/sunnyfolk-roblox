@@ -5,7 +5,7 @@
 --   water and pick them (the very first crop grows fast: Config.GARDEN.FIRST_STAGE), then buy
 --   a hat with what you've earned.
 --   Adventures: make a home, say hello to Puddles and Pebble, adopt a pet, look round the
---   Clothes Shop, visit the gazebo, help Biscuit at the Cafe.
+--   Clothes Shop, visit the gazebo, help Biscuit at the Cafe, catch a fish.
 --
 -- The server (server/Goals) watches for each goal and pays the rewards; the player's screen
 -- (client/GoalsPanel) shows the goal they're on and points the way. Saves keep the ids of the
@@ -22,6 +22,7 @@
 --   plant    plant seeds in the Garden (something already planted counts)
 --   harvest  pick something you grew in the Garden
 --   cafe     finish a shift at the Cafe (one already finished counts)
+--   fish     catch a fish (one already in the Fish Book counts)
 
 local Config = require(script.Parent.Config)
 local Looks = require(script.Parent.Looks)
@@ -68,6 +69,8 @@ Goals.ADVENTURES = {
 		short = "Visit the gazebo", text = "Visit the gazebo", hint = "Follow the arrow" },
 	{ id = "cafe", kind = "cafe", coins = 5, sun = 1, short = "Help at the Cafe",
 		text = "Help Biscuit at the Cafe", hint = "Follow the arrow to Biscuit" },
+	{ id = "fish", kind = "fish", coins = 3, sun = 1, short = "Go fishing",
+		text = "Catch a fish", hint = "Follow the arrow to a pond" },
 } :: { Goal }
 
 -- Every goal by its id.

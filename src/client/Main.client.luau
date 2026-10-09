@@ -1,6 +1,7 @@
 -- Starts the game on each player's computer: the welcome screen first, then the town with
 -- coins, talking, the shops, "My things", homes, the goals, the daily present and request
--- board, pets, the Garden and its Garden Book, the Cafe, emotes, and the animals' animation.
+-- board, pets, the Garden and its Garden Book, the Cafe, emotes, fishing and its Fish Book,
+-- and the animals' animation.
 
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
@@ -35,6 +36,8 @@ local Talk = require(script.Parent.Talk)
 local Wardrobe = require(script.Parent.Wardrobe)
 local GardenBook = require(script.Parent.GardenBook)
 local Emotes = require(script.Parent.Emotes)
+local FishBook = require(script.Parent.FishBook)
+local Fishing = require(script.Parent.Fishing)
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -76,6 +79,7 @@ end)
 Pets.start()
 Garden.start()
 GardenBook.start()
+FishBook.start()
 task.spawn(Cafe.start) -- (it waits for the server's Cafe, so nothing else waits for it)
 Homes.start(Hud.toast)
 DailyPanel.start()
@@ -121,7 +125,7 @@ end
 
 local function chooseAnimal()
 	if HatShop.isOpen() or HomeDesigner.isOpen() or GoalsPanel.isOpen() or DailyPanel.isOpen() or PetShop.isOpen()
-		or Garden.isOpen() or Wardrobe.isOpen() or GardenBook.isOpen() or Cafe.isOpen() then
+		or Garden.isOpen() or Wardrobe.isOpen() or GardenBook.isOpen() or Cafe.isOpen() or FishBook.isOpen() then
 		return
 	end
 	Hud.show(false)
@@ -153,6 +157,7 @@ local hudGui = Hud.gui()
 if hudGui then
 	Emotes.start(hudGui)
 end
+Fishing.start() -- (after the HUD: fishing stops if the HUD goes, for the welcome screen)
 local corner = Hud.corner()
 if corner then
 	GoalsPanel.start(corner)

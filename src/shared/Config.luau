@@ -99,12 +99,22 @@ Config.COTTAGES = {
 }
 Config.COTTAGE_OFFSET = 9 -- from the middle of the road to the cottage
 
+-- The duck pond beside a cottage with `pond` (Puddles' house): x across and z towards the road
+-- from the cottage's middle, and its size (web units).
+Config.DUCK_POND = { name = "Puddles' pond", x = -9.5, z = -1.5, r = 4.2 }
+
 -- Where a cottage stands (on the ground, its front door facing the road), and the point on the
 -- road in front of it.
 function Config.cottageAt(cottage): (CFrame, Vector3)
 	local road = Config.polar(cottage.road, cottage.dist)
 	local spot = road + Config.polar(cottage.road + 90 * cottage.side, Config.COTTAGE_OFFSET)
 	return CFrame.lookAt(spot, road) * CFrame.Angles(0, math.pi, 0), road
+end
+
+-- The middle of a cottage's duck pond, on the ground.
+function Config.duckPond(cottage): CFrame
+	local D = Config.DUCK_POND
+	return Config.cottageAt(cottage) * CFrame.new(D.x * S, 0, D.z * S)
 end
 
 ---------------------------------------------------------------- the Garden
@@ -300,6 +310,104 @@ end
 function Config.cafeWaiting(helpers: number): number
 	local list = Config.CAFE.WAITING
 	return list[math.clamp(helpers, 1, #list)]
+end
+
+---------------------------------------------------------------- fishing
+
+-- Fishing at Home Pond, Lily Pond and Puddles' pond (server/Fishing, client/Fishing and
+-- client/FishBook), from the web game's fishing.js: cast, wait for the splash, then reel in.
+-- The server picks when a fish bites and which fish it is, so tapping fast catches nothing
+-- extra. Every fish goes back in the water. A fish new to your Fish Book pays a few coins, and
+-- a full book gives a badge (Config.BADGES.fishBook). Nothing is bought: no bait, no rods.
+--
+-- The web game's Whiskery Catfish and Moonfish only bite at night, and its Puddle Fish only in
+-- the rain. This town is always a sunny afternoon (Lighting.ClockTime 14.5 in
+-- default.project.json), so those three are left out.
+Config.FISHING = {
+	REACH = 3.5, -- web units past a pond's edge: how far back you can stand and still fish
+	FIRST_BITE = 2.5, -- seconds: until you've caught your first fish, every cast bites this soon
+	BITE_MIN = 3, -- after that, a fish bites between BITE_MIN and BITE_MAX seconds after you cast
+	BITE_MAX = 7,
+	BITE_SECONDS = 3, -- after its splash, a fish waits this long for you to reel in
+	LAG = 1, -- seconds the server allows on top of BITE_SECONDS, for the trip there and back
+	NEW_COINS = 3, -- coins for a fish that's new in your book (none for one you've caught before)
+	NEW_BOOST = 3, -- a fish not in your book yet bites this many times as often, so the book fills
+	BOBBER = 0.5, -- where the bobber lands: this far in from the pond's edge to its middle
+	BOBBER_GAP = 8, -- studs: standing in the water, it lands at least this far in front of you
+	WATER_Y = 0.25, -- studs: the top of the ponds' water (server/Town)
+	-- where: "any" pond, "pond" (Home Pond and Puddles' pond) or "lake" (Lily Pond). weight: how
+	-- often it bites, against the others in that pond. The colours and shapes are the web game's.
+	-- (The rarer ones bite a little more often here than there, so the book can be filled.)
+	FISH = {
+		{ id = "minnow", name = "Minnow", where = "any", weight = 10, body = "#b8c4c8", fin = "#8e9ca2", size = 0.6 },
+		{ id = "goldfish", name = "Goldfish", where = "pond", weight = 7, body = "#f28a3a", fin = "#f6c64a", size = 0.7 },
+		{ id = "bluegill", name = "Bluegill", where = "any", weight = 6, body = "#5aa9a8", fin = "#3f6f8a", size = 0.8 },
+		{ id = "perch", name = "Stripy Perch", where = "lake", weight = 6, body = "#c9c25a", fin = "#e8743b", stripes = "#5a6a3a", size = 0.85 },
+		{ id = "trout", name = "Spotty Trout", where = "lake", weight = 5, body = "#a88a62", fin = "#8a6a48", spots = "#5a4436", size = 0.95 },
+		{ id = "koi", name = "Koi", where = "pond", weight = 4, body = "#faf3e8", fin = "#f2b8a0", spots = "#e8603a", size = 0.95 },
+		{ id = "rainbow", name = "Rainbow Trout", where = "lake", weight = 3, body = "#b8c8c0", fin = "#9aa8a0", stripes = "#f28ab0", size = 1.0 },
+		{ id = "yuzufish", name = "Yuzu Fish", where = "any", weight = 2, body = "#f6d84a", fin = "#8cc63f", round = true, size = 0.8 },
+		{ id = "golden", name = "Golden Fish", where = "any", weight = 1, body = "#f2c14e", fin = "#e8a830", glow = true, size = 1.0 },
+	},
+}
+
+-- The ponds you can fish in: each one's name, middle (on the ground), size (web units) and
+-- which fish live there ("pond" or "lake").
+Config.FISHING_PONDS = {} :: { { name: string, centre: Vector3, r: number, kind: string } }
+do
+	local H = Config.HOME
+	for i, pond in H.ponds do
+		table.insert(Config.FISHING_PONDS, {
+			name = pond.name,
+			centre = Config.polar(pond.angle, pond.dist),
+			r = H.pondR,
+			kind = if i == 1 then "pond" else "lake", -- Home Pond, then Lily Pond
+		})
+	end
+	for _, cottage in Config.COTTAGES do
+		if cottage.pond then
+			table.insert(Config.FISHING_PONDS, {
+				name = Config.DUCK_POND.name,
+				centre = Config.duckPond(cottage).Position,
+				r = Config.DUCK_POND.r,
+				kind = "pond",
+			})
+		end
+	end
+end
+
+-- A fish by its id, or nil if there isn't one.
+function Config.fish(id: any)
+	for _, fish in Config.FISHING.FISH do
+		if fish.id == id then
+			return fish
+		end
+	end
+	return nil
+end
+
+-- How many of each fish a Fish Book (as saved: { caught = { fish = count } }) has.
+function Config.fishCaught(book: any): { [string]: number }
+	local caught = if typeof(book) == "table" and typeof(book.caught) == "table" then book.caught else {}
+	local counts = {}
+	for _, fish in Config.FISHING.FISH do
+		local n = caught[fish.id]
+		if typeof(n) == "number" and n > 0 then
+			counts[fish.id] = n
+		end
+	end
+	return counts
+end
+
+-- Is every fish in the book?
+function Config.fishBookFull(book: any): boolean
+	local caught = Config.fishCaught(book)
+	for _, fish in Config.FISHING.FISH do
+		if not caught[fish.id] then
+			return false
+		end
+	end
+	return true
 end
 
 ---------------------------------------------------------------- pets
@@ -531,6 +639,7 @@ Config.REMOTE_LIMITS = {
 	ChooseAdventure = { calls = 4, seconds = 2 }, -- choosing an Adventure on the Goals screen (server/Goals)
 	Emote = { calls = 4, seconds = 3 }, -- waving, cheering, dancing, sitting (server/Emotes)
 	Cafe = { calls = 8, seconds = 2 }, -- starting a shift, picking up food, serving (server/places/Cafe)
+	Fish = { calls = 6, seconds = 2 }, -- casting, reeling in, putting the rod away (server/Fishing)
 }
 -- Changing clothes rebuilds your animal. Quick changes are saved up and done together, at
 -- most this often (seconds), so nobody's animal is rebuilt many times a second.
@@ -556,6 +665,7 @@ Config.BADGES = {
 	coins = 210790741519207, -- earned Config.BADGE_COINS coins in all (Coin Collector)
 	week = 1161193825742019, -- got the day 7 present (Seven Sunny Days)
 	allGoals = 2034554655062774, -- finished all the goals (Sunnyfolk Explorer)
+	fishBook = 0, -- filled the Fish Book (FISH_BOOK_BADGE_ID: make it, then paste its id here)
 }
 Config.BADGE_COINS = 100
 Config.BADGE_RETRY_SECONDS = 60 -- if Roblox couldn't give a badge, wait this long before asking again
@@ -622,6 +732,9 @@ Config.UI = {
 	-- and it would only cover what you came to see.
 	GOAL_PIN_ARRIVED = 25,
 	GOAL_PIN_GAP = 12, -- pixels between a garden bed's sign and the goal's pin above it
+	-- The note on a gate that isn't open yet ("Fern's Garden opens once...") shows only this
+	-- close (studs), when you're at the gate, so it doesn't hang in the sky over the town.
+	GATE_SIGN_DISTANCE = 30,
 }
 
 ---------------------------------------------------------------- emotes

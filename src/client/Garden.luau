@@ -458,7 +458,8 @@ function Garden.start()
 	local sign = Ui.new("BillboardGui", {
 		Size = UDim2.fromOffset(230, 64),
 		StudsOffsetWorldSpace = Vector3.new(0, 2.2 * S, 0),
-		MaxDistance = 60,
+		MaxDistance = Config.UI.GATE_SIGN_DISTANCE, -- only once you're at the gate
+		AlwaysOnTop = true, -- (so the arch's posts never cut through it)
 		LightInfluence = 0,
 		Adornee = ribbon,
 		Parent = barrier,
